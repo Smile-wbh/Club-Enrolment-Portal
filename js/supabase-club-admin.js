@@ -1,8 +1,48 @@
 (function (window) {
   'use strict';
 
+  var DEMO_CLUB_SLUGS = {
+    football: true,
+    badminton: true,
+    swimming: true,
+    cycling: true,
+    programming: true,
+    tennis: true,
+    music: true,
+    running: true,
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true
+  };
+
+  var DEMO_COURSE_SLUGS = {
+    'badminton-serve-fundamentals': true,
+    'football-passing-basics': true,
+    'swimming-breathing-and-stroke': true,
+    'cycling-route-planning': true,
+    'programming-html-css-foundations': true,
+    'tennis-serve-and-rally-basics': true,
+    'music-ensemble-rehearsal-skills': true,
+    'running-endurance-rhythm': true,
+    'basketball-shooting-and-spacing': true,
+    'golf-swing-basics': true,
+    'rugby-contact-and-shape': true,
+    'handball-attack-defense-core': true,
+    'gymnastics-core-movement-flexibility': true
+  };
+
   function trimText(value) {
     return String(value || '').trim();
+  }
+
+  function isDemoClubSlug(value) {
+    return !!DEMO_CLUB_SLUGS[trimText(value).toLowerCase()];
+  }
+
+  function isDemoCourseSlug(value) {
+    return !!DEMO_COURSE_SLUGS[trimText(value).toLowerCase()];
   }
 
   function normalizeEmail(value) {
@@ -245,7 +285,10 @@
 
     if (clubResult.error) throw clubResult.error;
 
-    var clubs = (clubResult.data || []).map(mapClubRow).filter(Boolean);
+    var clubs = (clubResult.data || [])
+      .map(mapClubRow)
+      .filter(Boolean)
+      .filter(function (club) { return !isDemoClubSlug(club.slug); });
     var clubIds = clubs.map(function (club) { return trimText(club.id); }).filter(Boolean);
 
     if (!clubIds.length) {
@@ -283,7 +326,10 @@
       clubs: clubs,
       members: (membersResult.data || []).map(mapMemberRow).filter(Boolean),
       bookings: (bookingsResult.data || []).map(mapBookingRow).filter(Boolean),
-      courses: (coursesResult.data || []).map(mapCourseRow).filter(Boolean)
+      courses: (coursesResult.data || [])
+        .map(mapCourseRow)
+        .filter(Boolean)
+        .filter(function (course) { return !isDemoCourseSlug(course.slug); })
     };
   }
 
