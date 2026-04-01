@@ -12,8 +12,8 @@
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
-  gap: 14px;
-  min-height: 78px;
+  gap: 18px;
+  min-height: 84px;
 }
 
 .portal-header .brand {
@@ -59,7 +59,7 @@
   color: rgba(255, 255, 255, 0.78);
 }
 
-.top-nav {
+.portal-header .top-nav {
   display: flex;
   justify-content: space-between;
   gap: 10px;
@@ -70,19 +70,19 @@
   scrollbar-width: none;
 }
 
-.top-nav::-webkit-scrollbar {
+.portal-header .top-nav::-webkit-scrollbar {
   display: none;
 }
 
-.top-nav a {
+.portal-header .top-nav a {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 999px;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.84);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   flex: 1 1 0;
@@ -91,21 +91,21 @@
   transition: none;
 }
 
-.top-nav a:hover,
-.top-nav a.active {
+.portal-header .top-nav a:hover,
+.portal-header .top-nav a.active {
   background: rgba(255, 255, 255, 0.16);
   color: #fff;
 }
 
-.top-actions {
+.portal-header .top-actions {
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
   flex: 0 0 auto;
 }
 
-.top-btn {
+.portal-header .top-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -118,18 +118,18 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.top-btn.light {
+.portal-header .top-btn.light {
   background: #fff;
   color: #1f4e8c;
 }
 
-.top-btn.accent {
+.portal-header .top-btn.accent {
   background: linear-gradient(135deg, #f0a12f, #de6f1c);
   color: #fff;
   box-shadow: 0 10px 18px rgba(224, 111, 28, 0.28);
 }
 
-.top-btn:hover {
+.portal-header .top-btn:hover {
   transform: translateY(-1px);
   box-shadow: 0 8px 16px rgba(19, 41, 75, 0.12);
 }
@@ -157,6 +157,7 @@
   -webkit-backdrop-filter: blur(10px);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   max-width: min(320px, 36vw);
+  position: relative;
 }
 
 .top-actions .portal-user-chip:hover {
@@ -168,10 +169,35 @@
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  object-fit: cover;
   flex: 0 0 auto;
   border: 3px solid rgba(255, 255, 255, 0.34);
   box-shadow: 0 8px 18px rgba(12, 24, 46, 0.18);
+  background: linear-gradient(135deg, #eef4ff, #d5e3fb);
+  color: #38537d;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.top-actions .portal-user-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.top-actions .portal-user-avatar-text {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  font-size: 18px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
 }
 
 .top-actions .portal-user-meta {
@@ -179,6 +205,29 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.top-actions .portal-user-alert-badge,
+.top-actions .portal-menu-badge {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #ff9b24, #ff6b00);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.top-actions .portal-user-alert-badge {
+  position: absolute;
+  top: 4px;
+  right: 26px;
+  box-shadow: 0 8px 16px rgba(255, 123, 0, 0.26);
 }
 
 .top-actions .portal-user-name {
@@ -228,6 +277,13 @@
   gap: 4px;
 }
 
+.top-actions .portal-profile-item-with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .top-actions .portal-profile-menu[hidden] {
   display: none;
 }
@@ -273,7 +329,7 @@
     padding-bottom: 12px;
   }
 
-  .top-nav {
+  .portal-header .top-nav {
     order: 3;
     grid-column: 1 / -1;
     width: 100%;
@@ -282,7 +338,7 @@
     overflow: visible;
   }
 
-  .top-nav a {
+  .portal-header .top-nav a {
     padding: 8px 8px;
     font-size: 12px;
   }
@@ -337,7 +393,7 @@
     font-size: 12px;
   }
 
-  .top-nav {
+  .portal-header .top-nav {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
@@ -345,13 +401,13 @@
     overflow: visible;
   }
 
-  .top-nav a {
+  .portal-header .top-nav a {
     flex: initial;
     padding: 8px 10px;
     font-size: 13px;
   }
 
-  .top-actions {
+  .portal-header .top-actions {
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-start;
@@ -375,7 +431,7 @@
 }
 
 @media (max-width: 520px) {
-  .top-nav {
+  .portal-header .top-nav {
     grid-template-columns: 1fr;
   }
 }

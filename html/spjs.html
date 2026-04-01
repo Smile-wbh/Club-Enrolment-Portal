@@ -273,14 +273,15 @@
                                 <span class="post-name">{{ displayNameForEntity(p) }}</span>
                               </div>
                               <div class="post-topbar-actions">
-                                <div v-if="!isMyPost(p)" class="post-follow-wrap" :class="{ 'menu-open': activePostFollowMenuId === p.id }" @mouseleave="closePostFollowMenu">
-                                  <button class="post-follow-trigger" :class="{ followed: isAuthorFollowed(p) }" type="button" @click.stop="handlePostFollowClick(p)" @mouseenter="openPostFollowMenu(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
-                                  <div class="post-follow-menu" v-if="isAuthorFollowed(p)">
-                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Added to close friends')">Add to Close Friends</button>
-                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Group settings opened.')">Group Settings</button>
-                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Note settings opened.')">Note Settings</button>
-                                    <button class="post-follow-menu-item danger" type="button" @click.stop="unfollowAuthorFromPost(p)">Unfollow</button>
-                                  </div>
+                                <div v-if="!isMyPost(p)" class="post-follow-wrap">
+                                  <button
+                                    class="post-follow-trigger"
+                                    :class="{ followed: isAuthorFollowed(p), 'unfollow-intent': isPostFollowUnfollowIntent(p) }"
+                                    type="button"
+                                    @click.stop="handlePostFollowClick(p)"
+                                    @mouseenter="setPostFollowHover(p, true)"
+                                    @mouseleave="setPostFollowHover(p, false)"
+                                  >{{ postFollowButtonText(p) }}</button>
                                 </div>
                                 <div class="post-menu-wrap" :class="{ open: activePostMenuId === p.id }" @click.stop>
                                   <button class="post-menu-trigger" type="button" @click.stop="togglePostMenu(p.id)" :aria-expanded="activePostMenuId === p.id ? 'true' : 'false'" aria-label="More post actions">
@@ -526,16 +527,17 @@
                       <div class="profile-center-sub">Active in Club Forum · Most active club {{ profileMainClub }}</div>
                     </div>
                     <div class="profile-hero-actions">
-                      <div class="profile-follow-wrap" :class="{ 'menu-open': followMenuOpen }" @mouseleave="followMenuOpen = false">
-                        <button class="profile-hero-action" :class="{ primary: !isFollowingProfile, followed: isFollowingProfile }" type="button" @click="handleFollowClick">
-                          {{ isFollowingProfile ? 'Following' : '+Follow' }}
+                      <div class="profile-follow-wrap">
+                        <button
+                          class="profile-hero-action"
+                          :class="{ primary: !isFollowingProfile, followed: isFollowingProfile, 'unfollow-intent': isProfileUnfollowIntent }"
+                          type="button"
+                          @click="handleFollowClick"
+                          @mouseenter="setProfileFollowHover(true)"
+                          @mouseleave="setProfileFollowHover(false)"
+                        >
+                          {{ profileFollowButtonText }}
                         </button>
-                        <div class="profile-follow-menu" v-if="isFollowingProfile">
-                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Added to close friends')">Add to Close Friends</button>
-                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Group settings opened.')">Group Settings</button>
-                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Note settings opened.')">Note Settings</button>
-                          <button class="profile-follow-menu-item danger" type="button" @click="unfollowProfile">Unfollow</button>
-                        </div>
                       </div>
                       <button class="profile-hero-action" type="button" @click="openProfileMessage">Send Message</button>
                       <div class="profile-more-wrap" :class="{ 'menu-open': moreMenuOpen }" @mouseleave="moreMenuOpen = false">
@@ -597,14 +599,15 @@
                           <div class="profile-center-post-top">
                             <div class="profile-center-post-author">{{ displayNameForEntity(p) }}</div>
                             <div class="post-topbar-actions">
-                              <div v-if="!isMyPost(p)" class="post-follow-wrap" :class="{ 'menu-open': activePostFollowMenuId === p.id }" @mouseleave="closePostFollowMenu">
-                                <button class="post-follow-trigger" :class="{ followed: isAuthorFollowed(p) }" type="button" @click.stop="handlePostFollowClick(p)" @mouseenter="openPostFollowMenu(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
-                                <div class="post-follow-menu" v-if="isAuthorFollowed(p)">
-                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Added to close friends')">Add to Close Friends</button>
-                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Group settings opened.')">Group Settings</button>
-                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Note settings opened.')">Note Settings</button>
-                                  <button class="post-follow-menu-item danger" type="button" @click.stop="unfollowAuthorFromPost(p)">Unfollow</button>
-                                </div>
+                              <div v-if="!isMyPost(p)" class="post-follow-wrap">
+                                <button
+                                  class="post-follow-trigger"
+                                  :class="{ followed: isAuthorFollowed(p), 'unfollow-intent': isPostFollowUnfollowIntent(p) }"
+                                  type="button"
+                                  @click.stop="handlePostFollowClick(p)"
+                                  @mouseenter="setPostFollowHover(p, true)"
+                                  @mouseleave="setPostFollowHover(p, false)"
+                                >{{ postFollowButtonText(p) }}</button>
                               </div>
                               <div class="post-menu-wrap" :class="{ open: activePostMenuId === p.id }" @click.stop>
                                 <button class="post-menu-trigger" type="button" @click.stop="togglePostMenu(p.id)" :aria-expanded="activePostMenuId === p.id ? 'true' : 'false'" aria-label="More post actions">
@@ -960,6 +963,19 @@
     </div>
   </div>
 
+  <div class="modal-mask unfollow-confirm-mask" v-if="showUnfollowConfirmModal" @click.self="closeUnfollowConfirm">
+    <div class="unfollow-confirm-dialog">
+      <div class="unfollow-confirm-title">Unfollow @{{ unfollowConfirmName }}?</div>
+      <div class="unfollow-confirm-copy">
+        Their posts will no longer show up in your Following timeline. You can still view their profile, unless their posts are protected.
+      </div>
+      <div class="unfollow-confirm-actions">
+        <button class="unfollow-confirm-primary" type="button" @click="confirmUnfollow">Unfollow</button>
+        <button class="unfollow-confirm-secondary" type="button" @click="closeUnfollowConfirm">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-links">
@@ -990,6 +1006,8 @@
         profileTab:'Posts',
         followMenuOpen:false,
         activePostFollowMenuId:null,
+        hoveredPostFollowId:null,
+        hoveredProfileFollow:false,
         moreMenuOpen:false,
         activePostMenuId:null,
         currentId:null,
@@ -1005,6 +1023,8 @@
         replyModalImageUrl:'',
         replyModalSync:false,
         showDeleteCommentModal:false,
+        showUnfollowConfirmModal:false,
+        unfollowConfirmName:'',
         deleteTargetPostId:null,
         deleteTargetCommentId:null,
         activeCommentPostId:null,
@@ -1071,6 +1091,13 @@
       isFollowingProfile(){
         const name = String(this.profileUserName || '').trim();
         return !!name && this.followedAuthors.includes(name);
+      },
+      isProfileUnfollowIntent(){
+        return !!this.isFollowingProfile && !!this.hoveredProfileFollow;
+      },
+      profileFollowButtonText(){
+        if(!this.isFollowingProfile) return 'Follow';
+        return this.isProfileUnfollowIntent ? 'Unfollow' : 'Following';
       },
       sessionDisplayName(){
         const nickname = String(this.sessionNickname || '').trim();
@@ -1543,6 +1570,46 @@
       closePostFollowMenu(){
         this.activePostFollowMenuId = null;
       },
+      setPostFollowHover(post, shouldHover){
+        const id = this.normalizeId(post && post.id);
+        if(!id) return;
+        this.hoveredPostFollowId = shouldHover ? id : (this.hoveredPostFollowId === id ? null : this.hoveredPostFollowId);
+      },
+      isPostFollowUnfollowIntent(post){
+        const id = this.normalizeId(post && post.id);
+        return !!id && this.isAuthorFollowed(post) && this.hoveredPostFollowId === id;
+      },
+      postFollowButtonText(post){
+        if(!this.isAuthorFollowed(post)) return 'Follow';
+        return this.isPostFollowUnfollowIntent(post) ? 'Unfollow' : 'Following';
+      },
+      setProfileFollowHover(shouldHover){
+        this.hoveredProfileFollow = !!shouldHover;
+      },
+      openUnfollowConfirm(name){
+        const targetName = String(name || '').trim();
+        if(!targetName) return;
+        this.unfollowConfirmName = targetName;
+        this.showUnfollowConfirmModal = true;
+        this.followMenuOpen = false;
+        this.closePostFollowMenu();
+      },
+      closeUnfollowConfirm(){
+        this.showUnfollowConfirmModal = false;
+        this.unfollowConfirmName = '';
+        this.hoveredPostFollowId = null;
+        this.hoveredProfileFollow = false;
+      },
+      confirmUnfollow(){
+        const name = String(this.unfollowConfirmName || '').trim();
+        if(name){
+          this.followedAuthors = this.followedAuthors.filter(item => item !== name);
+          this.saveFollowState();
+        }
+        this.hoveredPostFollowId = null;
+        this.hoveredProfileFollow = false;
+        this.closeUnfollowConfirm();
+      },
       handleWindowClick(){
         this.closePostMenu();
         this.closePostFollowMenu();
@@ -1624,9 +1691,7 @@
           this.followAuthorFromPost(post);
           return;
         }
-        const id = this.normalizeId(post.id);
-        if(!id) return;
-        this.activePostFollowMenuId = this.activePostFollowMenuId === id ? null : id;
+        this.openUnfollowConfirm(this.displayNameForEntity(post));
       },
       followAuthorFromPost(post){
         const name = this.displayNameForEntity(post);
@@ -1636,14 +1701,12 @@
           this.followedAuthors = this.followedAuthors.concat(name);
           this.saveFollowState();
         }
-        this.activePostFollowMenuId = this.normalizeId(post.id) || null;
+        this.hoveredPostFollowId = null;
       },
       unfollowAuthorFromPost(post){
         const name = this.displayNameForEntity(post);
         if(!name || this.isMyPost(post)) return;
-        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
-        this.saveFollowState();
-        this.closePostFollowMenu();
+        this.openUnfollowConfirm(name);
       },
       notifyPostFollowAction(text){
         this.closePostFollowMenu();
@@ -1730,6 +1793,8 @@
           if(name !== this.profileUserName){
             this.profileTab = 'Posts';
             this.followMenuOpen = false;
+            this.hoveredProfileFollow = false;
+            this.closeUnfollowConfirm();
             this.moreMenuOpen = false;
           }
           this.profileUserName = name;
@@ -1737,6 +1802,8 @@
           this.profileUserName = '';
           this.profileTab = 'Posts';
           this.followMenuOpen = false;
+          this.hoveredProfileFollow = false;
+          this.closeUnfollowConfirm();
           this.moreMenuOpen = false;
         }
       },
@@ -2154,17 +2221,16 @@
         if(!this.isFollowingProfile){
           this.followedAuthors = this.followedAuthors.concat(name);
           this.saveFollowState();
+          this.hoveredProfileFollow = false;
           this.followMenuOpen = false;
           return;
         }
-        this.followMenuOpen = !this.followMenuOpen;
+        this.openUnfollowConfirm(name);
       },
       unfollowProfile(){
         const name = String(this.profileUserName || '').trim();
         if(!name) return;
-        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
-        this.saveFollowState();
-        this.followMenuOpen = false;
+        this.openUnfollowConfirm(name);
       },
       notifyFollowAction(text){
         this.followMenuOpen = false;
@@ -2512,6 +2578,9 @@
       },
       closeUserProfile(){
         this.closePostMenu();
+        this.closeUnfollowConfirm();
+        this.hoveredPostFollowId = null;
+        this.hoveredProfileFollow = false;
         this.profileRemoteCoverUrl = '';
         this.profileRemoteCoverFor = '';
         this.profileCoverLoading = false;

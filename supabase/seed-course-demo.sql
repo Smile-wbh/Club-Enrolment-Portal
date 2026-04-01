@@ -1,4 +1,5 @@
 -- Demo course data for mfms.html and mfms-detail.html
+-- Development/staging only. Do not run this in production once you have real course content.
 -- Run this after schema.sql and after seed-booking-demo.sql.
 
 with course_data(

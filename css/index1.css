@@ -212,10 +212,10 @@ img {
   z-index: 4;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: min(50%, 560px);
+  align-items: flex-start;
+  width: min(68%, 920px);
   padding: 0;
-  text-align: center;
+  text-align: left;
   transform: translateY(-50%);
 }
 
@@ -229,19 +229,20 @@ img {
 
 .hero-copy h1 {
   margin: 0 0 14px;
-  max-width: none;
+  max-width: 18ch;
   color: #fff;
   font-size: clamp(26px, 3.6vw, 44px);
   line-height: 1.15;
   font-weight: 800;
-  white-space: nowrap;
+  white-space: normal;
+  text-wrap: balance;
   text-shadow: 0 8px 24px rgba(15, 27, 52, 0.28);
 }
 
 .hero-actions {
   display: flex;
   flex-wrap: nowrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 14px;
   margin-top: 26px;
 }
@@ -1297,7 +1298,7 @@ img {
   .hero-copy {
     top: 44px;
     left: 42px;
-    width: min(54%, 520px);
+    width: min(62%, 760px);
   }
 
   .portal-grid {
@@ -1327,7 +1328,7 @@ img {
   .hero-copy {
     top: 50%;
     left: 28px;
-    width: min(54%, 500px);
+    width: min(64%, 700px);
   }
 
   .hero-copy h1 {

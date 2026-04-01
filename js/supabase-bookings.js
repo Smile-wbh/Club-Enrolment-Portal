@@ -168,7 +168,14 @@
     return (Array.isArray(clubs) ? clubs : []).map(function (club) {
       var grouped = slotGroups[trimText(club.id)] || {};
       var template = buildTemplateSlots(grouped, Number(club && club.seats || 0));
+      var timeSummary = trimText(club && club.time_text);
       var normalizedByDay = {};
+
+      if (!timeSummary && template.length) {
+        timeSummary = template.slice(0, 2).map(function (slot) {
+          return trimText(slot && slot.time);
+        }).filter(Boolean).join(' / ');
+      }
 
       Object.keys(grouped).forEach(function (dayIso) {
         normalizedByDay[dayIso] = (Array.isArray(grouped[dayIso]) ? grouped[dayIso] : []).slice().sort(function (a, b) {
@@ -211,11 +218,20 @@
         category: trimText(club.category) || 'Sports',
         mode: trimText(club.mode) || 'In-person',
         location: trimText(club.location) || 'Location TBD',
+        mapLink: trimText(club.map_link),
+        onlineLink: trimText(club.online_link),
+        time: timeSummary,
         seats: Number(club.seats || 0) || 20,
         fee: trimText(club.fee_text) || '£0',
         cover: trimText(club.cover_url) || '../zp/ymq.webp',
         tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map(function (tag) { return trimText(tag); }) : [],
         desc: trimText(club.description || club.hero_sub),
+        heroSub: trimText(club.hero_sub),
+        venueInfo: trimText(club.venue_info),
+        whatWeDo: trimText(club.what_we_do),
+        audience: trimText(club.audience),
+        trainingPlan: trimText(club.training_plan),
+        notes: trimText(club.notes),
         slots: template,
         slotsByDay: normalizedByDay
       };
@@ -233,7 +249,7 @@
 
     var clubQuery = client
       .from('clubs')
-      .select('id, slug, name, category, mode, location, fee_text, cover_url, tags, description, hero_sub, seats, status')
+      .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status')
       .order('name', { ascending: true });
 
     var slotQuery = client

@@ -39,15 +39,23 @@
       <div class="club-top-actions">
         <div class="header-user-wrap" id="topProfileWrap">
           <button id="topProfileToggle" class="header-user-chip" type="button" aria-expanded="false" aria-controls="topProfileMenu">
-            <img id="sidebarAvatar" src="../zp/hb1.webp" alt="avatar">
+            <span class="header-user-avatar" id="sidebarAvatarWrap">
+              <img id="sidebarAvatar" src="../zp/hb1.webp" alt="avatar" hidden>
+              <span id="sidebarAvatarText" class="header-user-avatar-text">US</span>
+            </span>
             <div>
               <div class="user-chip-name" id="sidebarName">User</div>
               <div class="user-chip-sub" id="sidebarEmail">Not logged in</div>
             </div>
+            <span class="header-user-alert-badge" id="topMessageBadge" hidden>0</span>
             <span class="header-user-arrow" id="topProfileArrow">▼</span>
           </button>
               <div class="header-profile-menu" id="topProfileMenu" hidden>
                 <a class="header-profile-item" href="join.html?tab=home">User Dashboard</a>
+                <a class="header-profile-item header-profile-item-with-badge" id="topMessagesLink" href="join.html?tab=messages">
+                  <span>Messages</span>
+                  <span class="header-menu-badge" id="topMessagesMenuBadge" hidden>0</span>
+                </a>
                 <a class="header-profile-item active" href="club_management_dashboard.html">My Club Dashboard</a>
                 <a class="header-profile-item" href="settings.html">Settings</a>
               </div>
@@ -800,6 +808,103 @@
         localStorage.setItem(key, JSON.stringify(value));
       }
 
+      function normalizeEmail(value){
+        return typeof value === 'string' ? value.trim().toLowerCase() : '';
+      }
+
+      function buildInitials(value){
+        var source = String(value || '').replace(/\s+/g, '').trim();
+        if(!source) return 'US';
+        return Array.from(source).slice(0, 2).join('').toUpperCase();
+      }
+
+      function parseTimeValue(value){
+        var text = String(value || '').trim();
+        if(!text) return 0;
+        var parsed = Date.parse(text);
+        return Number.isNaN(parsed) ? 0 : parsed;
+      }
+
+      function readJsonArray(key){
+        try{
+          var raw = localStorage.getItem(key);
+          var parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        }catch(e){
+          return [];
+        }
+      }
+
+      function notificationSeenKey(session){
+        var userKey = String((session && (session.userId || session.email)) || '').trim();
+        return 'user_notifications_seen_v1:' + (userKey || 'guest');
+      }
+
+      function readNotificationSeenAt(session){
+        try{
+          return Number(localStorage.getItem(notificationSeenKey(session)) || 0) || 0;
+        }catch(e){
+          return 0;
+        }
+      }
+
+      function currentAliases(session, user){
+        var email = normalizeEmail(session && session.email);
+        var nickname = String((user && user.nickname) || (session && session.nickname) || '').trim().toLowerCase();
+        var aliases = [
+          nickname,
+          email,
+          email ? email.split('@')[0] : ''
+        ].filter(Boolean);
+        return Array.from(new Set(aliases));
+      }
+
+      function countUnreadNotifications(session, user){
+        if(!session) return 0;
+
+        var seenAt = readNotificationSeenAt(session);
+        var email = normalizeEmail(session && session.email);
+        var userId = String((session && session.userId) || '').trim();
+        var aliases = currentAliases(session, user);
+
+        var messageUnread = readJsonArray('user_message_board_v1').filter(function(item){
+          var targetUserId = String((item && item.targetUserId) || '').trim();
+          var targetEmail = normalizeEmail(item && item.targetEmail);
+          var targetName = String((item && item.targetName) || '').trim().toLowerCase();
+          var fromUserId = String((item && item.fromUserId) || '').trim();
+          var fromEmail = normalizeEmail(item && item.fromEmail);
+          var fromName = String((item && item.fromName) || '').trim().toLowerCase();
+          var isReceived = (userId && targetUserId && userId === targetUserId)
+            || (email && targetEmail && email === targetEmail)
+            || (!!targetName && aliases.indexOf(targetName) > -1);
+          var isSent = (userId && fromUserId && userId === fromUserId)
+            || (email && fromEmail && email === fromEmail)
+            || (!!fromName && aliases.indexOf(fromName) > -1);
+          if(!isReceived || isSent) return false;
+          var createdTs = Number(item && item.createdTs) || parseTimeValue(item && item.createdAt) || 0;
+          return createdTs > seenAt;
+        }).length;
+
+        var bookingUnread = readJsonArray(KEYS.bookings).filter(function(item){
+          if(String((item && item.status) || '').trim().toLowerCase() === 'cancelled') return false;
+          var bookingUserId = String((item && item.userId) || '').trim();
+          var bookingEmail = normalizeEmail(item && item.userEmail);
+          var matches = (userId && bookingUserId && userId === bookingUserId)
+            || (email && bookingEmail && email === bookingEmail);
+          if(!matches) return false;
+          var createdTs = parseTimeValue(item && item.createdAt);
+          if(!createdTs){
+            createdTs = parseTimeValue([
+              String((item && item.dayIso) || '').trim(),
+              String((item && item.slotTime) || '').trim()
+            ].filter(Boolean).join(' '));
+          }
+          return createdTs > seenAt;
+        }).length;
+
+        return messageUnread + bookingUnread;
+      }
+
       function getSupabaseClientSafe(){
         try{
           return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
@@ -1433,7 +1538,10 @@
       function renderProfile(){
         var displayName = (state.user && state.user.nickname) || state.sessionNick || 'User';
         var displayEmail = state.sessionEmail || 'Not logged in';
-        var avatar = (state.user && state.user.avatar) || '../zp/hb1.webp';
+        var avatar = String((state.user && state.user.avatar) || '').trim();
+        var initials = buildInitials(displayName);
+        var unreadCount = countUnreadNotifications(state.session, state.user);
+        var unreadText = unreadCount > 99 ? '99+' : String(unreadCount || '');
 
         document.querySelectorAll('#sidebarName').forEach(function(el){
           el.textContent = displayName;
@@ -1442,7 +1550,20 @@
           el.textContent = displayEmail;
         });
         document.querySelectorAll('#sidebarAvatar').forEach(function(el){
-          el.src = avatar;
+          if(avatar){
+            el.src = avatar;
+            el.hidden = false;
+          }else{
+            el.hidden = true;
+          }
+        });
+        document.querySelectorAll('#sidebarAvatarText').forEach(function(el){
+          el.textContent = initials;
+          el.hidden = !!avatar;
+        });
+        document.querySelectorAll('#topMessageBadge, #topMessagesMenuBadge').forEach(function(el){
+          el.textContent = unreadText;
+          el.hidden = unreadCount <= 0;
         });
         var topManagerName = document.getElementById('topManagerName');
         if(topManagerName){
@@ -2958,6 +3079,30 @@
         document.addEventListener('keydown', function(event){
           if(event.key === 'Escape'){
             setTopProfileMenuOpen(false);
+          }
+        });
+
+        window.addEventListener('storage', function(event){
+          var key = String((event && event.key) || '');
+          if(
+            key === KEYS.session
+            || key === KEYS.users
+            || key === KEYS.bookings
+            || key === 'user_message_board_v1'
+            || key.indexOf('user_notifications_seen_v1:') === 0
+          ){
+            refreshState()
+              .then(function(){
+                renderProfile();
+                if(!state.sessionEmail){
+                  document.body.classList.add('guest-mode');
+                }else{
+                  document.body.classList.remove('guest-mode');
+                }
+              })
+              .catch(function(error){
+                console.warn('Club dashboard header sync failed.', error);
+              });
           }
         });
 

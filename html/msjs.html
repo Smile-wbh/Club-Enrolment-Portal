@@ -6,6 +6,10 @@
   <title>Club Preview - Club Enrollment Portal</title>
   <script src="../js/vue.js"></script>
   <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-bookings.js"></script>
   <link rel="stylesheet" href="../css/msjs.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
@@ -235,11 +239,19 @@
   const previewApp = new Vue({
     el: '#app',
     data() {
+      const bookingService = window.clubBookingSupabase || null;
+      const cloudClubCatalogEnabled = !!(
+        bookingService &&
+        typeof bookingService.isConfigured === 'function' &&
+        bookingService.isConfigured()
+      );
       return {
         q: '',
         category: '',
         mode: '',
         sortBy: 'name',
+        supabaseClubs: [],
+        cloudClubCatalogEnabled: cloudClubCatalogEnabled,
         detailPageSlugs: [
           'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
           'basketball', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
@@ -372,6 +384,7 @@
       this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
       this.applyQueryFromUrl();
       this.refreshRegistryState();
+      this.syncSupabaseClubPreviewData();
       window.addEventListener('storage', this.onStorageChange);
       window.addEventListener('pageshow', this.refreshRegistryState);
       document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -443,6 +456,56 @@
       }
     },
     methods: {
+      getBookingService() {
+        return window.clubBookingSupabase || null;
+      },
+
+      hasSupabaseBookings() {
+        const service = this.getBookingService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+
+      bookingRange(days = 42) {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        const end = new Date(start);
+        end.setDate(end.getDate() + days);
+        const format = (value) => {
+          const year = value.getFullYear();
+          const month = String(value.getMonth() + 1).padStart(2, '0');
+          const day = String(value.getDate()).padStart(2, '0');
+          return `${year}-${month}-${day}`;
+        };
+        return {
+          startDate: format(start),
+          endDate: format(end)
+        };
+      },
+
+      async syncSupabaseClubPreviewData() {
+        const service = this.getBookingService();
+        if (!service || !service.isConfigured()) {
+          this.supabaseClubs = [];
+          this.cloudClubCatalogEnabled = false;
+          this.refreshRegistryState();
+          return false;
+        }
+
+        try {
+          const catalog = await service.fetchClubCatalog(this.bookingRange(42));
+          this.supabaseClubs = Array.isArray(catalog && catalog.clubs) ? catalog.clubs : [];
+          this.cloudClubCatalogEnabled = true;
+          this.refreshRegistryState();
+          return true;
+        } catch (error) {
+          console.warn('Unable to sync club preview data from Supabase.', error);
+          this.supabaseClubs = [];
+          this.cloudClubCatalogEnabled = false;
+          this.refreshRegistryState();
+          return false;
+        }
+      },
+
       keyRegistry() {
         return 'club_registry_v1';
       },
@@ -524,14 +587,18 @@
 
       refreshRegistryState() {
         const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []));
+        const supabase = (this.supabaseClubs || [])
+          .map((c) => this.mapRegistryClub(c))
+          .filter((c) => c.slug);
         const reg = this.loadRegistry();
         const mapped = reg
           .map((c) => this.mapRegistryClub(c))
           .filter((c) => c.slug);
         const seen = new Set();
         const next = [];
+        const catalog = this.cloudClubCatalogEnabled ? supabase : mapped.concat(base);
 
-        mapped.concat(base).forEach((club) => {
+        catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;
           seen.add(club.slug);
           next.push(club);
@@ -547,7 +614,11 @@
 
       onVisibilityChange() {
         if (document.visibilityState === 'visible') {
-          this.refreshRegistryState();
+          if (this.hasSupabaseBookings()) {
+            this.syncSupabaseClubPreviewData();
+          } else {
+            this.refreshRegistryState();
+          }
         }
       }
     }

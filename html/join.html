@@ -317,15 +317,23 @@
         <div class="user-top-actions">
           <div class="header-user-wrap" ref="headerProfileWrap">
             <button class="header-user-identity" type="button" @click.stop="toggleHeaderProfileMenu">
-              <img :src="profile.avatar || '../zp/hb1.webp'" class="header-user-avatar" onerror="this.src='https://via.placeholder.com/32'">
+              <span class="header-user-avatar" :class="{ 'has-image': !!profileAvatarSrc }">
+                <img v-if="profileAvatarSrc" :src="profileAvatarSrc" :alt="profileDisplayName + ' avatar'">
+                <span v-else class="header-user-avatar-text">{{ profileAvatarText }}</span>
+              </span>
               <span class="header-user-meta">
                 <span class="header-user-name">{{ profile.nickname || (sessionEmail ? sessionEmail.split('@')[0] : 'User') }}</span>
                 <span class="header-user-sub">{{ sessionEmail || 'Not logged in' }}</span>
               </span>
+              <span class="header-message-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
               <span class="header-user-arrow" :class="{open: headerProfileOpen}">▼</span>
             </button>
               <div class="header-profile-menu" v-if="headerProfileOpen" @click.stop>
-                <a class="header-profile-item" href="join.html?tab=home">User Dashboard</a>
+                <button class="header-profile-item" type="button" @click="openProfileTab('home')">User Dashboard</button>
+                <button class="header-profile-item header-profile-item-with-badge" type="button" @click="openProfileTab('messages')">
+                  <span>Messages</span>
+                  <span class="header-item-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+                </button>
                 <a class="header-profile-item" v-if="hasClubManagement" href="club_management_dashboard.html">My Club Dashboard</a>
                 <a class="header-profile-item" href="settings.html">Settings</a>
               </div>
@@ -372,6 +380,10 @@
             </div>
           </div>
           
+          <div class="menu-item" :class="{active: dashboardTab==='messages'}" @click="openProfileTab('messages')">
+            <i class="icon">🔔</i> Messages
+            <span class="menu-item-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+          </div>
           <div class="menu-item" :class="{active: dashboardTab==='message_board'}" @click="openProfileTab('message_board')"><i class="icon">💬</i> Message Board</div>
         </div>
       </div>
@@ -508,8 +520,9 @@
 
               <div class="profile-form-shell">
                 <div class="profile-avatar-block">
-                  <button class="profile-avatar-btn" type="button" @click="$refs.avatarInput.click()">
-                    <img :src="profile.avatar || '../zp/hb1.webp'" alt="avatar">
+                  <button class="profile-avatar-btn" :class="{ 'has-image': !!profileAvatarSrc }" type="button" @click="$refs.avatarInput.click()">
+                    <img v-if="profileAvatarSrc" :src="profileAvatarSrc" :alt="profileDisplayName + ' avatar'">
+                    <span v-else class="profile-avatar-initials">{{ profileAvatarText }}</span>
                     <span class="profile-avatar-overlay">Change Avatar</span>
                   </button>
                   <input type="file" ref="avatarInput" accept="image/*" style="display:none" @change="onProfileAvatarChange">
@@ -954,6 +967,25 @@
                   <a href="spjs.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Main Forum</a>
                 </div>
               </div>
+              <div class="content-card message-reply-card" style="min-height:0; margin-bottom:16px;">
+                <div class="message-reply-head">
+                  <div>
+                    <div class="message-reply-title">{{ messageReplyTarget ? 'Reply to ' + messageReplyTarget.targetName : 'Quick Reply' }}</div>
+                    <div class="message-reply-sub">{{ messageReplyTarget ? ('Click Send to reply directly to this message thread.') : 'Click any message below to reply directly to that user.' }}</div>
+                  </div>
+                  <button class="btn ghost" style="min-width:auto;" type="button" v-if="messageReplyTarget" @click="clearMessageBoardReply">Clear</button>
+                </div>
+                <div class="message-reply-target" v-if="messageReplyTarget">
+                  <span class="pill">{{ messageReplyTarget.direction }}</span>
+                  <span>{{ messageReplyTarget.targetName }}</span>
+                  <span class="message-reply-target-email" v-if="messageReplyTarget.targetEmail">{{ messageReplyTarget.targetEmail }}</span>
+                </div>
+                <textarea ref="messageReplyTextarea" class="message-reply-textarea" v-model.trim="messageReplyText" placeholder="Type your reply here..." :disabled="!messageReplyTarget"></textarea>
+                <div class="message-reply-actions">
+                  <span class="hint" v-if="messageReplyStatus">{{ messageReplyStatus }}</span>
+                  <button class="btn btn-blue" type="button" :disabled="!messageReplyTarget || !messageReplyText" @click="sendMessageBoardReply">Send Reply</button>
+                </div>
+              </div>
               <div class="content-card">
                 <table class="data-table">
                   <thead>
@@ -963,21 +995,57 @@
                       <th>Content</th>
                       <th>Source</th>
                       <th>Time</th>
+                      <th>Action</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in messageBoardItems" :key="item.id">
+                    <tr v-for="item in messageBoardItems" :key="item.id" class="message-board-row" @click="openMessageBoardReply(item)">
                       <td>{{ messageBoardDirectionText(item) }}</td>
                       <td>{{ messageBoardSenderText(item) }}</td>
                       <td>{{ item.text || 'No content' }}</td>
                       <td>{{ messageBoardSourceText(item) }}</td>
                       <td>{{ item.createdAt || '-' }}</td>
+                      <td><button class="btn ghost" style="min-width:auto;" type="button" @click.stop="openMessageBoardReply(item)">Reply</button></td>
                     </tr>
                     <tr v-if="messageBoardItems.length === 0">
-                      <td colspan="5" style="text-align:center; padding:40px; color:#999">No message-board activity yet. Messages you receive and messages you leave from forum profile pages will both appear here.</td>
+                      <td colspan="6" style="text-align:center; padding:40px; color:#999">No message-board activity yet. Messages you receive and messages you leave from forum profile pages will both appear here.</td>
                     </tr>
                   </tbody>
                 </table>
+              </div>
+            </div>
+
+            <div v-if="dashboardTab === 'messages'">
+              <div class="page-header">
+                <div class="page-title">Messages</div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <span class="pill gray">{{ unreadNotificationCount }} unread</span>
+                  <button class="btn btn-blue" style="min-width:auto;" @click="refreshMessageCenter">Refresh Messages</button>
+                  <button class="btn ghost" style="min-width:auto;" @click="markNotificationsSeen">Mark All Read</button>
+                </div>
+              </div>
+              <div class="content-card">
+                <div v-if="notificationFeedItems.length" class="message-center-list">
+                  <button
+                    v-for="item in notificationFeedItems"
+                    :key="item.id"
+                    class="message-center-item"
+                    :class="{ unread: !item.read }"
+                    type="button"
+                    @click="openMessageCenterItem(item)"
+                  >
+                    <div class="message-center-icon">{{ item.icon }}</div>
+                    <div class="message-center-copy">
+                      <div class="message-center-topline">
+                        <strong>{{ item.title }}</strong>
+                        <span class="message-center-time">{{ item.createdAt || '-' }}</span>
+                      </div>
+                      <div class="message-center-body">{{ item.body }}</div>
+                    </div>
+                    <span class="message-center-pill" :class="item.kind">{{ item.label }}</span>
+                  </button>
+                </div>
+                <div v-else class="message-center-empty">No new messages yet. Replies from other users and booking confirmations will appear here.</div>
               </div>
             </div>
 
@@ -1148,6 +1216,10 @@
         myPosts: [],
         myFavs: [],
         messageBoardItems: [],
+        notificationSeenTs: 0,
+        messageReplyTarget: null,
+        messageReplyText: '',
+        messageReplyStatus: '',
         consultMessages: [],
         consultQuery: '',
         forumTab: 'Posts',
@@ -1184,6 +1256,54 @@
           })
           .slice()
           .sort((a,b) => (b.createdTs || 0) - (a.createdTs || 0));
+      },
+      notificationFeedItems(){
+        const items = [];
+
+        (Array.isArray(this.messageBoardItems) ? this.messageBoardItems : [])
+          .filter(item => !this.isOutgoingMessageBoardItem(item))
+          .forEach(item => {
+            const createdTs = Number(item && item.createdTs) || 0;
+            items.push({
+              id: 'message-' + String(item && item.id || ''),
+              kind: 'message',
+              icon: '💬',
+              label: 'Reply',
+              title: 'New message from ' + this.messageBoardSenderText(item),
+              body: String((item && item.text) || '').trim() || 'You have received a new message.',
+              createdAt: String((item && item.createdAt) || '').trim(),
+              createdTs: createdTs,
+              read: createdTs > 0 ? createdTs <= this.notificationSeenTs : true,
+              messageItem: item
+            });
+          });
+
+        (Array.isArray(this.myBookings) ? this.myBookings : [])
+          .filter(item => String((item && item.status) || '').toLowerCase() !== 'cancelled')
+          .forEach(item => {
+            const createdTs = this.parseTimeText(item && item.createdAt) || this.getBookingTimestamp(item && item.dayIso, item && item.dayLabel, item && item.slotTime);
+            items.push({
+              id: 'booking-' + String(item && item.id || ''),
+              kind: 'booking',
+              icon: '✅',
+              label: 'Booking',
+              title: 'Booking confirmed',
+              body: [
+                String((item && item.clubName) || '').trim(),
+                String((item && (item.dayLabel || item.dayIso)) || '').trim(),
+                String((item && item.slotTime) || '').trim()
+              ].filter(Boolean).join(' · ') || 'Your club booking has been confirmed.',
+              createdAt: String((item && item.createdAt) || (item && item.dayLabel) || '').trim(),
+              createdTs: createdTs,
+              read: createdTs > 0 ? createdTs <= this.notificationSeenTs : true,
+              bookingItem: item
+            });
+          });
+
+        return items.sort((a, b) => (Number(b && b.createdTs) || 0) - (Number(a && a.createdTs) || 0));
+      },
+      unreadNotificationCount(){
+        return this.notificationFeedItems.filter(item => !item.read).length;
       },
       profileDateText(){
         const d = new Date();
@@ -1244,6 +1364,20 @@
       profilePendingCount(){
         return this.profileRecords.filter(item => item.statusClass === 'warn').length;
       },
+      profileDisplayName(){
+        const nickname = String(this.profile.nickname || '').trim();
+        if(nickname) return nickname;
+        const email = String(this.sessionEmail || '').trim();
+        if(!email) return 'User';
+        return email.split('@')[0] || 'User';
+      },
+      profileAvatarSrc(){
+        return String(this.profile.avatar || '').trim();
+      },
+      profileAvatarText(){
+        const source = String(this.profileDisplayName || 'User').replace(/\s+/g, '').trim() || 'User';
+        return Array.from(source).slice(0, 2).join('').toUpperCase();
+      },
       profileCompletionRate(){
         if(this.profileRecords.length === 0) return 0;
         const completed = this.profileRecords.filter(item => item.statusClass === 'good').length;
@@ -1277,24 +1411,16 @@
         return months;
       },
       forumProfileName(){
-        const nickname = String(this.profile.nickname || '').trim();
-        if(nickname) return nickname;
-        const email = String(this.sessionEmail || '').trim();
-        if(!email) return 'My Forum';
-        return email.split('@')[0] || 'My Forum';
+        return this.profileDisplayName || 'My Forum';
       },
       isFollowingMyForumProfile(){
         return !!this.forumSelfFollowed;
       },
       forumAvatarSrc(){
-        const avatar = String(this.profile.avatar || '').trim();
-        if(avatar) return avatar;
-        const fromPost = this.myPosts.find(p => String((p && p.avatarUrl) || '').trim());
-        return fromPost ? String(fromPost.avatarUrl || '').trim() : '';
+        return this.profileAvatarSrc;
       },
       forumAvatarText(){
-        const text = this.forumProfileName || 'Me';
-        return text.slice(0, 2).toUpperCase();
+        return this.profileAvatarText || 'ME';
       },
       myForumCoverSrc(){
         const remote = String(this.profile.forumCoverUrl || '').trim();
@@ -1386,6 +1512,10 @@
         if(val === 'club_bookings') this.loadMyBookings();
         if(val === 'teaching_bookings') this.loadMyTeachingBookings();
         if(val === 'forum') this.loadMyPosts();
+        if(val === 'messages'){
+          this.refreshMessageCenter();
+          this.markNotificationsSeen();
+        }
         if(val === 'message_board') this.loadMyMessageBoard();
         if(val === 'consults') this.loadConsultMessages();
         if(val === 'favs') this.loadMyFavs();
@@ -1403,7 +1533,7 @@
       // Handle query params
       const params = new URLSearchParams(location.search);
       const tab = params.get('tab');
-      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','message_board','consults','favs'].includes(tab)){
+      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','messages','message_board','consults','favs'].includes(tab)){
         this.dashboardTab = tab;
       }
       window.addEventListener('storage', this.handleStorageEvent);
@@ -1415,6 +1545,7 @@
           this.loadMyBookings();
           this.loadMyTeachingBookings();
           this.loadMyFavs();
+          this.loadMyMessageBoard();
         }
       }, 60000);
     },
@@ -1519,6 +1650,29 @@
         this.myOpen = true;
         this.headerProfileOpen = false;
         this.closeForumMenus();
+      },
+      notificationSeenKey(){
+        const userKey = String(this.sessionUserId || this.sessionEmail || '').trim();
+        return 'user_notifications_seen_v1:' + (userKey || 'guest');
+      },
+      loadNotificationSeenAt(){
+        try{
+          const raw = localStorage.getItem(this.notificationSeenKey());
+          this.notificationSeenTs = Number(raw || 0) || 0;
+        }catch(e){
+          this.notificationSeenTs = 0;
+        }
+      },
+      markNotificationsSeen(){
+        const ts = Date.now();
+        this.notificationSeenTs = ts;
+        try{
+          localStorage.setItem(this.notificationSeenKey(), String(ts));
+        }catch(e){}
+      },
+      refreshMessageCenter(){
+        this.loadMyMessageBoard();
+        this.loadMyBookings();
       },
       getBookingTimestamp(dayIso, dayLabel, slotTime){
         const baseDate = String(dayIso || dayLabel || '').trim();
@@ -1930,6 +2084,10 @@
           this.sessionUserId = '';
           this.sessionEmail = '';
           this.hasClubManagement = false;
+          this.notificationSeenTs = 0;
+          this.messageReplyTarget = null;
+          this.messageReplyText = '';
+          this.messageReplyStatus = '';
           this.profile.nickname = '';
           this.profile.email = '';
           this.profile.bio = '';
@@ -1955,9 +2113,11 @@
         this.profile.hobbies = String(user.hobbies || '').trim();
         this.profile.avatar = String(user.avatar || '').trim();
         this.profile.forumCoverUrl = String(user.forumCoverUrl || '').trim();
+        this.loadNotificationSeenAt();
       },
       loadAuthedData(){
         if(!this.isAuthed) return;
+        this.loadNotificationSeenAt();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
         this.loadMyPosts();
@@ -2104,6 +2264,14 @@
         messageBoardKey(){
           return 'user_message_board_v1';
         },
+        saveMessageBoardEntries(list){
+        try{
+          localStorage.setItem(this.messageBoardKey(), JSON.stringify(Array.isArray(list) ? list : []));
+          return true;
+        }catch(e){
+          return false;
+        }
+      },
         securitySettingsKey(){
           return 'user_security_settings_v1';
         },
@@ -2230,7 +2398,105 @@
       messageBoardSourceText(item){
         const source = String((item && item.source) || '').trim();
         if(source === 'forum-profile') return 'Club Forum Profile';
+        if(source === 'message-board-reply') return 'Message Board Reply';
         return 'Internal Message';
+      },
+      resolveMessageBoardReplyTarget(item){
+        const row = item || {};
+        if(this.isOutgoingMessageBoardItem(row)){
+          return {
+            targetUserId: String(row.targetUserId || '').trim(),
+            targetEmail: String(row.targetEmail || '').trim(),
+            targetName: String(row.targetName || '').trim() || String(row.targetEmail || '').trim() || 'Recipient',
+            direction: 'Replying to recipient'
+          };
+        }
+        return {
+          targetUserId: String(row.fromUserId || '').trim(),
+          targetEmail: String(row.fromEmail || '').trim(),
+          targetName: String(row.fromName || '').trim() || String(row.fromEmail || '').trim() || 'Sender',
+          direction: 'Replying to sender'
+        };
+      },
+      openMessageBoardReply(item){
+        const target = this.resolveMessageBoardReplyTarget(item);
+        if(!target || (!target.targetUserId && !target.targetEmail && !target.targetName)) return;
+        this.messageReplyTarget = target;
+        this.messageReplyText = '';
+        this.messageReplyStatus = '';
+        this.$nextTick(() => {
+          const area = this.$refs.messageReplyTextarea;
+          if(area && typeof area.focus === 'function') area.focus();
+        });
+      },
+      clearMessageBoardReply(){
+        this.messageReplyTarget = null;
+        this.messageReplyText = '';
+        this.messageReplyStatus = '';
+      },
+      async sendMessageBoardReply(){
+        const target = this.messageReplyTarget;
+        const content = String(this.messageReplyText || '').trim();
+        if(!target || !content){
+          this.messageReplyStatus = 'Select a message and enter your reply first.';
+          return;
+        }
+        const payload = {
+          targetUserId: String(target.targetUserId || '').trim(),
+          targetEmail: String(target.targetEmail || '').trim(),
+          targetName: String(target.targetName || '').trim(),
+          text: content,
+          source: 'message-board-reply'
+        };
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          try{
+            await service.sendMessageBoardEntry(payload);
+            this.messageReplyStatus = 'Reply sent to ' + payload.targetName + '.';
+            this.messageReplyText = '';
+            this.loadMyMessageBoard();
+            return;
+          }catch(e){
+            this.messageReplyStatus = service.mapSupportError(e);
+            return;
+          }
+        }
+        const list = this.loadMessageBoardEntries();
+        list.unshift({
+          id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          targetUserId: payload.targetUserId,
+          targetEmail: payload.targetEmail,
+          targetName: payload.targetName,
+          fromUserId: String(this.sessionUserId || '').trim(),
+          fromEmail: String(this.sessionEmail || '').trim(),
+          fromName: String(this.profileDisplayName || '').trim() || 'User',
+          text: payload.text,
+          source: payload.source,
+          createdAt: new Date().toLocaleString(),
+          createdTs: Date.now()
+        });
+        if(!this.saveMessageBoardEntries(list)){
+          this.messageReplyStatus = 'Unable to save this reply right now.';
+          return;
+        }
+        this.messageReplyStatus = 'Reply sent to ' + payload.targetName + '.';
+        this.messageReplyText = '';
+        this.loadMyMessageBoard();
+      },
+      openMessageCenterItem(item){
+        const row = item || {};
+        if(row.kind === 'message' && row.messageItem){
+          this.openProfileTab('message_board');
+          this.$nextTick(() => {
+            this.openMessageBoardReply(row.messageItem);
+          });
+          return;
+        }
+        if(row.kind === 'booking'){
+          this.openProfileTab('club_bookings');
+          return;
+        }
+        this.openProfileTab('messages');
       },
         loadAuth(){
           try{ return JSON.parse(localStorage.getItem('club_users') || '[]'); }catch(e){ return []; }
@@ -3267,9 +3533,9 @@
         return author || this.forumProfileName;
       },
       forumPostAvatarSrc(post){
+        if(this.isCurrentForumOwnedPost(post)) return this.profileAvatarSrc;
         const avatar = String((post && post.avatarUrl) || '').trim();
-        if(avatar) return avatar;
-        return this.isCurrentForumOwnedPost(post) ? this.forumAvatarSrc : '';
+        return avatar;
       },
       forumPostVisibilityText(post){
         const visibility = String((post && post.visibility) || 'public').trim() || 'public';

@@ -86,6 +86,10 @@ After the first Vercel deployment:
    - message board
    - club dashboard updates
 
+For a full post-deploy check, use:
+
+- [online-qa-checklist.md](/Users/wbh/Desktop/俱乐部管理系统%20%203/docs/online-qa-checklist.md#L1)
+
 ## What Is Still Preview-Only
 
 These are still intentionally not full production behavior:

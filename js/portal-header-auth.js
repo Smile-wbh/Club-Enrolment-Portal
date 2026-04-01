@@ -66,11 +66,101 @@
       .replace(/'/g, '&#39;');
   }
 
+  function buildInitials(value) {
+    var source = String(value || '').replace(/\s+/g, '').trim();
+    if (!source) return 'US';
+    return Array.from(source).slice(0, 2).join('').toUpperCase();
+  }
+
+  function parseTimeValue(value) {
+    var text = String(value || '').trim();
+    if (!text) return 0;
+    var parsed = Date.parse(text);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  function notificationSeenKey(session) {
+    var userKey = String((session && (session.userId || session.email)) || '').trim();
+    return 'user_notifications_seen_v1:' + (userKey || 'guest');
+  }
+
+  function readNotificationSeenAt(session) {
+    try {
+      return Number(window.localStorage.getItem(notificationSeenKey(session)) || 0) || 0;
+    } catch (error) {
+      return 0;
+    }
+  }
+
+  function currentAliases(session, profile) {
+    var email = normalizeEmail(session && session.email);
+    var nickname = String((profile && profile.nickname) || (session && session.nickname) || '').trim().toLowerCase();
+    var aliases = [
+      nickname,
+      email,
+      email ? email.split('@')[0] : ''
+    ].filter(Boolean);
+    return Array.from(new Set(aliases));
+  }
+
+  function readJsonArray(key) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      var parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function countUnreadNotifications(session, profile) {
+    if (!session) return 0;
+
+    var seenAt = readNotificationSeenAt(session);
+    var email = normalizeEmail(session && session.email);
+    var userId = String((session && session.userId) || '').trim();
+    var aliases = currentAliases(session, profile);
+    var count = 0;
+
+    readJsonArray('user_message_board_v1').forEach(function (item) {
+      var row = item || {};
+      var targetUserId = String(row.targetUserId || '').trim();
+      var targetEmail = normalizeEmail(row.targetEmail);
+      var targetName = String(row.targetName || '').trim().toLowerCase();
+      var fromUserId = String(row.fromUserId || '').trim();
+      var fromEmail = normalizeEmail(row.fromEmail);
+      var createdTs = Number(row.createdTs || 0) || parseTimeValue(row.createdAt);
+      var isReceived = (userId && targetUserId && userId === targetUserId)
+        || (email && targetEmail && email === targetEmail)
+        || (!!targetName && aliases.indexOf(targetName) > -1);
+      var isOutgoing = (userId && fromUserId && userId === fromUserId)
+        || (email && fromEmail && email === fromEmail);
+      if (isReceived && !isOutgoing && createdTs > seenAt) {
+        count += 1;
+      }
+    });
+
+    readJsonArray('specialty_bookings_v1').forEach(function (item) {
+      var row = item || {};
+      var bookingEmail = normalizeEmail(row.userEmail);
+      var status = String(row.status || '').trim().toLowerCase();
+      var createdTs = Number(row.createdTs || 0) || parseTimeValue(row.createdAt);
+      if (email && bookingEmail === email && status !== 'cancelled' && createdTs > seenAt) {
+        count += 1;
+      }
+    });
+
+    return count;
+  }
+
+  function isMessagesPage() {
+    return /\/html\/join\.html$/.test(window.location.pathname) && /(?:\?|&)tab=messages(?:&|$)/.test(window.location.search);
+  }
+
   function resolveProfile(session, pagePrefix) {
-    var fallbackAvatar = getAssetPath(pagePrefix, 'zp/hb1.webp');
     var email = session && typeof session.email === 'string' ? session.email.trim() : '';
     var nickname = session && typeof session.nickname === 'string' ? session.nickname.trim() : '';
-    var avatar = fallbackAvatar;
+    var avatar = '';
     var users = readUsers();
     var match = users.find(function (user) {
       return normalizeEmail(user && user.email) === normalizeEmail(email);
@@ -91,13 +181,13 @@
     return {
       nickname: nickname || (email ? email.split('@')[0] : 'User'),
       email: email || 'Not logged in',
-      avatar: avatar || fallbackAvatar,
-      fallbackAvatar: fallbackAvatar
+      avatar: avatar,
+      initials: buildInitials(nickname || (email ? email.split('@')[0] : 'User'))
     };
   }
 
   function isUserCenterPage() {
-    return /\/html\/join\.html$/.test(window.location.pathname);
+    return /\/html\/join\.html$/.test(window.location.pathname) && !isMessagesPage();
   }
 
   function isClubDashboardPage() {
@@ -112,6 +202,13 @@
     var items = [
       { label: 'User Dashboard', href: pagePrefix + 'join.html?tab=home', active: isUserCenterPage() }
     ];
+
+    items.push({
+      label: 'Messages',
+      href: pagePrefix + 'join.html?tab=messages',
+      active: isMessagesPage(),
+      unreadCount: 0
+    });
 
     if (session && session.isClubManager) {
       items.push({
@@ -130,11 +227,15 @@
     return items;
   }
 
-  function buildProfileMenuHtml(pagePrefix, session) {
+  function buildProfileMenuHtml(pagePrefix, session, unreadCount) {
     return getUserCenterItems(pagePrefix, session)
       .map(function (item) {
         var className = 'portal-profile-item' + (item.active ? ' active' : '');
-        return '<a class="' + className + '" href="' + item.href + '">' + item.label + '</a>';
+        var badge = item.label === 'Messages' && unreadCount > 0
+          ? '<span class="portal-menu-badge">' + escapeHtml(unreadCount > 99 ? '99+' : String(unreadCount)) + '</span>'
+          : '';
+        var extraClass = item.label === 'Messages' ? ' portal-profile-item-with-badge' : '';
+        return '<a class="' + className + extraClass + '" href="' + item.href + '"><span>' + item.label + '</span>' + badge + '</a>';
       })
       .join('');
   }
@@ -204,18 +305,32 @@
     actionsList.forEach(function (actions) {
       if (session) {
         var profile = resolveProfile(session, pagePrefix);
+        var unreadCount = countUnreadNotifications(session, profile);
+        var avatarHtml = profile.avatar
+          ? (
+            '<span class="portal-user-avatar has-image">' +
+              '<img src="' + escapeHtml(profile.avatar) + '" alt="User avatar" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\';">' +
+              '<span class="portal-user-avatar-text" style="display:none">' + escapeHtml(profile.initials) + '</span>' +
+            '</span>'
+          )
+          : (
+            '<span class="portal-user-avatar">' +
+              '<span class="portal-user-avatar-text">' + escapeHtml(profile.initials) + '</span>' +
+            '</span>'
+          );
         actions.innerHTML =
           '<div class="portal-profile-wrap">' +
             '<button class="portal-user-chip" type="button" data-portal-profile-toggle="true" aria-expanded="false" aria-label="Open profile menu">' +
-              '<img class="portal-user-avatar" src="' + escapeHtml(profile.avatar) + '" alt="User avatar" onerror="this.src=\'' + escapeHtml(profile.fallbackAvatar) + '\'">' +
+              avatarHtml +
               '<span class="portal-user-meta">' +
                 '<span class="portal-user-name">' + escapeHtml(profile.nickname) + '</span>' +
                 '<span class="portal-user-sub">' + escapeHtml(profile.email) + '</span>' +
               '</span>' +
+              (unreadCount > 0 ? '<span class="portal-user-alert-badge">' + escapeHtml(unreadCount > 99 ? '99+' : String(unreadCount)) + '</span>' : '') +
               '<span class="portal-user-arrow" aria-hidden="true">▼</span>' +
             '</button>' +
             '<div class="portal-profile-menu" data-portal-profile-menu="true" hidden>' +
-              buildProfileMenuHtml(pagePrefix, session) +
+              buildProfileMenuHtml(pagePrefix, session, unreadCount) +
             '</div>' +
           '</div>' +
           '<a class="top-btn accent" href="#" data-portal-logout="true">Log Out</a>';
@@ -273,7 +388,7 @@
     }
   });
   window.addEventListener('storage', function (event) {
-    if (!event || event.key === 'user_session_v1' || event.key === 'club_users') {
+    if (!event || !event.key || event.key === 'user_session_v1' || event.key === 'club_users' || event.key === 'user_message_board_v1' || event.key === 'specialty_bookings_v1' || event.key.indexOf('user_notifications_seen_v1:') === 0) {
       closeAllProfileMenus();
       renderActions();
     }

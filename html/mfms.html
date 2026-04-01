@@ -298,6 +298,12 @@
   const teachingApp = new Vue({
     el: '#app',
     data() {
+      const courseService = window.clubCourseSupabase || null;
+      const cloudCourseCatalogEnabled = !!(
+        courseService &&
+        typeof courseService.isConfigured === 'function' &&
+        courseService.isConfigured()
+      );
       return {
         q: '',
         club: '',
@@ -317,6 +323,7 @@
         actionModalCourseId: '',
         sessionUserId: '',
         useSupabaseCourses: false,
+        cloudCourseCatalogEnabled: cloudCourseCatalogEnabled,
         coursesSupabase: [],
         favoriteIdsSupabase: [],
         courseSyncError: '',
@@ -441,10 +448,11 @@
         } catch (error) {
           localCourses = [];
         }
-        const baseCourses = (this.useSupabaseCourses && this.coursesSupabase.length)
+        const baseCourses = this.cloudCourseCatalogEnabled
           ? this.coursesSupabase
           : this.courses;
-        return [...localCourses, ...baseCourses]
+        const localSource = this.cloudCourseCatalogEnabled ? [] : localCourses;
+        return [...localSource, ...baseCourses]
           .map((course) => this.normalizeCourse(course))
           .filter(Boolean);
       },
@@ -573,6 +581,7 @@
         this.sessionUserId = session && session.userId ? session.userId : '';
         if (!this.hasSupabaseCourses()) {
           this.useSupabaseCourses = false;
+          this.cloudCourseCatalogEnabled = false;
           this.favoriteIdsSupabase = [];
           return;
         }
@@ -581,10 +590,12 @@
           const payload = await this.getCourseService().fetchCourseCatalog(this.sessionUserId);
           this.coursesSupabase = Array.isArray(payload && payload.courses) ? payload.courses : [];
           this.favoriteIdsSupabase = Array.isArray(payload && payload.favoriteIds) ? payload.favoriteIds.map((item) => String(item)) : [];
-          this.useSupabaseCourses = this.coursesSupabase.length > 0;
+          this.cloudCourseCatalogEnabled = true;
+          this.useSupabaseCourses = true;
           this.courseSyncError = '';
         } catch (error) {
           this.useSupabaseCourses = false;
+          this.cloudCourseCatalogEnabled = false;
           this.favoriteIdsSupabase = [];
           this.courseSyncError = String(error && error.message || '').trim();
         }

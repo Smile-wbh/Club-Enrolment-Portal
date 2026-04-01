@@ -70,8 +70,8 @@ body{
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
-  gap: 14px;
-  min-height: 78px;
+  gap: 18px;
+  min-height: 84px;
 }
 
 .club-brand{
@@ -135,11 +135,11 @@ body{
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px 10px;
+  padding: 10px 12px;
   border-radius: 999px;
   text-decoration: none;
   color: rgba(255, 255, 255, 0.84);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   white-space: nowrap;
   flex: 1 1 0;
@@ -158,7 +158,7 @@ body{
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 12px;
+  gap: 10px;
 }
 
 .header-user-wrap{
@@ -166,6 +166,7 @@ body{
 }
 
 .header-user-chip{
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -187,13 +188,32 @@ body{
   box-shadow: 0 14px 28px rgba(10,26,54,0.18);
 }
 
-.header-user-chip img{
+.header-user-avatar{
+  position: relative;
   width: 48px;
   height: 48px;
+  flex: 0 0 48px;
   border-radius: 50%;
-  object-fit: cover;
   border: 3px solid rgba(255,255,255,0.34);
   box-shadow: 0 8px 18px rgba(12,24,46,0.18);
+  background: linear-gradient(145deg, #f4f8ff, #d7e4ff);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.header-user-avatar img{
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.header-user-avatar-text{
+  font-size: 20px;
+  font-weight: 800;
+  color: #3d5c8f;
 }
 
 .header-user-chip .user-chip-name{
@@ -206,6 +226,29 @@ body{
   color: rgba(255,255,255,0.86);
   font-size: 14px;
   max-width: 220px;
+}
+
+.header-user-alert-badge,
+.header-menu-badge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ff7f45;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 8px 14px rgba(255,127,69,0.22);
+}
+
+.header-user-alert-badge{
+  position: absolute;
+  right: 30px;
+  top: 7px;
 }
 
 .header-user-arrow{
@@ -238,6 +281,13 @@ body{
 
 .header-profile-menu[hidden]{
   display: none;
+}
+
+.header-profile-item.header-profile-item-with-badge{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .header-profile-item{

@@ -1193,6 +1193,13 @@ textarea {
   border-color: #d9e4f3;
 }
 
+.post-follow-trigger.followed.unfollow-intent {
+  color: #d84b43;
+  background: #fff2f1;
+  border-color: #f2c4c0;
+  box-shadow: 0 10px 20px rgba(216, 75, 67, 0.12);
+}
+
 .post-follow-menu {
   position: absolute;
   top: calc(100% + 10px);
@@ -2232,6 +2239,68 @@ textarea {
   color: #fff;
 }
 
+.unfollow-confirm-mask {
+  z-index: 1006;
+  background: rgba(18, 24, 34, 0.52);
+}
+
+.unfollow-confirm-dialog {
+  width: min(640px, calc(100vw - 32px));
+  padding: 34px 40px 28px;
+  border-radius: 28px;
+  background: #fff;
+  box-shadow: 0 28px 60px rgba(16, 34, 63, 0.24);
+}
+
+.unfollow-confirm-title {
+  color: #171f2a;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.15;
+}
+
+.unfollow-confirm-copy {
+  margin-top: 18px;
+  color: #5f7188;
+  font-size: 18px;
+  line-height: 1.45;
+}
+
+.unfollow-confirm-actions {
+  margin-top: 34px;
+  display: grid;
+  gap: 16px;
+}
+
+.unfollow-confirm-primary,
+.unfollow-confirm-secondary {
+  width: 100%;
+  min-height: 74px;
+  border-radius: 999px;
+  font-size: 22px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.unfollow-confirm-primary {
+  border: 0;
+  background: #10151d;
+  color: #fff;
+  box-shadow: 0 16px 28px rgba(16, 21, 29, 0.18);
+}
+
+.unfollow-confirm-secondary {
+  border: 2px solid #d7e3f1;
+  background: #fff;
+  color: #18222f;
+}
+
+.unfollow-confirm-primary:hover,
+.unfollow-confirm-secondary:hover {
+  transform: translateY(-1px);
+}
+
 .hot-list,
 .recent-comment-list {
   display: grid;
@@ -2993,6 +3062,13 @@ textarea {
   background: #fff;
   color: #5c6d83;
   box-shadow: none;
+}
+
+.profile-hero-action.followed.unfollow-intent {
+  border-color: #f2c4c0;
+  background: #fff2f1;
+  color: #d84b43;
+  box-shadow: 0 12px 24px rgba(216, 75, 67, 0.12);
 }
 
 .profile-hero-action:disabled {

@@ -390,6 +390,12 @@
   const bookingApp = new Vue({
     el: '#app',
     data() {
+      const bookingService = window.clubBookingSupabase || null;
+      const cloudBookingCatalogEnabled = !!(
+        bookingService &&
+        typeof bookingService.isConfigured === 'function' &&
+        bookingService.isConfigured()
+      );
       return {
         q: '',
         category: '',
@@ -410,6 +416,7 @@
         bookings: [],
         bookingAvailabilityMap: {},
         supabaseClubs: [],
+        cloudBookingCatalogEnabled: cloudBookingCatalogEnabled,
         useSupabaseBookings: false,
         detailPageSlugs: [
           'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
@@ -760,7 +767,11 @@
       async syncSupabaseBookingData() {
         const service = this.getBookingService();
         if (!service || !service.isConfigured()) {
+          this.supabaseClubs = [];
+          this.bookingAvailabilityMap = {};
+          this.cloudBookingCatalogEnabled = false;
           this.useSupabaseBookings = false;
+          this.refreshClubPool();
           return false;
         }
 
@@ -769,21 +780,21 @@
           const catalog = await service.fetchClubCatalog(range);
           this.supabaseClubs = Array.isArray(catalog.clubs) ? catalog.clubs : [];
           this.bookingAvailabilityMap = catalog && catalog.availabilityMap ? catalog.availabilityMap : {};
-          this.useSupabaseBookings = this.supabaseClubs.length > 0;
+          this.cloudBookingCatalogEnabled = true;
+          this.useSupabaseBookings = true;
           this.refreshClubPool();
 
           if (this.sessionUserId) {
             this.bookings = await service.fetchMyBookings(this.sessionUserId, this.sessionEmail);
-          } else if (!this.useSupabaseBookings) {
-            this.bookings = this.loadBookings();
           } else {
             this.bookings = [];
           }
-          return this.useSupabaseBookings;
+          return true;
         } catch (error) {
           console.warn('Unable to sync club bookings from Supabase.', error);
           this.supabaseClubs = [];
           this.bookingAvailabilityMap = {};
+          this.cloudBookingCatalogEnabled = false;
           this.useSupabaseBookings = false;
           this.refreshClubPool();
           this.bookings = this.loadBookings();
@@ -1282,8 +1293,11 @@
           .filter(Boolean);
         const seen = new Set();
         const next = [];
+        const catalog = this.cloudBookingCatalogEnabled
+          ? supabase
+          : registry.concat(extra, base);
 
-        (supabase.length ? supabase.concat(registry, extra, base) : registry.concat(extra, base)).forEach((club) => {
+        catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;
           seen.add(club.slug);
           next.push(club);
