@@ -1,0 +1,3001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Club Dashboard - Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-storage.js?v=20260401-3"></script>
+  <script src="../js/supabase-club-admin.js?v=20260401-1"></script>
+  <link rel="stylesheet" href="../css/club_management_dashboard.css">
+</head>
+<body>
+  <div class="page-bg-shape shape-a"></div>
+  <div class="page-bg-shape shape-b"></div>
+
+  <header class="club-portal-header">
+    <div class="container">
+      <a class="club-brand" href="index1.html">
+        <span class="club-brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo">
+        </span>
+        <span class="club-brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="club-portal-nav" aria-label="Club management navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="club-top-actions">
+        <div class="header-user-wrap" id="topProfileWrap">
+          <button id="topProfileToggle" class="header-user-chip" type="button" aria-expanded="false" aria-controls="topProfileMenu">
+            <img id="sidebarAvatar" src="../zp/hb1.webp" alt="avatar">
+            <div>
+              <div class="user-chip-name" id="sidebarName">User</div>
+              <div class="user-chip-sub" id="sidebarEmail">Not logged in</div>
+            </div>
+            <span class="header-user-arrow" id="topProfileArrow">▼</span>
+          </button>
+              <div class="header-profile-menu" id="topProfileMenu" hidden>
+                <a class="header-profile-item" href="join.html?tab=home">User Dashboard</a>
+                <a class="header-profile-item active" href="club_management_dashboard.html">My Club Dashboard</a>
+                <a class="header-profile-item" href="settings.html">Settings</a>
+              </div>
+        </div>
+        <button id="topLogoutBtn" class="club-top-btn accent" type="button">Log Out</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="club-dashboard-wrap">
+    <div class="container club-dashboard-container">
+      <div class="dashboard-shell">
+    <aside class="sidebar card-surface reveal">
+      <div class="brand-block">
+        <div class="brand-mark">◆◆</div>
+        <div class="brand-name">My Club Board</div>
+      </div>
+
+      <nav class="side-menu" aria-label="Management menu">
+        <button class="side-link active" data-view="overview" type="button">Management Overview</button>
+        <div class="side-group register-menu-group" id="registerMenuGroup">
+          <button class="side-link side-link-toggle" data-view="register" data-role="register-toggle" type="button" aria-expanded="false" aria-controls="registerSubmenu">Club Registration</button>
+          <div class="side-submenu" id="registerSubmenu" style="display:none;" aria-hidden="true">
+            <button class="side-submenu-btn" data-register-target="create" type="button">Register a Club</button>
+            <button class="side-submenu-btn" data-register-target="edit" type="button">Edit Club</button>
+          </div>
+        </div>
+        <button class="side-link" data-view="clubs" type="button">Club Management</button>
+        <div class="side-group members-menu-group" id="membersMenuGroup">
+          <button class="side-link side-link-toggle" data-view="members" data-role="members-toggle" type="button" aria-expanded="false" aria-controls="membersSubmenu">Member Management</button>
+          <div class="side-submenu" id="membersSubmenu" style="display:none;" aria-hidden="true">
+            <button class="side-submenu-btn" data-members-target="add" type="button">Add Member</button>
+            <button class="side-submenu-btn" data-members-target="list" type="button">Member List</button>
+          </div>
+        </div>
+        <button class="side-link" data-view="activities" type="button">Activity Management</button>
+        <div class="side-group teaching-menu-group" id="teachingMenuGroup">
+          <button class="side-link side-link-toggle" data-view="teaching" data-role="teaching-toggle" type="button" aria-expanded="false" aria-controls="teachingSubmenu">Course Management</button>
+          <div class="side-submenu" id="teachingSubmenu" style="display:none;" aria-hidden="true">
+            <button class="side-submenu-btn" data-teaching-target="publish" type="button">Publish Course</button>
+            <button class="side-submenu-btn" data-teaching-target="edit" type="button">Edit Course</button>
+          </div>
+        </div>
+      </nav>
+    </aside>
+
+    <main class="main-panel">
+      <div class="view-stack">
+        <section class="manage-view active-view" id="view-overview">
+          <section class="kpi-grid">
+            <article class="kpi-card lilac reveal">
+              <div class="kpi-label">Managed Clubs</div>
+              <div class="kpi-value" id="kpiClubs">0</div>
+              <div class="kpi-note">Number of clubs managed by this account</div>
+            </article>
+            <article class="kpi-card blue reveal">
+              <div class="kpi-label">Total Members</div>
+              <div class="kpi-value" id="kpiMembers">0</div>
+              <div class="kpi-note">Total members across managed clubs</div>
+            </article>
+            <article class="kpi-card mint reveal">
+              <div class="kpi-label">Pending Bookings</div>
+              <div class="kpi-value" id="kpiPending">0</div>
+              <div class="kpi-note">Bookings not yet checked in or completed</div>
+            </article>
+            <article class="kpi-card cyan reveal">
+              <div class="kpi-label">Published Courses</div>
+              <div class="kpi-value" id="kpiCourses">0</div>
+              <div class="kpi-note">Total courses currently published</div>
+            </article>
+          </section>
+
+          <section class="board-grid">
+            <article class="panel-card chart-card reveal">
+              <div class="panel-head">
+                <h3>Booking Trend (Past Week)</h3>
+                <button class="pill-btn" data-jump-view="activities" type="button">View Details</button>
+              </div>
+              <div class="weekly-chart" id="weeklyChart"></div>
+            </article>
+
+            <article class="panel-card insight-card reveal">
+              <div class="panel-head">
+                <h3>Management Insights</h3>
+                <span class="light-text">Auto summary</span>
+              </div>
+              <ul class="insight-list">
+                <li>
+                  <span>Approved Clubs</span>
+                  <strong id="approvedCount">0</strong>
+                </li>
+                <li>
+                  <span>Clubs Pending Review</span>
+                  <strong id="pendingReviewCount">0</strong>
+                </li>
+                <li>
+                  <span>Booking Completion Rate</span>
+                  <strong id="completionRate">0%</strong>
+                </li>
+                <li>
+                  <span>New Members in 30 Days</span>
+                  <strong id="newMembersCount">0</strong>
+                </li>
+              </ul>
+              <div class="quick-actions">
+                <button type="button" data-jump-view="register">Go to Club Registration</button>
+                <button type="button" data-jump-view="members">Go to Member Management</button>
+                <button type="button" data-jump-view="teaching">Go to Course Management</button>
+              </div>
+            </article>
+
+            <article class="panel-card agenda-card reveal">
+              <div class="panel-head">
+                <h3>Today's Management Reminders</h3>
+                <span class="light-text">Top 5</span>
+              </div>
+              <ul class="agenda-list" id="agendaList"></ul>
+            </article>
+
+            <article class="panel-card team-card reveal">
+              <div class="panel-head">
+                <h3>Core Members</h3>
+                <button class="pill-btn" data-jump-view="members-list" type="button">All Members</button>
+              </div>
+              <ul class="team-list" id="teamList"></ul>
+            </article>
+          </section>
+
+          <section class="panel-card table-card reveal">
+            <div class="panel-head">
+              <h3>My Club List</h3>
+              <button class="pill-btn" data-jump-view="clubs" type="button">Open Club Management</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Club Name</th>
+                    <th>Category</th>
+                    <th>Mode</th>
+                    <th>Location</th>
+                    <th>Member Count</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody id="clubTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="panel-card reveal">
+            <div class="panel-head">
+              <h3>Recent Registration Records</h3>
+              <span class="light-text">Latest 8 entries</span>
+            </div>
+            <ul class="simple-list" id="registerRecent"></ul>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-register-create">
+          <section class="module-grid">
+            <article class="panel-card reveal">
+              <div class="panel-head">
+                <h3>Register a Club</h3>
+                <span class="light-text">Standalone registration form</span>
+              </div>
+              <form id="registerForm" class="form-grid">
+                <label>
+                  Club Name
+                  <input id="regName" required type="text" placeholder="e.g. Badminton Club">
+                </label>
+                <label>
+                  Category
+                  <select id="regCategory">
+                    <option value="Sports">Sports</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Arts">Arts</option>
+                    <option value="Social">Social</option>
+                  </select>
+                </label>
+                <label>
+                  Mode
+                  <select id="regMode">
+                    <option value="In-person">In-person</option>
+                    <option value="Online">Online</option>
+                    <option value="Hybrid">Hybrid</option>
+                  </select>
+                </label>
+                <label>
+                  Activity Location
+                  <input id="regLocation" type="text" placeholder="e.g. SportsHall A">
+                </label>
+                <label>
+                  Map link (optional)
+                  <input id="regMapLink" type="url" placeholder="e.g. https://maps.google.com/...">
+                </label>
+                <label>
+                  Regular Time
+                  <input id="regTime" type="text" placeholder="e.g. Wed 19:00-21:00">
+                </label>
+                <label>
+                  Online meeting link (optional)
+                  <input id="regOnlineLink" type="url" placeholder="e.g. https://meet.google.com/...">
+                </label>
+                <label>
+                  Fee
+                  <input id="regFee" type="text" placeholder="e.g. £3 per session">
+                </label>
+                <label>
+                  Capacity
+                  <input id="regCapacity" type="number" min="1" value="20">
+                </label>
+                <label class="span-2">
+                  Hero subtitle (shown at the top of the detail page)
+                  <input id="regHeroSub" type="text" placeholder="e.g. Weekly practice and friendly matches for members of different levels.">
+                </label>
+                <label class="span-2">
+                  Tags (comma-separated)
+                  <input id="regTags" type="text" placeholder="e.g. Weekly practice, friendly matches, teamwork, court booking">
+                </label>
+                <label class="span-2">
+                  Cover image upload (used on the detail page)
+                  <input id="regCoverFile" type="file" accept="image/*">
+                </label>
+                <label class="span-2">
+                  Or enter a cover image URL (optional)
+                  <input id="regCoverUrl" type="url" placeholder="https://example.com/cover.jpg">
+                </label>
+                <label class="span-2">
+                  Overview
+                  <textarea id="regDesc" required rows="4" placeholder="Used in the Club Overview section on the detail page."></textarea>
+                </label>
+                <label class="span-2">
+                  Venue Information
+                  <textarea id="regVenueInfo" required rows="4" placeholder="One item per line, e.g. &#10;Main venue: Sports Field A&#10;Check-in: Arrive 10 minutes early"></textarea>
+                </label>
+                <label class="span-2">
+                  What We Do
+                  <textarea id="regWhatWeDo" required rows="4" placeholder="One item per line, e.g. &#10;Core drills: passing and first touch&#10;Game play: 3v3/5v5"></textarea>
+                </label>
+                <label class="span-2">
+                  Who It Is For
+                  <textarea id="regAudience" required rows="4" placeholder="One item per line, e.g. &#10;Beginners&#10;Members who want to join matches"></textarea>
+                </label>
+                <label class="span-2">
+                  Training Plan
+                  <textarea id="regTrainingPlan" required rows="4" placeholder="One item per line, e.g. &#10;Warm-up: light jog and stretching&#10;Focused drills: technique and coordination"></textarea>
+                </label>
+                <label class="span-2">
+                  Equipment & Notes
+                  <textarea id="regNotes" rows="4" placeholder="One item per line, e.g. &#10;Wear non-slip sports shoes&#10;Tell the coach about any previous injury"></textarea>
+                </label>
+                <div class="form-actions span-2">
+                  <button class="btn-primary" type="submit">Submit Registration</button>
+                  <button class="btn-plain" type="reset">Reset</button>
+                </div>
+              </form>
+            </article>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-register-edit">
+          <section class="module-grid teaching-module-grid">
+            <article class="panel-card reveal" id="club-edit-list-card">
+              <div class="panel-head">
+                <h3>Edit Club</h3>
+                <span class="light-text">Click a club row or the Edit button to load the form below</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Club</th>
+                      <th>Category / Mode</th>
+                      <th>Location / Time</th>
+                      <th>Status / Capacity</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="clubEditTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel-card reveal" id="club-edit-card">
+              <div class="panel-head">
+                <h3>Club Edit Form</h3>
+                <span class="light-text" id="clubEditHeadNote" hidden></span>
+              </div>
+              <form id="clubEditForm" class="form-grid">
+                <input id="clubEditId" type="hidden" value="">
+                <div class="edit-form-fields span-2" id="clubEditFields" style="display:none;" aria-hidden="true">
+                  <label>
+                    Club Name
+                    <input id="clubEditName" required type="text" placeholder="e.g. Badminton Club">
+                  </label>
+                  <label>
+                    Category
+                    <select id="clubEditCategory">
+                      <option value="">Select a category</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Academic">Academic</option>
+                      <option value="Arts">Arts</option>
+                      <option value="Social">Social</option>
+                    </select>
+                  </label>
+                  <label>
+                    Mode
+                    <select id="clubEditMode">
+                      <option value="">Select a mode</option>
+                      <option value="In-person">In-person</option>
+                      <option value="Online">Online</option>
+                      <option value="Hybrid">Hybrid</option>
+                    </select>
+                  </label>
+                  <label>
+                    Activity Location
+                    <input id="clubEditLocation" type="text" placeholder="e.g. SportsHall A">
+                  </label>
+                  <label>
+                    Map link (optional)
+                    <input id="clubEditMapLink" type="url" placeholder="e.g. https://maps.google.com/...">
+                  </label>
+                  <label>
+                    Regular Time
+                    <input id="clubEditTime" type="text" placeholder="e.g. Wed 19:00-21:00">
+                  </label>
+                  <label>
+                    Online meeting link (optional)
+                    <input id="clubEditOnlineLink" type="url" placeholder="e.g. https://meet.google.com/...">
+                  </label>
+                  <label>
+                    Fee
+                    <input id="clubEditFee" type="text" placeholder="e.g. £3 per session">
+                  </label>
+                  <label>
+                    Capacity
+                    <input id="clubEditCapacity" type="number" min="1" value="20">
+                  </label>
+                  <label class="span-2">
+                    Hero subtitle (shown at the top of the detail page)
+                    <input id="clubEditHeroSub" type="text" placeholder="e.g. Weekly practice and friendly matches for members of different levels.">
+                  </label>
+                  <label class="span-2">
+                    Tags (comma-separated)
+                    <input id="clubEditTags" type="text" placeholder="e.g. Weekly practice, friendly matches, teamwork, court booking">
+                  </label>
+                  <label class="span-2">
+                    Cover image upload (used on the detail page)
+                    <input id="clubEditCoverFile" type="file" accept="image/*">
+                  </label>
+                  <label class="span-2">
+                    Or enter a cover image URL (optional)
+                    <input id="clubEditCoverUrl" type="url" placeholder="https://example.com/cover.jpg">
+                  </label>
+                  <label class="span-2">
+                    Overview
+                    <textarea id="clubEditDesc" required rows="4" placeholder="Used in the Club Overview section on the detail page."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Venue Information
+                    <textarea id="clubEditVenueInfo" required rows="4" placeholder="One item per line, e.g. &#10;Main venue: Sports Field A&#10;Check-in: Arrive 10 minutes early"></textarea>
+                  </label>
+                  <label class="span-2">
+                    What We Do
+                    <textarea id="clubEditWhatWeDo" required rows="4" placeholder="One item per line, e.g. &#10;Core drills: passing and first touch&#10;Game play: 3v3/5v5"></textarea>
+                  </label>
+                  <label class="span-2">
+                    Who It Is For
+                    <textarea id="clubEditAudience" required rows="4" placeholder="One item per line, e.g. &#10;Beginners&#10;Members who want to join matches"></textarea>
+                  </label>
+                  <label class="span-2">
+                    Training Plan
+                    <textarea id="clubEditTrainingPlan" required rows="4" placeholder="One item per line, e.g. &#10;Warm-up: light jog and stretching&#10;Focused drills: technique and coordination"></textarea>
+                  </label>
+                  <label class="span-2">
+                    Equipment & Notes
+                    <textarea id="clubEditNotes" rows="4" placeholder="One item per line, e.g. &#10;Wear non-slip sports shoes&#10;Tell the coach about any previous injury"></textarea>
+                  </label>
+                  <div class="form-actions span-2">
+                    <button class="btn-primary" id="clubEditSubmitBtn" type="submit" disabled>Save Changes</button>
+                    <button class="btn-plain" id="clubEditCancelBtn" type="button" disabled>Cancel Editing</button>
+                  </div>
+                </div>
+              </form>
+            </article>
+
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-clubs">
+          <section class="panel-card reveal">
+            <div class="panel-head">
+              <h3>Club Management</h3>
+              <span class="light-text">Separate from the user dashboard</span>
+            </div>
+            <div class="cards-grid" id="clubCards"></div>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-members-add">
+          <section class="module-grid">
+            <article class="panel-card reveal" id="member-add-card">
+              <div class="panel-head">
+                <h3>Add Member</h3>
+                <span class="light-text">Writes to club_members_v1</span>
+              </div>
+              <form id="addMemberForm" class="form-grid">
+                <label>
+                  Club
+                  <select id="memberClub" required></select>
+                </label>
+                <label>
+                  Member Name
+                  <input id="memberName" required type="text" placeholder="e.g. Alex">
+                </label>
+                <label>
+                  Email
+                  <input id="memberEmail" type="email" placeholder="e.g. alex@example.com">
+                </label>
+                <label>
+                  Role
+                  <select id="memberRole">
+                    <option value="member">member</option>
+                    <option value="admin">admin</option>
+                  </select>
+                </label>
+                <div class="form-actions span-2">
+                  <button class="btn-primary" type="submit">Add Member</button>
+                </div>
+              </form>
+            </article>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-members-list">
+          <section class="module-grid">
+            <article class="panel-card reveal" id="member-list-card">
+              <div class="panel-head">
+                <h3>Member List</h3>
+                <span class="light-text">Removable</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Club</th>
+                      <th>Role</th>
+                      <th>Join Time</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="memberTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-activities">
+          <section class="panel-card reveal">
+            <div class="panel-head">
+              <h3>Activity Management</h3>
+              <span class="light-text">Booking status actions</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Club</th>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Time Slot</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="activityTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-teaching-publish">
+          <section class="module-grid teaching-module-grid">
+            <article class="panel-card reveal" id="teaching-publish-card">
+              <div class="panel-head">
+                <h3>Publish Course</h3>
+                <span class="light-text">Standalone publishing form</span>
+              </div>
+              <form id="courseForm" class="form-grid teaching-form-grid">
+                <div class="form-section-title span-2">Basic Information</div>
+                <label>
+                  Course Title
+                  <input id="courseTitle" required type="text" placeholder="e.g. BadmintonBeginner">
+                </label>
+                <label>
+                  Club
+                  <select id="courseClub" required></select>
+                </label>
+                <label>
+                  Level
+                  <select id="courseLevel">
+                    <option value="Beginner">Beginner</option>
+                    <option value="Advanced">Advanced</option>
+                  </select>
+                </label>
+                <label>
+                  Mode
+                  <select id="courseMode">
+                    <option value="In-person">In-person</option>
+                    <option value="Online">Online</option>
+                  </select>
+                </label>
+                <label>
+                  Time
+                  <input id="courseTime" type="text" placeholder="e.g. Thu 20:00-21:30，If left blank, the first entry from the schedule below will be used">
+                </label>
+                <label>
+                  Location
+                  <input id="courseLocation" type="text" placeholder="e.g. Indoor Hall B">
+                </label>
+                <label>
+                  English subtitle
+                  <input id="courseEnglishClub" type="text" placeholder="e.g. Badminton Club">
+                </label>
+                <label>
+                  Remaining Seats
+                  <input id="courseSeats" type="number" min="1" step="1" value="12" placeholder="e.g. 12">
+                </label>
+                <label>
+                  Course Fee
+                  <input id="courseFee" type="text" placeholder="e.g. £0 / Free / ¥99">
+                </label>
+                <label>
+                  Cover image URL
+                  <input id="courseCover" type="text" placeholder="If left blank, the club cover or a system image will be used">
+                </label>
+                <div class="form-section-title span-2">Auto-generated detail content</div>
+                <label class="span-2">
+                  Course Summary
+                  <textarea id="courseDesc" rows="3" placeholder="A short summary shown on the course cards and at the top of the detail page."></textarea>
+                </label>
+                <label class="span-2">
+                  Course lead
+                  <textarea id="courseLead" rows="3" placeholder="Shown below the course title. If left blank, it will be generated automatically."></textarea>
+                </label>
+                <label class="span-2">
+                  Course schedule
+                  <textarea id="courseSchedule" rows="4" placeholder="Supports one item per line or comma-separated values, e.g. &#10;Wed 18:00-19:30&#10;Sun 10:00-11:30"></textarea>
+                </label>
+                <label class="span-2">
+                  Detailed overview
+                  <textarea id="courseDetail" rows="4" placeholder="Used in the Course Summary area on the course details page."></textarea>
+                </label>
+                <label>
+                  CoachName
+                  <input id="courseCoachName" type="text" placeholder="e.g. Alex Chen">
+                </label>
+                <label>
+                  Coach Title
+                  <input id="courseCoachTitle" type="text" placeholder="e.g. Badminton Head Coach">
+                </label>
+                <label class="span-2">
+                  Coach Bio
+                  <textarea id="courseCoachBio" rows="3" placeholder="Used on the coach bio card on the detail page."></textarea>
+                </label>
+                <label class="span-2">
+                  Learning Outcomes
+                  <textarea id="courseLearningPoints" rows="4" placeholder="Supports one item per line or comma-separated values, e.g. &#10;Build solid movement rhythm&#10;Improve class participation and coordination"></textarea>
+                </label>
+                <label class="span-2">
+                  Who It Is For
+                  <textarea id="courseAudienceTips" rows="4" placeholder="Supports one item per line or comma-separated values."></textarea>
+                </label>
+                <label class="span-2">
+                  Course Notes
+                  <textarea id="courseNotes" rows="4" placeholder="Supports one item per line or comma-separated values."></textarea>
+                </label>
+                <div class="form-actions span-2">
+                  <button class="btn-primary" id="courseSubmitBtn" type="submit">Publish Course</button>
+                  <button class="btn-plain" type="reset">Reset Content</button>
+                </div>
+              </form>
+            </article>
+          </section>
+        </section>
+
+        <section class="manage-view" id="view-teaching-edit">
+          <section class="module-grid teaching-module-grid">
+            <article class="panel-card reveal" id="teaching-course-list-card">
+              <div class="panel-head">
+                <h3>Edit Course</h3>
+                <span class="light-text">Click a course row or the Edit button to load the form below</span>
+              </div>
+              <div class="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Course</th>
+                      <th>Club</th>
+                      <th>Time and Location</th>
+                      <th>Fee / Capacity</th>
+                      <th>Coach</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="courseTableBody"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <article class="panel-card reveal" id="teaching-edit-card">
+              <div class="panel-head">
+                <h3>Course Edit Form</h3>
+                <span class="light-text" id="courseEditHeadNote" hidden></span>
+              </div>
+              <form id="courseEditForm" class="form-grid teaching-form-grid">
+                <input id="courseEditId" type="hidden" value="">
+                <div class="edit-form-fields span-2" id="courseEditFields" style="display:none;" aria-hidden="true">
+                  <div class="form-section-title span-2">Basic Information</div>
+                  <label>
+                    Course Title
+                    <input id="courseEditTitle" required type="text" placeholder="e.g. BadmintonBeginner">
+                  </label>
+                  <label>
+                    Club
+                    <select id="courseEditClub" required>
+                      <option value="">Select a course first</option>
+                    </select>
+                  </label>
+                  <label>
+                    Level
+                    <select id="courseEditLevel">
+                      <option value="">Select a level</option>
+                      <option value="Beginner">Beginner</option>
+                      <option value="Advanced">Advanced</option>
+                    </select>
+                  </label>
+                  <label>
+                    Mode
+                    <select id="courseEditMode">
+                      <option value="">Select a mode</option>
+                      <option value="In-person">In-person</option>
+                      <option value="Online">Online</option>
+                    </select>
+                  </label>
+                  <label>
+                    Time
+                    <input id="courseEditTime" type="text" placeholder="e.g. Thu 20:00-21:30，If left blank, the first entry from the schedule below will be used">
+                  </label>
+                  <label>
+                    Location
+                    <input id="courseEditLocation" type="text" placeholder="e.g. Indoor Hall B">
+                  </label>
+                  <label>
+                    English subtitle
+                    <input id="courseEditEnglishClub" type="text" placeholder="e.g. Badminton Club">
+                  </label>
+                  <label>
+                    Remaining Seats
+                    <input id="courseEditSeats" type="number" min="1" step="1" value="12" placeholder="e.g. 12">
+                  </label>
+                  <label>
+                    Course Fee
+                    <input id="courseEditFee" type="text" placeholder="e.g. £0 / Free / ¥99">
+                  </label>
+                  <label>
+                    Cover image URL
+                    <input id="courseEditCover" type="text" placeholder="If left blank, the club cover or a system image will be used">
+                  </label>
+                  <div class="form-section-title span-2">Detail Content</div>
+                  <label class="span-2">
+                    Course Summary
+                    <textarea id="courseEditDesc" rows="3" placeholder="A short summary shown on the course cards and at the top of the detail page."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Course lead
+                    <textarea id="courseEditLead" rows="3" placeholder="Shown below the course title. If left blank, it will be generated automatically."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Course schedule
+                    <textarea id="courseEditSchedule" rows="4" placeholder="Supports one item per line or comma-separated values, e.g. &#10;Wed 18:00-19:30&#10;Sun 10:00-11:30"></textarea>
+                  </label>
+                  <label class="span-2">
+                    Detailed overview
+                    <textarea id="courseEditDetail" rows="4" placeholder="Used in the Course Summary area on the course details page."></textarea>
+                  </label>
+                  <label>
+                    CoachName
+                    <input id="courseEditCoachName" type="text" placeholder="e.g. Alex Chen">
+                  </label>
+                  <label>
+                    Coach Title
+                    <input id="courseEditCoachTitle" type="text" placeholder="e.g. Badminton Head Coach">
+                  </label>
+                  <label class="span-2">
+                    Coach Bio
+                    <textarea id="courseEditCoachBio" rows="3" placeholder="Used on the coach bio card on the detail page."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Learning Outcomes
+                    <textarea id="courseEditLearningPoints" rows="4" placeholder="Supports one item per line or comma-separated values."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Who It Is For
+                    <textarea id="courseEditAudienceTips" rows="4" placeholder="Supports one item per line or comma-separated values."></textarea>
+                  </label>
+                  <label class="span-2">
+                    Course Notes
+                    <textarea id="courseEditNotes" rows="4" placeholder="Supports one item per line or comma-separated values."></textarea>
+                  </label>
+                  <div class="form-actions span-2">
+                    <button class="btn-primary" id="courseEditSubmitBtn" type="submit" disabled>Save Changes</button>
+                    <button class="btn-plain" id="courseEditCancelBtn" type="button" disabled>Cancel Editing</button>
+                  </div>
+                </div>
+              </form>
+            </article>
+          </section>
+        </section>
+      </div>
+    </main>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    (function(){
+      var KEYS = {
+        session: 'user_session_v1',
+        users: 'club_users',
+        clubs: 'club_registry_v1',
+        members: 'club_members_v1',
+        bookings: 'specialty_bookings_v1',
+        courses: 'mfms_courses_v1'
+      };
+
+      function safeParse(key, fallback){
+        try{
+          var raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : fallback;
+        }catch(e){
+          return fallback;
+        }
+      }
+
+      function saveData(key, value){
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+
+      function getSupabaseClientSafe(){
+        try{
+          return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
+        }catch(e){
+          return null;
+        }
+      }
+
+      function getAdminService(){
+        return window.clubAdminSupabase || null;
+      }
+
+      function getStorageService(){
+        return window.clubStorageSupabase || null;
+      }
+
+      function hasCloudDashboardConfigured(){
+        var service = getAdminService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      }
+
+      function hasCloudStorageConfigured(){
+        var service = getStorageService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      }
+
+      async function loadSessionFromSupabase(){
+        var supabase = getSupabaseClientSafe();
+        if(!supabase || !supabase.auth || typeof supabase.auth.getSession !== 'function'){
+          return null;
+        }
+        try{
+          var sessionResult = await supabase.auth.getSession();
+          var authSession = sessionResult && sessionResult.data && sessionResult.data.session;
+          var authUser = authSession && authSession.user;
+          if(!authUser || !authUser.id) return null;
+          var profileResult = await supabase
+            .from('profiles')
+            .select('id, email, nickname, role, avatar_url')
+            .eq('id', authUser.id)
+            .maybeSingle();
+          var profile = profileResult && profileResult.data ? profileResult.data : null;
+          return {
+            userId: String((profile && profile.id) || authUser.id || '').trim(),
+            email: String((profile && profile.email) || authUser.email || '').trim().toLowerCase(),
+            nickname: String((profile && profile.nickname) || authUser.email || 'User').trim(),
+            role: String((profile && profile.role) || '').trim(),
+            avatar: String((profile && profile.avatar_url) || '').trim()
+          };
+        }catch(e){
+          return null;
+        }
+      }
+
+      function slugify(text){
+        return String(text || '')
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, '-')
+          .replace(/[^a-z0-9\-]/g, '') + '-' + Date.now();
+      }
+
+      function parseTags(raw){
+        return String(raw || '')
+          .split(/[，,]/)
+          .map(function(x){ return x.trim(); })
+          .filter(Boolean)
+          .slice(0, 8);
+      }
+
+      function normalizeUrl(raw){
+        var value = String(raw || '').trim();
+        if(!value) return '';
+        if(/^https?:\/\//i.test(value)) return value;
+        return 'https://' + value;
+      }
+
+      function parseMultiValue(raw, limit){
+        var max = Number(limit || 8);
+        return String(raw || '')
+          .split(/[\n\r]+|[，,；;]+/)
+          .map(function(item){ return item.trim(); })
+          .filter(Boolean)
+          .slice(0, max);
+      }
+
+      function clubEnglishName(raw){
+        var map = {
+          'Badminton': 'Badminton Club',
+          'Football': 'Football Club',
+          'Swimming': 'Swimming Club',
+          'Tennis': 'Tennis Club',
+          'Programming': 'Programming Club',
+          'Music': 'Music Club',
+          'Cycling': 'Cycling Club'
+        };
+        var key = String(raw || '').trim();
+        return map[key] || key;
+      }
+
+      function buildAutoCourseDesc(title, clubName, level, mode){
+        var pieces = [];
+        if(level) pieces.push(level);
+        if(mode) pieces.push(mode);
+        pieces.push('course');
+        return 'A structured learning session built around ' + title + ', designed for steady progress in a ' + pieces.join(' · ') + ' setting and aligned with ' + (clubName || 'the club') + ' schedule.';
+      }
+
+      function buildAutoCourseLead(title, level, mode){
+        return 'Ideal for members who want to improve fundamentals, class engagement, and training rhythm through ' + title + ', with support for ' + (level || 'standard') + ' and ' + (mode || 'In-person') + ' participation.';
+      }
+
+      function buildAutoCourseDetail(desc, scheduleList, location, fee){
+        var parts = [desc];
+        if(scheduleList.length){
+          parts.push('Available time options: ' + scheduleList.join(', ') + '.');
+        }
+        if(location){
+          parts.push('Location: ' + location + '.');
+        }
+        if(fee){
+          parts.push('Fee: ' + fee + '.');
+        }
+        return parts.join(' ');
+      }
+
+      function readFileAsDataURL(file){
+        return new Promise(function(resolve, reject){
+          var reader = new FileReader();
+          reader.onload = function(){ resolve(reader.result); };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
+
+      async function resolveRegisterCover(){
+        var coverUrl = document.getElementById('regCoverUrl').value.trim();
+        if(coverUrl){
+          return coverUrl;
+        }
+
+        var fileInput = document.getElementById('regCoverFile');
+        var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+        if(!file) return '../zp/zq.webp';
+
+        if(file.size > 3 * 1024 * 1024){
+          alert('Cover image should be no larger than 3MB.');
+          return '../zp/zq.webp';
+        }
+
+        if(hasCloudStorageConfigured() && state.sessionUserId){
+          try{
+            var storage = getStorageService();
+            var uploaded = await storage.uploadClubCoverImage(file, state.sessionUserId);
+            if(uploaded && uploaded.publicUrl){
+              return uploaded.publicUrl;
+            }
+          }catch(error){
+            alert(storage && typeof storage.mapStorageError === 'function'
+              ? storage.mapStorageError(error)
+              : 'Unable to upload this cover image right now.'
+            );
+            return '../zp/zq.webp';
+          }
+        }
+
+        try{
+          return await readFileAsDataURL(file);
+        }catch(e){
+          return '../zp/zq.webp';
+        }
+      }
+
+      function toTextStatus(status){
+        var s = String(status || '').trim();
+        if(s === 'approved') return 'Approved';
+        if(s === 'pending') return 'Pending Review';
+        if(s === 'inactive') return 'Inactive';
+        return s || 'Active';
+      }
+
+      function isPendingStatus(status){
+        var s = String(status || '').trim().toLowerCase();
+        return s === 'pending' || s === 'booked';
+      }
+
+      function isDoneStatus(status){
+        var s = String(status || '').trim().toLowerCase();
+        return s === 'checked in' || s === 'completed' || s === 'done';
+      }
+
+      function parseDate(text){
+        if(typeof text === 'number' && Number.isFinite(text)) return text;
+        var trimmed = String(text || '').trim();
+        if(trimmed){
+          var numeric = Number(trimmed);
+          if(!Number.isNaN(numeric) && trimmed.length >= 8) return numeric;
+        }
+        var ts = Date.parse(trimmed || '');
+        return Number.isNaN(ts) ? 0 : ts;
+      }
+
+      function parseBookingTime(booking){
+        if(!booking) return 0;
+        if(booking.dayIso){
+          var slot = String(booking.slotTime || '').split('-')[0].trim();
+          if(slot){
+            return parseDate(booking.dayIso + 'T' + slot + (slot.length === 5 ? ':00' : ''));
+          }
+          return parseDate(booking.dayIso);
+        }
+        return parseDate(booking.dayLabel || booking.time || '');
+      }
+
+      function formatDate(date){
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + d;
+      }
+
+      function compactNum(n){
+        var value = Number(n || 0);
+        if(value >= 10000) return (value / 1000).toFixed(1) + 'k';
+        return String(value);
+      }
+
+      function bookingKey(item){
+        return [
+          item.id || '',
+          item.userEmail || '',
+          item.clubSlug || '',
+          item.clubName || '',
+          item.dayIso || '',
+          item.slotTime || '',
+          item.time || ''
+        ].join('|');
+      }
+
+      var state = {
+        session: null,
+        sessionUserId: '',
+        sessionEmail: '',
+        sessionNick: '',
+        users: [],
+        user: null,
+        clubs: [],
+        members: [],
+        bookings: [],
+        courses: [],
+        myClubs: [],
+        myMembers: [],
+        myBookings: [],
+        myCourses: [],
+        myClubNames: new Set(),
+        myClubSlugs: new Set(),
+        myClubIds: new Set(),
+        useCloudData: false
+      };
+      var editingClubId = '';
+      var editingCourseId = '';
+      var registerMenuOpen = false;
+      var activeRegisterTarget = 'create';
+      var membersMenuOpen = false;
+      var activeMembersTarget = 'add';
+      var teachingMenuOpen = false;
+      var activeTeachingTarget = 'publish';
+
+      var viewTitleMap = {
+        overview: 'My Club Dashboard',
+        'register-create': 'Register a Club',
+        'register-edit': 'Edit Club',
+        clubs: 'Club Management',
+        'members-add': 'Add Member',
+        'members-list': 'Member List',
+        activities: 'Activity Management',
+        'teaching-publish': 'Publish Course',
+        'teaching-edit': 'Edit Course'
+      };
+
+      function isRegisterViewId(viewId){
+        return viewId === 'view-register-create' || viewId === 'view-register-edit';
+      }
+
+      function isTeachingViewId(viewId){
+        return viewId === 'view-teaching-publish' || viewId === 'view-teaching-edit';
+      }
+
+      function isMembersViewId(viewId){
+        return viewId === 'view-members-add' || viewId === 'view-members-list';
+      }
+
+      function setRegisterMenuExpanded(expanded){
+        var group = document.getElementById('registerMenuGroup');
+        var submenu = document.getElementById('registerSubmenu');
+        var toggle = document.querySelector('.side-link[data-view="register"]');
+        var isOpen = !!expanded;
+        registerMenuOpen = isOpen;
+        if(group){
+          group.classList.toggle('expanded', isOpen);
+        }
+        if(submenu){
+          submenu.style.display = isOpen ? 'grid' : 'none';
+          submenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        }
+        if(toggle){
+          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+        syncRegisterMenuState();
+      }
+
+      function setActiveRegisterTarget(target){
+        activeRegisterTarget = String(target || 'create');
+        syncRegisterMenuState();
+      }
+
+      function syncRegisterMenuState(){
+        var currentView = document.querySelector('.manage-view.active-view');
+        var currentViewId = currentView ? currentView.id : '';
+        var isRegisterView = isRegisterViewId(currentViewId);
+        var toggle = document.querySelector('.side-link[data-view="register"]');
+        if(toggle){
+          toggle.classList.toggle('active', isRegisterView);
+        }
+        document.querySelectorAll('[data-register-target]').forEach(function(btn){
+          var target = btn.getAttribute('data-register-target');
+          btn.classList.toggle('active', isRegisterView && currentViewId === ('view-register-' + target));
+        });
+      }
+
+      function toggleRegisterMenu(){
+        var submenu = document.getElementById('registerSubmenu');
+        var isCurrentlyHidden = submenu
+          ? (submenu.getAttribute('aria-hidden') === 'true' || submenu.style.display === 'none')
+          : !registerMenuOpen;
+        var shouldOpen = !!isCurrentlyHidden;
+        setRegisterMenuExpanded(shouldOpen);
+      }
+
+      function openRegisterSection(target, focusTarget){
+        var nextTarget = String(target || 'create');
+        var nextView = 'register-' + nextTarget;
+        setActiveRegisterTarget(nextTarget);
+        switchView(nextView);
+        setRegisterMenuExpanded(true);
+        if(nextTarget === 'create'){
+          renderRegisterCreate();
+        }else{
+          if(focusTarget !== 'form'){
+            resetEditClubForm();
+          }
+          renderRegisterEdit();
+        }
+        window.requestAnimationFrame(function(){
+          var id = nextTarget === 'edit'
+            ? (focusTarget === 'form' ? 'club-edit-card' : 'club-edit-list-card')
+            : 'view-register-create';
+          var el = document.getElementById(id);
+          if(el){
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      }
+
+      function setMembersMenuExpanded(expanded){
+        var group = document.getElementById('membersMenuGroup');
+        var submenu = document.getElementById('membersSubmenu');
+        var toggle = document.querySelector('.side-link[data-view="members"]');
+        var isOpen = !!expanded;
+        membersMenuOpen = isOpen;
+        if(group){
+          group.classList.toggle('expanded', isOpen);
+        }
+        if(submenu){
+          submenu.style.display = isOpen ? 'grid' : 'none';
+          submenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        }
+        if(toggle){
+          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+        syncMembersMenuState();
+      }
+
+      function setActiveMembersTarget(target){
+        activeMembersTarget = String(target || 'add');
+        syncMembersMenuState();
+      }
+
+      function syncMembersMenuState(){
+        var currentView = document.querySelector('.manage-view.active-view');
+        var currentViewId = currentView ? currentView.id : '';
+        var isMembersView = isMembersViewId(currentViewId);
+        var toggle = document.querySelector('.side-link[data-view="members"]');
+        if(toggle){
+          toggle.classList.toggle('active', isMembersView);
+        }
+        document.querySelectorAll('[data-members-target]').forEach(function(btn){
+          var target = btn.getAttribute('data-members-target');
+          btn.classList.toggle('active', isMembersView && currentViewId === ('view-members-' + target));
+        });
+      }
+
+      function toggleMembersMenu(){
+        var submenu = document.getElementById('membersSubmenu');
+        var isCurrentlyHidden = submenu
+          ? (submenu.getAttribute('aria-hidden') === 'true' || submenu.style.display === 'none')
+          : !membersMenuOpen;
+        var shouldOpen = !!isCurrentlyHidden;
+        setMembersMenuExpanded(shouldOpen);
+      }
+
+      function openMembersSection(target){
+        var nextTarget = String(target || 'add');
+        var nextView = 'members-' + nextTarget;
+        setActiveMembersTarget(nextTarget);
+        switchView(nextView);
+        setMembersMenuExpanded(true);
+        renderMembers();
+        window.requestAnimationFrame(function(){
+          var id = nextTarget === 'list' ? 'member-list-card' : 'member-add-card';
+          var el = document.getElementById(id);
+          if(el){
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      }
+
+      function setTeachingMenuExpanded(expanded){
+        var group = document.getElementById('teachingMenuGroup');
+        var submenu = document.getElementById('teachingSubmenu');
+        var toggle = document.querySelector('.side-link[data-view="teaching"]');
+        var isOpen = !!expanded;
+        teachingMenuOpen = isOpen;
+        if(group){
+          group.classList.toggle('expanded', isOpen);
+        }
+        if(submenu){
+          submenu.style.display = isOpen ? 'grid' : 'none';
+          submenu.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+        }
+        if(toggle){
+          toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+        syncTeachingMenuState();
+      }
+
+      function setActiveTeachingTarget(target){
+        activeTeachingTarget = String(target || 'publish');
+        syncTeachingMenuState();
+      }
+
+      function syncTeachingMenuState(){
+        var currentView = document.querySelector('.manage-view.active-view');
+        var currentViewId = currentView ? currentView.id : '';
+        var isTeachingView = isTeachingViewId(currentViewId);
+        var toggle = document.querySelector('.side-link[data-view="teaching"]');
+        if(toggle){
+          toggle.classList.toggle('active', isTeachingView);
+        }
+        document.querySelectorAll('[data-teaching-target]').forEach(function(btn){
+          var target = btn.getAttribute('data-teaching-target');
+          btn.classList.toggle('active', isTeachingView && currentViewId === ('view-teaching-' + target));
+        });
+      }
+
+      function toggleTeachingMenu(){
+        var submenu = document.getElementById('teachingSubmenu');
+        var isCurrentlyHidden = submenu
+          ? (submenu.getAttribute('aria-hidden') === 'true' || submenu.style.display === 'none')
+          : !teachingMenuOpen;
+        var shouldOpen = !!isCurrentlyHidden;
+        setTeachingMenuExpanded(shouldOpen);
+      }
+
+      function openTeachingSection(target, focusTarget){
+        var nextTarget = String(target || 'publish');
+        var nextView = 'teaching-' + nextTarget;
+        setActiveTeachingTarget(nextTarget);
+        switchView(nextView);
+        setTeachingMenuExpanded(true);
+        if(nextTarget === 'publish'){
+          renderTeachingPublish();
+        }else{
+          if(focusTarget !== 'form'){
+            resetEditCourseForm();
+          }
+          renderTeachingEdit();
+        }
+        window.requestAnimationFrame(function(){
+          var id = 'teaching-publish-card';
+          if(nextTarget === 'edit'){
+            id = focusTarget === 'form' ? 'teaching-edit-card' : 'teaching-course-list-card';
+          }
+          var el = document.getElementById(id);
+          if(el){
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      }
+
+      async function refreshState(){
+        state.session = safeParse(KEYS.session, null);
+        state.users = safeParse(KEYS.users, []);
+
+        var sessionEmail = state.session && state.session.email ? String(state.session.email).trim().toLowerCase() : '';
+        var sessionNick = state.session && state.session.nickname ? String(state.session.nickname).trim() : '';
+        var sessionUserId = state.session && state.session.userId ? String(state.session.userId).trim() : '';
+        var sessionAvatar = state.session && state.session.avatar ? String(state.session.avatar).trim() : '';
+
+        if(hasCloudDashboardConfigured() && (!sessionUserId || !sessionEmail)){
+          var supabaseSession = await loadSessionFromSupabase();
+          if(supabaseSession){
+            sessionUserId = String(supabaseSession.userId || '').trim();
+            sessionEmail = String(supabaseSession.email || '').trim().toLowerCase();
+            sessionNick = String(supabaseSession.nickname || sessionNick || '').trim();
+            sessionAvatar = String(supabaseSession.avatar || sessionAvatar || '').trim();
+            state.session = {
+              email: sessionEmail,
+              nickname: sessionNick,
+              userId: sessionUserId,
+              avatar: sessionAvatar,
+              isClubManager: true
+            };
+            saveData(KEYS.session, state.session);
+          }
+        }
+
+        state.sessionUserId = sessionUserId;
+        state.sessionEmail = sessionEmail;
+        state.sessionNick = sessionNick;
+        state.user = state.users.find(function(x){
+          return x && String(x.email || '').trim().toLowerCase() === state.sessionEmail;
+        }) || (state.sessionEmail ? {
+          email: state.sessionEmail,
+          nickname: state.sessionNick,
+          avatar: sessionAvatar
+        } : null);
+
+        state.useCloudData = false;
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            var remote = await service.fetchDashboardState(state.sessionUserId);
+            state.clubs = Array.isArray(remote && remote.clubs) ? remote.clubs : [];
+            state.members = Array.isArray(remote && remote.members) ? remote.members : [];
+            state.bookings = Array.isArray(remote && remote.bookings) ? remote.bookings : [];
+            state.courses = Array.isArray(remote && remote.courses) ? remote.courses : [];
+            state.useCloudData = true;
+          }catch(error){
+            console.warn('Club dashboard Supabase sync failed, using browser fallback.', error);
+            state.clubs = safeParse(KEYS.clubs, []);
+            state.members = safeParse(KEYS.members, []);
+            state.bookings = safeParse(KEYS.bookings, []);
+            state.courses = safeParse(KEYS.courses, []);
+          }
+        }else{
+          state.clubs = safeParse(KEYS.clubs, []);
+          state.members = safeParse(KEYS.members, []);
+          state.bookings = safeParse(KEYS.bookings, []);
+          state.courses = safeParse(KEYS.courses, []);
+        }
+
+        state.myClubs = state.clubs.filter(function(c){
+          if(!c) return false;
+          if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
+          return !c.ownerEmail || c.ownerEmail === state.sessionEmail;
+        });
+
+        state.myClubNames = new Set(state.myClubs.map(function(c){ return c.name; }).filter(Boolean));
+        state.myClubSlugs = new Set(state.myClubs.map(function(c){ return c.slug; }).filter(Boolean));
+        state.myClubIds = new Set(state.myClubs.map(function(c){ return String(c.id || '').trim(); }).filter(Boolean));
+
+        state.myMembers = state.members.filter(function(m){
+          if(!m) return false;
+          return state.myClubIds.has(String(m.clubId || '').trim()) || state.myClubNames.has(m.clubName);
+        });
+
+        state.myBookings = state.bookings.filter(function(b){
+          if(!b) return false;
+          return state.myClubIds.has(String(b.clubId || '').trim())
+            || state.myClubSlugs.has(b.clubSlug)
+            || state.myClubNames.has(b.clubName);
+        });
+
+        state.myCourses = state.courses.filter(function(c){
+          if(!c) return false;
+          if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
+          return state.myClubIds.has(String(c.clubId || '').trim())
+            || c.ownerEmail === state.sessionEmail
+            || state.myClubNames.has(c.club);
+        });
+      }
+
+      function switchView(view){
+        var links = document.querySelectorAll('.side-link[data-view]');
+        links.forEach(function(link){
+          if(
+            link.getAttribute('data-role') === 'register-toggle' ||
+            link.getAttribute('data-role') === 'members-toggle' ||
+            link.getAttribute('data-role') === 'teaching-toggle'
+          ){
+            return;
+          }
+          link.classList.toggle('active', link.getAttribute('data-view') === view);
+        });
+
+        var views = document.querySelectorAll('.manage-view');
+        views.forEach(function(section){
+          section.classList.toggle('active-view', section.id === ('view-' + view));
+        });
+
+        var title = viewTitleMap[view] || 'My Club Dashboard';
+        document.title = title + ' - Dashboard';
+        if(isRegisterViewId('view-' + view)){
+          setRegisterMenuExpanded(true);
+        }else{
+          setRegisterMenuExpanded(false);
+        }
+        if(isMembersViewId('view-' + view)){
+          setMembersMenuExpanded(true);
+        }else{
+          setMembersMenuExpanded(false);
+        }
+        if(isTeachingViewId('view-' + view)){
+          setTeachingMenuExpanded(true);
+        }else{
+          setTeachingMenuExpanded(false);
+        }
+      }
+
+      function renderProfile(){
+        var displayName = (state.user && state.user.nickname) || state.sessionNick || 'User';
+        var displayEmail = state.sessionEmail || 'Not logged in';
+        var avatar = (state.user && state.user.avatar) || '../zp/hb1.webp';
+
+        document.querySelectorAll('#sidebarName').forEach(function(el){
+          el.textContent = displayName;
+        });
+        document.querySelectorAll('#sidebarEmail').forEach(function(el){
+          el.textContent = displayEmail;
+        });
+        document.querySelectorAll('#sidebarAvatar').forEach(function(el){
+          el.src = avatar;
+        });
+        var topManagerName = document.getElementById('topManagerName');
+        if(topManagerName){
+          topManagerName.textContent = displayName;
+        }
+      }
+
+      function renderOverview(){
+        var pendingCount = state.myBookings.filter(function(b){ return isPendingStatus(b.status); }).length;
+        var doneCount = state.myBookings.filter(function(b){ return isDoneStatus(b.status); }).length;
+        var completionRate = state.myBookings.length ? Math.round((doneCount / state.myBookings.length) * 100) : 0;
+        var approvedCount = state.myClubs.filter(function(c){ return c.status === 'approved' || !c.status; }).length;
+        var pendingReviewCount = state.myClubs.filter(function(c){ return c.status === 'pending'; }).length;
+
+        var last30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
+        var newMembersCount = state.myMembers.filter(function(m){
+          return parseDate(m.joinTime) >= last30;
+        }).length;
+
+        document.getElementById('kpiClubs').textContent = compactNum(state.myClubs.length);
+        document.getElementById('kpiMembers').textContent = compactNum(state.myMembers.length);
+        document.getElementById('kpiPending').textContent = compactNum(pendingCount);
+        document.getElementById('kpiCourses').textContent = compactNum(state.myCourses.length);
+        var topNoticeClubs = document.getElementById('topNoticeClubs');
+        var topNoticeMembers = document.getElementById('topNoticeMembers');
+        var topNoticePending = document.getElementById('topNoticePending');
+        var topNoticeCourses = document.getElementById('topNoticeCourses');
+        if(topNoticeClubs) topNoticeClubs.textContent = compactNum(state.myClubs.length);
+        if(topNoticeMembers) topNoticeMembers.textContent = compactNum(state.myMembers.length);
+        if(topNoticePending) topNoticePending.textContent = compactNum(pendingCount);
+        if(topNoticeCourses) topNoticeCourses.textContent = compactNum(state.myCourses.length);
+        document.getElementById('approvedCount').textContent = compactNum(approvedCount);
+        document.getElementById('pendingReviewCount').textContent = compactNum(pendingReviewCount);
+        document.getElementById('completionRate').textContent = completionRate + '%';
+        document.getElementById('newMembersCount').textContent = compactNum(newMembersCount);
+
+        var weekdayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        var counts = [0,0,0,0,0,0,0];
+        state.myBookings.forEach(function(b){
+          var ts = parseBookingTime(b);
+          if(!ts) return;
+          var idx = (new Date(ts).getDay() + 6) % 7;
+          counts[idx] += 1;
+        });
+
+        var maxCount = Math.max.apply(null, counts.concat([1]));
+        var chart = document.getElementById('weeklyChart');
+        chart.innerHTML = counts.map(function(n, i){
+          var h = Math.max(12, Math.round((n / maxCount) * 130));
+          return '<div class="bar-item">' +
+            '<div class="bar-track"><span class="bar-fill" style="height:' + h + 'px"></span></div>' +
+            '<div class="bar-val">' + n + '</div>' +
+            '<div class="bar-label">' + weekdayNames[i] + '</div>' +
+          '</div>';
+        }).join('');
+
+        var agendaList = document.getElementById('agendaList');
+        var pendingItems = state.myBookings
+          .filter(function(b){ return isPendingStatus(b.status); })
+          .sort(function(a, b){ return parseBookingTime(a) - parseBookingTime(b); })
+          .slice(0, 5);
+
+        if(pendingItems.length === 0){
+          agendaList.innerHTML = '<li class="empty-item">There are no pending bookings right now.</li>';
+        }else{
+          agendaList.innerHTML = pendingItems.map(function(item){
+            var dateText = item.dayLabel || item.dayIso || item.time || 'Time TBD';
+            var timeText = item.slotTime ? (' · ' + item.slotTime) : '';
+            return '<li>' +
+              '<div class="agenda-title">' + (item.clubName || 'Unnamed Club') + '</div>' +
+              '<div class="agenda-sub">' + dateText + timeText + '</div>' +
+            '</li>';
+          }).join('');
+        }
+
+        var teamList = document.getElementById('teamList');
+        var uniq = {};
+        var coreTeam = state.myMembers.filter(function(m){
+          var key = (m.userEmail || m.name || '') + '|' + (m.clubName || '');
+          if(!key || uniq[key]) return false;
+          uniq[key] = true;
+          return true;
+        }).slice(0, 6);
+
+        if(coreTeam.length === 0){
+          teamList.innerHTML = '<li class="empty-item">No member data yet.</li>';
+        }else{
+          teamList.innerHTML = coreTeam.map(function(m){
+            return '<li>' +
+              '<div class="team-name">' + (m.name || m.userEmail || 'Member') + '</div>' +
+              '<div class="team-meta">' + (m.clubName || '-') + ' · ' + (m.role || 'member') + '</div>' +
+            '</li>';
+          }).join('');
+        }
+
+        var tbody = document.getElementById('clubTableBody');
+        if(state.myClubs.length === 0){
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-row">This account does not manage any clubs yet. Start by submitting a club registration.</td></tr>';
+        }else{
+          tbody.innerHTML = state.myClubs.slice(0, 10).map(function(c){
+            var memberCount = state.myMembers.filter(function(m){ return m.clubName === c.name; }).length;
+            return '<tr>' +
+              '<td>' + (c.name || '-') + '</td>' +
+              '<td>' + (c.category || '-') + '</td>' +
+              '<td>' + (c.mode || '-') + '</td>' +
+              '<td>' + (c.location || '-') + '</td>' +
+              '<td>' + memberCount + '</td>' +
+              '<td><span class="status-pill">' + toTextStatus(c.status) + '</span></td>' +
+            '</tr>';
+          }).join('');
+        }
+      }
+
+      function renderRegisterCreate(){
+        var list = document.getElementById('registerRecent');
+        var recent = state.myClubs.slice().sort(function(a, b){
+          return parseDate(b.createdAt) - parseDate(a.createdAt);
+        }).slice(0, 8);
+
+        if(recent.length === 0){
+          list.innerHTML = '<li class="empty-item">No registration records yet.</li>';
+          return;
+        }
+
+        list.innerHTML = recent.map(function(c){
+          return '<li>' +
+            '<div class="simple-item-title">' + (c.name || '-') + '</div>' +
+            '<div class="simple-item-sub">' + (c.category || '-') + ' · ' + (c.mode || '-') + ' · ' + toTextStatus(c.status) + '</div>' +
+          '</li>';
+        }).join('');
+      }
+
+      function renderClubEditTable(){
+        var tbody = document.getElementById('clubEditTableBody');
+        if(!tbody) return;
+        if(state.myClubs.length === 0){
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-row">No clubs yet. Create one first in Register a Club.</td></tr>';
+          return;
+        }
+
+        var rows = state.myClubs.slice().sort(function(a, b){
+          return parseDate(b && b.createdAt) - parseDate(a && a.createdAt);
+        });
+
+        tbody.innerHTML = rows.map(function(c){
+          var desc = c.desc || c.heroSub || 'No overview available.';
+          var timeText = c.time || 'Time TBD';
+          var locationText = c.location || 'Location TBD';
+          var statusText = toTextStatus(c.status);
+          var seatsText = Number(c.seats || 0) > 0 ? (Number(c.seats) + ' ') : 'Pending setup';
+          var isSelected = String(c.id || '') === String(editingClubId || '');
+          return '<tr class="table-row-selectable' + (isSelected ? ' table-row-selected' : '') + '" data-club-id="' + c.id + '">' +
+            '<td><div class="table-maintext">' + (c.name || '-') + '</div><div class="table-subtext">' + desc + '</div></td>' +
+            '<td><div class="table-maintext">' + (c.category || '-') + '</div><div class="table-subtext">' + (c.mode || '-') + '</div></td>' +
+            '<td><div class="table-maintext">' + locationText + '</div><div class="table-subtext">' + timeText + '</div></td>' +
+            '<td><div class="table-maintext">' + statusText + '</div><div class="table-subtext">Capacity: ' + seatsText + '</div></td>' +
+            '<td class="actions-cell">' +
+              '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit</button>' +
+              '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">Preview</button>' +
+              '<button class="btn-danger small" data-action="remove-club" data-id="' + c.id + '">Delete</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function renderClubs(){
+        var wrap = document.getElementById('clubCards');
+        if(state.myClubs.length === 0){
+          wrap.innerHTML = '<div class="empty-card">No clubs yet. Create one first in the Club Registration section.</div>';
+          return;
+        }
+
+        wrap.innerHTML = state.myClubs.map(function(c){
+          var extraLinkHint = '';
+          if(c.mapLink) extraLinkHint += ' · Map link';
+          if(c.onlineLink) extraLinkHint += ' · Meeting link';
+          return '<article class="club-manage-card">' +
+            '<div class="club-manage-head">' +
+              '<h4>' + (c.name || '-') + '</h4>' +
+              '<span class="status-pill">' + toTextStatus(c.status) + '</span>' +
+            '</div>' +
+            '<div class="club-manage-meta">' + (c.category || '-') + ' · ' + (c.mode || '-') + ' · ' + (c.location || 'Location TBD') + extraLinkHint + '</div>' +
+            '<p>' + (c.desc || c.heroSub || 'No overview available.') + '</p>' +
+            '<div class="club-manage-actions">' +
+              '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">View Details</button>' +
+              '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit Club</button>' +
+              '<button class="btn-plain small" data-action="toggle-status" data-id="' + c.id + '">Change Status</button>' +
+              '<button class="btn-danger small" data-action="remove-club" data-id="' + c.id + '">Delete</button>' +
+            '</div>' +
+          '</article>';
+        }).join('');
+      }
+
+      function getClubFormRefs(mode){
+        var isEdit = mode === 'edit';
+        return {
+          form: document.getElementById(isEdit ? 'clubEditForm' : 'registerForm'),
+          fieldsWrap: isEdit ? document.getElementById('clubEditFields') : null,
+          headNote: isEdit ? document.getElementById('clubEditHeadNote') : null,
+          hiddenId: isEdit ? document.getElementById('clubEditId') : null,
+          submitBtn: document.getElementById(isEdit ? 'clubEditSubmitBtn' : null),
+          cancelBtn: isEdit ? document.getElementById('clubEditCancelBtn') : null,
+          name: document.getElementById(isEdit ? 'clubEditName' : 'regName'),
+          category: document.getElementById(isEdit ? 'clubEditCategory' : 'regCategory'),
+          mode: document.getElementById(isEdit ? 'clubEditMode' : 'regMode'),
+          location: document.getElementById(isEdit ? 'clubEditLocation' : 'regLocation'),
+          mapLink: document.getElementById(isEdit ? 'clubEditMapLink' : 'regMapLink'),
+          time: document.getElementById(isEdit ? 'clubEditTime' : 'regTime'),
+          onlineLink: document.getElementById(isEdit ? 'clubEditOnlineLink' : 'regOnlineLink'),
+          fee: document.getElementById(isEdit ? 'clubEditFee' : 'regFee'),
+          capacity: document.getElementById(isEdit ? 'clubEditCapacity' : 'regCapacity'),
+          heroSub: document.getElementById(isEdit ? 'clubEditHeroSub' : 'regHeroSub'),
+          tags: document.getElementById(isEdit ? 'clubEditTags' : 'regTags'),
+          coverFile: document.getElementById(isEdit ? 'clubEditCoverFile' : 'regCoverFile'),
+          coverUrl: document.getElementById(isEdit ? 'clubEditCoverUrl' : 'regCoverUrl'),
+          desc: document.getElementById(isEdit ? 'clubEditDesc' : 'regDesc'),
+          venueInfo: document.getElementById(isEdit ? 'clubEditVenueInfo' : 'regVenueInfo'),
+          whatWeDo: document.getElementById(isEdit ? 'clubEditWhatWeDo' : 'regWhatWeDo'),
+          audience: document.getElementById(isEdit ? 'clubEditAudience' : 'regAudience'),
+          trainingPlan: document.getElementById(isEdit ? 'clubEditTrainingPlan' : 'regTrainingPlan'),
+          notes: document.getElementById(isEdit ? 'clubEditNotes' : 'regNotes')
+        };
+      }
+
+      function readClubFormValues(mode){
+        var refs = getClubFormRefs(mode);
+        return {
+          name: refs.name ? refs.name.value.trim() : '',
+          category: refs.category ? refs.category.value : 'Sports',
+          mode: refs.mode ? refs.mode.value : 'In-person',
+          location: refs.location ? refs.location.value.trim() : '',
+          mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
+          time: refs.time ? refs.time.value.trim() : '',
+          onlineLink: refs.onlineLink ? normalizeUrl(refs.onlineLink.value) : '',
+          fee: refs.fee ? refs.fee.value.trim() : '',
+          seats: refs.capacity ? Math.max(1, Number(refs.capacity.value) || 20) : 20,
+          heroSub: refs.heroSub ? refs.heroSub.value.trim() : '',
+          tags: refs.tags ? parseTags(refs.tags.value) : [],
+          desc: refs.desc ? refs.desc.value.trim() : '',
+          venueInfo: refs.venueInfo ? refs.venueInfo.value.trim() : '',
+          whatWeDo: refs.whatWeDo ? refs.whatWeDo.value.trim() : '',
+          audience: refs.audience ? refs.audience.value.trim() : '',
+          trainingPlan: refs.trainingPlan ? refs.trainingPlan.value.trim() : '',
+          notes: refs.notes ? refs.notes.value.trim() : ''
+        };
+      }
+
+      async function resolveClubCover(mode, fallback){
+        var refs = getClubFormRefs(mode);
+        var coverUrl = refs.coverUrl ? refs.coverUrl.value.trim() : '';
+        if(coverUrl){
+          return coverUrl;
+        }
+
+        var file = refs.coverFile && refs.coverFile.files ? refs.coverFile.files[0] : null;
+        if(!file) return fallback || '../zp/zq.webp';
+
+        if(file.size > 3 * 1024 * 1024){
+          alert('Cover image should be no larger than 3MB.');
+          return fallback || '../zp/zq.webp';
+        }
+
+        if(hasCloudStorageConfigured() && state.sessionUserId){
+          try{
+            var storage = getStorageService();
+            var uploaded = await storage.uploadClubCoverImage(file, state.sessionUserId);
+            if(uploaded && uploaded.publicUrl){
+              return uploaded.publicUrl;
+            }
+          }catch(error){
+            alert(storage && typeof storage.mapStorageError === 'function'
+              ? storage.mapStorageError(error)
+              : 'Unable to upload this cover image right now.'
+            );
+            return fallback || '../zp/zq.webp';
+          }
+        }
+
+        try{
+          return await readFileAsDataURL(file);
+        }catch(e){
+          return fallback || '../zp/zq.webp';
+        }
+      }
+
+      function buildClubPayload(values, currentClub, cover){
+        var existing = currentClub || null;
+        return {
+          id: existing && existing.id ? existing.id : Date.now(),
+          slug: existing && existing.slug ? existing.slug : slugify(values.name),
+          name: values.name,
+          category: values.category,
+          mode: values.mode,
+          location: values.location,
+          mapLink: values.mapLink,
+          onlineLink: values.onlineLink,
+          time: values.time,
+          fee: values.fee || '£0',
+          seats: values.seats,
+          cover: cover || (existing && existing.cover) || '../zp/zq.webp',
+          tags: values.tags,
+          desc: values.desc,
+          heroSub: values.heroSub || values.desc,
+          venueInfo: values.venueInfo,
+          whatWeDo: values.whatWeDo,
+          audience: values.audience,
+          trainingPlan: values.trainingPlan,
+          notes: values.notes,
+          slots: (existing && Array.isArray(existing.slots)) ? existing.slots : [],
+          ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
+          createdAt: (existing && existing.createdAt) || new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          status: (existing && existing.status) || 'pending'
+        };
+      }
+
+      function findManagedClub(ref){
+        var needle = String(ref || '').trim();
+        if(!needle) return null;
+        return state.myClubs.find(function(club){
+          return String(club && club.id || '').trim() === needle
+            || String(club && club.name || '').trim() === needle
+            || String(club && club.slug || '').trim() === needle;
+        }) || null;
+      }
+
+      function renderMembers(){
+        var clubSelect = document.getElementById('memberClub');
+        if(state.myClubs.length === 0){
+          clubSelect.innerHTML = '<option value="">Create a club first</option>';
+        }else{
+          clubSelect.innerHTML = state.myClubs.map(function(c){
+            return '<option value="' + (c.id || '') + '">' + (c.name || '-') + '</option>';
+          }).join('');
+        }
+
+        var tbody = document.getElementById('memberTableBody');
+        if(state.myMembers.length === 0){
+          tbody.innerHTML = '<tr><td colspan="5" class="empty-row">No member data yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = state.myMembers.map(function(m){
+          var key = [m.userEmail || '', m.clubName || '', m.joinTime || '', m.name || ''].join('|');
+          return '<tr>' +
+            '<td>' + (m.name || m.userEmail || '-') + '</td>' +
+            '<td>' + (m.clubName || '-') + '</td>' +
+            '<td>' + (m.role || '-') + '</td>' +
+            '<td>' + (m.joinTime || '-') + '</td>' +
+            '<td><button class="btn-danger small" data-action="remove-member" data-id="' + (m.id || '') + '" data-key="' + encodeURIComponent(key) + '">Remove</button></td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function renderActivities(){
+        var tbody = document.getElementById('activityTableBody');
+        if(state.myBookings.length === 0){
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No booking activity records.</td></tr>';
+          return;
+        }
+
+        var rows = state.myBookings.slice().sort(function(a, b){
+          return parseBookingTime(a) - parseBookingTime(b);
+        });
+
+        tbody.innerHTML = rows.map(function(b){
+          var key = bookingKey(b);
+          var status = b.status || 'Booked';
+          return '<tr>' +
+            '<td>' + (b.clubName || '-') + '</td>' +
+            '<td>' + (b.userEmail || '-') + '</td>' +
+            '<td>' + (b.dayLabel || b.dayIso || '-') + '</td>' +
+            '<td>' + (b.slotTime || '-') + '</td>' +
+            '<td><span class="status-pill">' + status + '</span></td>' +
+            '<td class="actions-cell">' +
+              '<button class="btn-plain small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Checked In">Check In</button>' +
+              '<button class="btn-plain small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Completed">Complete</button>' +
+              '<button class="btn-danger small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Cancelled">Cancel</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function getCourseFormRefs(mode){
+        var isEdit = mode === 'edit';
+        return {
+          form: document.getElementById(isEdit ? 'courseEditForm' : 'courseForm'),
+          fieldsWrap: isEdit ? document.getElementById('courseEditFields') : null,
+          headNote: isEdit ? document.getElementById('courseEditHeadNote') : null,
+          hiddenId: isEdit ? document.getElementById('courseEditId') : null,
+          submitBtn: document.getElementById(isEdit ? 'courseEditSubmitBtn' : 'courseSubmitBtn'),
+          cancelBtn: isEdit ? document.getElementById('courseEditCancelBtn') : null,
+          title: document.getElementById(isEdit ? 'courseEditTitle' : 'courseTitle'),
+          club: document.getElementById(isEdit ? 'courseEditClub' : 'courseClub'),
+          level: document.getElementById(isEdit ? 'courseEditLevel' : 'courseLevel'),
+          mode: document.getElementById(isEdit ? 'courseEditMode' : 'courseMode'),
+          time: document.getElementById(isEdit ? 'courseEditTime' : 'courseTime'),
+          location: document.getElementById(isEdit ? 'courseEditLocation' : 'courseLocation'),
+          englishClub: document.getElementById(isEdit ? 'courseEditEnglishClub' : 'courseEnglishClub'),
+          seats: document.getElementById(isEdit ? 'courseEditSeats' : 'courseSeats'),
+          fee: document.getElementById(isEdit ? 'courseEditFee' : 'courseFee'),
+          cover: document.getElementById(isEdit ? 'courseEditCover' : 'courseCover'),
+          desc: document.getElementById(isEdit ? 'courseEditDesc' : 'courseDesc'),
+          lead: document.getElementById(isEdit ? 'courseEditLead' : 'courseLead'),
+          schedule: document.getElementById(isEdit ? 'courseEditSchedule' : 'courseSchedule'),
+          detail: document.getElementById(isEdit ? 'courseEditDetail' : 'courseDetail'),
+          coachName: document.getElementById(isEdit ? 'courseEditCoachName' : 'courseCoachName'),
+          coachTitle: document.getElementById(isEdit ? 'courseEditCoachTitle' : 'courseCoachTitle'),
+          coachBio: document.getElementById(isEdit ? 'courseEditCoachBio' : 'courseCoachBio'),
+          learningPoints: document.getElementById(isEdit ? 'courseEditLearningPoints' : 'courseLearningPoints'),
+          audienceTips: document.getElementById(isEdit ? 'courseEditAudienceTips' : 'courseAudienceTips'),
+          notes: document.getElementById(isEdit ? 'courseEditNotes' : 'courseNotes')
+        };
+      }
+
+      function populateCourseClubSelect(selectEl, selectedClubName, editingCourse){
+        if(!selectEl) return;
+        if(state.myClubs.length === 0){
+          if(editingCourse && editingCourse.club){
+            selectEl.innerHTML = '<option value="' + editingCourse.club + '">' + editingCourse.club + ' · Published Course</option>';
+            selectEl.value = editingCourse.club;
+          }else{
+            selectEl.innerHTML = '<option value="">Create a club first</option>';
+          }
+          return;
+        }
+
+        selectEl.innerHTML = state.myClubs.map(function(c){
+          var label = c.name || '-';
+          if(c.category && c.category !== c.name){
+            label += ' · ' + c.category;
+          }
+          return '<option value="' + (c.name || '') + '">' + label + '</option>';
+        }).join('');
+
+        if(editingCourse && editingCourse.club){
+          var hasEditingClub = state.myClubs.some(function(c){ return (c.name || '') === editingCourse.club; });
+          if(!hasEditingClub){
+            selectEl.innerHTML += '<option value="' + editingCourse.club + '">' + editingCourse.club + ' · Published Course</option>';
+          }
+        }
+
+        var hasSelected = state.myClubs.some(function(c){ return (c.name || '') === selectedClubName; });
+        if(hasSelected){
+          selectEl.value = selectedClubName;
+        }else if(editingCourse && editingCourse.club){
+          selectEl.value = editingCourse.club;
+        }else{
+          selectEl.value = (state.myClubs[0] && state.myClubs[0].name) || '';
+        }
+      }
+
+      function readCourseFormValues(mode){
+        var refs = getCourseFormRefs(mode);
+        return {
+          title: refs.title ? refs.title.value.trim() : '',
+          club: refs.club ? refs.club.value : '',
+          level: refs.level ? refs.level.value : 'Beginner',
+          mode: refs.mode ? refs.mode.value : 'In-person',
+          time: refs.time ? refs.time.value.trim() : '',
+          location: refs.location ? refs.location.value.trim() : '',
+          englishClub: refs.englishClub ? refs.englishClub.value.trim() : '',
+          seats: refs.seats ? Math.max(1, Number(refs.seats.value) || 12) : 12,
+          fee: refs.fee ? refs.fee.value.trim() : '',
+          cover: refs.cover ? refs.cover.value.trim() : '',
+          desc: refs.desc ? refs.desc.value.trim() : '',
+          lead: refs.lead ? refs.lead.value.trim() : '',
+          schedule: refs.schedule ? refs.schedule.value : '',
+          detail: refs.detail ? refs.detail.value.trim() : '',
+          coachName: refs.coachName ? refs.coachName.value.trim() : '',
+          coachTitle: refs.coachTitle ? refs.coachTitle.value.trim() : '',
+          coachBio: refs.coachBio ? refs.coachBio.value.trim() : '',
+          learningPoints: refs.learningPoints ? refs.learningPoints.value : '',
+          audienceTips: refs.audienceTips ? refs.audienceTips.value : '',
+          notes: refs.notes ? refs.notes.value : ''
+        };
+      }
+
+      function buildCoursePayload(values, clubRecord){
+        var scheduleList = parseMultiValue(values.schedule, 12);
+        var time = values.time || scheduleList[0] || 'Time TBD';
+        if(scheduleList.length === 0 && values.time){
+          scheduleList = [values.time];
+        }
+
+        var location = values.location;
+        if(!location){
+          location = values.mode === 'Online' ? 'OnlineMeeting link (to be published)' : 'Location TBD';
+        }
+
+        var fee = values.fee || 'Free';
+        var desc = values.desc || buildAutoCourseDesc(values.title, values.club, values.level, values.mode);
+        var lead = values.lead || buildAutoCourseLead(values.title, values.level, values.mode);
+        var detail = values.detail || buildAutoCourseDetail(desc, scheduleList, location, fee);
+        var cover = values.cover || ((clubRecord && clubRecord.cover) ? clubRecord.cover : '');
+        var createdAt = Date.now();
+
+        return {
+          id: createdAt,
+          slug: slugify(values.title),
+          title: values.title,
+          clubId: (clubRecord && clubRecord.id) || '',
+          club: values.club,
+          clubSlug: (clubRecord && clubRecord.slug) || '',
+          clubCategory: (clubRecord && clubRecord.category) || values.club,
+          clubCover: (clubRecord && clubRecord.cover) || '',
+          englishClub: values.englishClub || clubEnglishName((clubRecord && clubRecord.category) || values.club),
+          level: values.level,
+          mode: values.mode,
+          time: time,
+          schedule: scheduleList,
+          location: location,
+          seats: values.seats,
+          fee: fee,
+          cover: cover,
+          desc: desc,
+          lead: lead,
+          detail: detail,
+          coachName: values.coachName,
+          coachTitle: values.coachTitle,
+          coachBio: values.coachBio,
+          learningPoints: parseMultiValue(values.learningPoints, 8),
+          audienceTips: parseMultiValue(values.audienceTips, 8),
+          notesList: parseMultiValue(values.notes, 8),
+          popularity: 0,
+          ownerEmail: state.sessionEmail,
+          createdAt: createdAt,
+          updatedAt: createdAt
+        };
+      }
+
+      function renderCourseTable(){
+        var tbody = document.getElementById('courseTableBody');
+        if(!tbody) return;
+        if(state.myCourses.length === 0){
+          tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No courses yet.</td></tr>';
+          return;
+        }
+
+        var rows = state.myCourses.slice().sort(function(a, b){
+          return parseDate(b && b.createdAt) - parseDate(a && a.createdAt);
+        });
+
+        tbody.innerHTML = rows.map(function(c){
+          var desc = c.desc || c.detail || 'Course details template generated';
+          var timeText = c.time || ((Array.isArray(c.schedule) && c.schedule[0]) || 'Time TBD');
+          var locationText = c.location || 'Location TBD';
+          var feeText = c.fee || 'Free';
+          var seatsText = Number(c.seats || 0) > 0 ? (Number(c.seats) + ' ') : 'Pending setup';
+          var coachName = c.coachName || 'Default Coach';
+          var coachTitle = c.coachTitle || 'Course Instructor';
+          var isSelected = String(c.id || '') === String(editingCourseId || '');
+          return '<tr class="table-row-selectable' + (isSelected ? ' table-row-selected' : '') + '" data-course-id="' + c.id + '">' +
+            '<td><div class="table-maintext">' + (c.title || '-') + '</div><div class="table-subtext">' + desc + '</div></td>' +
+            '<td>' + (c.club || '-') + '</td>' +
+            '<td><div class="table-maintext">' + timeText + '</div><div class="table-subtext">' + locationText + '</div></td>' +
+            '<td><div class="table-maintext">' + feeText + '</div><div class="table-subtext">Remaining Seats: ' + seatsText + '</div></td>' +
+            '<td><div class="table-maintext">' + coachName + '</div><div class="table-subtext">' + coachTitle + '</div></td>' +
+            '<td class="actions-cell">' +
+              '<button class="btn-plain small" data-action="edit-course" data-id="' + c.id + '">Edit</button>' +
+              '<button class="btn-plain small" data-action="preview-course" data-id="' + c.id + '">Preview</button>' +
+              '<button class="btn-danger small" data-action="remove-course" data-id="' + c.id + '">Delete</button>' +
+            '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      function renderTeachingPublish(){
+        var refs = getCourseFormRefs('publish');
+        if(!refs.form) return;
+        populateCourseClubSelect(refs.club, refs.club && refs.club.value, null);
+        if(refs.submitBtn){
+          refs.submitBtn.textContent = 'Publish Course';
+        }
+      }
+
+      function renderTeachingEdit(){
+        var refs = getCourseFormRefs('edit');
+        if(!refs.form) return;
+        var editingCourse = state.myCourses.find(function(c){
+          return String(c && c.id) === String(editingCourseId || '');
+        }) || null;
+        if(!editingCourse){
+          clearEditCourseFormFields();
+          setEditCourseFieldsVisible(false);
+          syncEditCourseFormMode(null);
+          renderCourseTable();
+          return;
+        }
+        setEditCourseFieldsVisible(true);
+        populateCourseClubSelect(refs.club, refs.club && refs.club.value, editingCourse);
+        syncEditCourseFormMode(editingCourse);
+        renderCourseTable();
+      }
+
+      function renderTeaching(){
+        renderTeachingPublish();
+        renderTeachingEdit();
+      }
+
+      function renderRegisterEdit(){
+        var refs = getClubFormRefs('edit');
+        if(!refs.form) return;
+        var editingClub = state.myClubs.find(function(c){
+          return String(c && c.id) === String(editingClubId || '');
+        }) || null;
+        if(!editingClub){
+          clearEditClubFormFields();
+          setEditClubFieldsVisible(false);
+          syncEditClubFormMode(null);
+          renderClubEditTable();
+          return;
+        }
+        setEditClubFieldsVisible(true);
+        syncEditClubFormMode(editingClub);
+        renderClubEditTable();
+      }
+
+      function renderRegister(){
+        renderRegisterCreate();
+        renderRegisterEdit();
+      }
+
+      function joinMultiValue(raw){
+        if(Array.isArray(raw)) return raw.filter(Boolean).join('\n');
+        return parseMultiValue(raw, 20).join('\n');
+      }
+
+      function syncEditCourseFormMode(course){
+        var refs = getCourseFormRefs('edit');
+        var isEditing = !!course;
+        if(refs.hiddenId && !isEditing){
+          refs.hiddenId.value = '';
+        }
+        if(refs.headNote){
+          refs.headNote.hidden = !isEditing;
+          refs.headNote.textContent = isEditing ? ('Currently editing: ' + (course.title || 'Untitled Course')) : '';
+        }
+        if(refs.submitBtn){
+          refs.submitBtn.disabled = !isEditing;
+          refs.submitBtn.textContent = 'Save Changes';
+        }
+        if(refs.cancelBtn){
+          refs.cancelBtn.disabled = !isEditing;
+        }
+      }
+
+      function syncEditClubFormMode(club){
+        var refs = getClubFormRefs('edit');
+        var isEditing = !!club;
+        if(refs.hiddenId && !isEditing){
+          refs.hiddenId.value = '';
+        }
+        if(refs.headNote){
+          refs.headNote.hidden = !isEditing;
+          refs.headNote.textContent = isEditing ? ('Currently editing: ' + (club.name || 'Unnamed Club')) : '';
+        }
+        if(refs.submitBtn){
+          refs.submitBtn.disabled = !isEditing;
+          refs.submitBtn.textContent = 'Save Changes';
+        }
+        if(refs.cancelBtn){
+          refs.cancelBtn.disabled = !isEditing;
+        }
+      }
+
+      function setEditClubFieldsVisible(visible){
+        var refs = getClubFormRefs('edit');
+        if(!refs.fieldsWrap) return;
+        refs.fieldsWrap.style.display = visible ? 'grid' : 'none';
+        refs.fieldsWrap.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      }
+
+      function clearEditClubFormFields(){
+        var refs = getClubFormRefs('edit');
+        if(!refs.form) return;
+        if(refs.hiddenId) refs.hiddenId.value = '';
+        if(refs.name) refs.name.value = '';
+        if(refs.category) refs.category.value = '';
+        if(refs.mode) refs.mode.value = '';
+        if(refs.location) refs.location.value = '';
+        if(refs.mapLink) refs.mapLink.value = '';
+        if(refs.time) refs.time.value = '';
+        if(refs.onlineLink) refs.onlineLink.value = '';
+        if(refs.fee) refs.fee.value = '';
+        if(refs.capacity) refs.capacity.value = '';
+        if(refs.heroSub) refs.heroSub.value = '';
+        if(refs.tags) refs.tags.value = '';
+        if(refs.coverFile) refs.coverFile.value = '';
+        if(refs.coverUrl) refs.coverUrl.value = '';
+        if(refs.desc) refs.desc.value = '';
+        if(refs.venueInfo) refs.venueInfo.value = '';
+        if(refs.whatWeDo) refs.whatWeDo.value = '';
+        if(refs.audience) refs.audience.value = '';
+        if(refs.trainingPlan) refs.trainingPlan.value = '';
+        if(refs.notes) refs.notes.value = '';
+      }
+
+      function resetEditClubForm(){
+        editingClubId = '';
+        clearEditClubFormFields();
+        setEditClubFieldsVisible(false);
+        syncEditClubFormMode(null);
+      }
+
+      function fillEditClubForm(club){
+        if(!club) return;
+        var refs = getClubFormRefs('edit');
+        editingClubId = String(club.id || '');
+        if(refs.hiddenId) refs.hiddenId.value = editingClubId;
+        setEditClubFieldsVisible(true);
+        refs.name.value = club.name || '';
+        refs.category.value = club.category || 'Sports';
+        refs.mode.value = club.mode || 'In-person';
+        refs.location.value = club.location || '';
+        refs.mapLink.value = club.mapLink || '';
+        refs.time.value = club.time || '';
+        refs.onlineLink.value = club.onlineLink || '';
+        refs.fee.value = club.fee || '';
+        refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
+        refs.heroSub.value = club.heroSub || '';
+        refs.tags.value = Array.isArray(club.tags) ? club.tags.join(', ') : '';
+        refs.coverFile.value = '';
+        refs.coverUrl.value = club.cover || '';
+        refs.desc.value = club.desc || '';
+        refs.venueInfo.value = club.venueInfo || '';
+        refs.whatWeDo.value = club.whatWeDo || '';
+        refs.audience.value = club.audience || '';
+        refs.trainingPlan.value = club.trainingPlan || '';
+        refs.notes.value = club.notes || '';
+        syncEditClubFormMode(club);
+      }
+
+      function setEditCourseFieldsVisible(visible){
+        var refs = getCourseFormRefs('edit');
+        if(!refs.fieldsWrap) return;
+        refs.fieldsWrap.style.display = visible ? 'grid' : 'none';
+        refs.fieldsWrap.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      }
+
+      function clearEditCourseFormFields(){
+        var refs = getCourseFormRefs('edit');
+        if(!refs.form) return;
+        if(refs.hiddenId) refs.hiddenId.value = '';
+        if(refs.title) refs.title.value = '';
+        if(refs.club){
+          refs.club.innerHTML = '<option value="">Select a course first</option>';
+          refs.club.value = '';
+        }
+        if(refs.level) refs.level.value = '';
+        if(refs.mode) refs.mode.value = '';
+        if(refs.time) refs.time.value = '';
+        if(refs.location) refs.location.value = '';
+        if(refs.englishClub) refs.englishClub.value = '';
+        if(refs.seats) refs.seats.value = '';
+        if(refs.fee) refs.fee.value = '';
+        if(refs.cover) refs.cover.value = '';
+        if(refs.desc) refs.desc.value = '';
+        if(refs.lead) refs.lead.value = '';
+        if(refs.schedule) refs.schedule.value = '';
+        if(refs.detail) refs.detail.value = '';
+        if(refs.coachName) refs.coachName.value = '';
+        if(refs.coachTitle) refs.coachTitle.value = '';
+        if(refs.coachBio) refs.coachBio.value = '';
+        if(refs.learningPoints) refs.learningPoints.value = '';
+        if(refs.audienceTips) refs.audienceTips.value = '';
+        if(refs.notes) refs.notes.value = '';
+      }
+
+      function resetEditCourseForm(){
+        editingCourseId = '';
+        clearEditCourseFormFields();
+        setEditCourseFieldsVisible(false);
+        syncEditCourseFormMode(null);
+      }
+
+      function fillEditCourseForm(course){
+        if(!course) return;
+        var refs = getCourseFormRefs('edit');
+        editingCourseId = String(course.id || '');
+        if(refs.hiddenId) refs.hiddenId.value = editingCourseId;
+        setEditCourseFieldsVisible(true);
+        populateCourseClubSelect(refs.club, course.club || '', course);
+        refs.title.value = course.title || '';
+        refs.level.value = course.level || 'Beginner';
+        refs.mode.value = course.mode || 'In-person';
+        refs.time.value = course.time || '';
+        refs.location.value = course.location || '';
+        refs.englishClub.value = course.englishClub || '';
+        refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;
+        refs.fee.value = course.fee || '';
+        refs.cover.value = course.cover || '';
+        refs.desc.value = course.desc || '';
+        refs.lead.value = course.lead || '';
+        refs.schedule.value = joinMultiValue(course.schedule || course.time || '');
+        refs.detail.value = course.detail || '';
+        refs.coachName.value = course.coachName || '';
+        refs.coachTitle.value = course.coachTitle || '';
+        refs.coachBio.value = course.coachBio || '';
+        refs.learningPoints.value = joinMultiValue(course.learningPoints || '');
+        refs.audienceTips.value = joinMultiValue(course.audienceTips || '');
+        refs.notes.value = joinMultiValue(course.notesList || course.notes || '');
+        syncEditCourseFormMode(course);
+      }
+
+      function renderAll(){
+        renderProfile();
+        renderOverview();
+        renderRegister();
+        renderClubs();
+        renderMembers();
+        renderActivities();
+        renderTeaching();
+      }
+
+      async function handleRegisterSubmit(e){
+        e.preventDefault();
+        var values = readClubFormValues('create');
+        if(!values.name){
+          alert('Please enter a club name');
+          return;
+        }
+        if(hasCloudDashboardConfigured() && !state.sessionUserId){
+          alert('Please log in again before registering a club.');
+          return;
+        }
+
+        var cover = await resolveClubCover('create', '../zp/zq.webp');
+        var club = buildClubPayload(values, null, cover);
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            await service.createClub(club, state.sessionUserId);
+            if(e.target) e.target.reset();
+            await refreshState();
+            renderAll();
+            alert('Registration submitted.');
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to save this club right now.'
+            );
+            return;
+          }
+        }
+
+        state.clubs.unshift(club);
+        saveData(KEYS.clubs, state.clubs);
+        if(e.target) e.target.reset();
+        await refreshState();
+        renderAll();
+        alert('Registration submitted.');
+      }
+
+      function syncClubCourses(currentClub, nextClub){
+        var changed = false;
+        state.courses = state.courses.map(function(course){
+          if(!course) return course;
+          var sameClub = String(course.clubSlug || '') === String(currentClub.slug || '')
+            || String(course.club || '') === String(currentClub.name || '');
+          if(!sameClub) return course;
+          changed = true;
+          return Object.assign({}, course, {
+            club: nextClub.name || course.club,
+            clubSlug: currentClub.slug || course.clubSlug || '',
+            clubCategory: nextClub.category || course.clubCategory || course.club,
+            clubCover: nextClub.cover || course.clubCover || '',
+            updatedAt: Date.now()
+          });
+        });
+        if(changed){
+          saveData(KEYS.courses, state.courses);
+        }
+      }
+
+      function syncClubMembers(currentClub, nextClub){
+        var changed = false;
+        state.members = state.members.map(function(member){
+          if(!member) return member;
+          if(String(member.clubName || '') !== String(currentClub.name || '')) return member;
+          changed = true;
+          return Object.assign({}, member, {
+            clubName: nextClub.name || member.clubName
+          });
+        });
+        if(changed){
+          saveData(KEYS.members, state.members);
+        }
+      }
+
+      function syncClubBookings(currentClub, nextClub){
+        var changed = false;
+        state.bookings = state.bookings.map(function(booking){
+          if(!booking) return booking;
+          var sameClub = String(booking.clubSlug || '') === String(currentClub.slug || '')
+            || String(booking.clubName || '') === String(currentClub.name || '');
+          if(!sameClub) return booking;
+          changed = true;
+          return Object.assign({}, booking, {
+            clubName: nextClub.name || booking.clubName,
+            location: nextClub.location || booking.location,
+            fee: nextClub.fee || booking.fee
+          });
+        });
+        if(changed){
+          saveData(KEYS.bookings, state.bookings);
+        }
+      }
+
+      async function handleEditClubSubmit(e){
+        e.preventDefault();
+        var editingId = String(editingClubId || '').trim();
+        if(!editingId){
+          alert('Select a club from the Club List above before editing.');
+          return;
+        }
+
+        var values = readClubFormValues('edit');
+        if(!values.name){
+          alert('Please enter a club name');
+          return;
+        }
+
+        var current = state.clubs.find(function(item){ return String(item && item.id) === editingId; }) || null;
+        if(!current){
+          alert('The selected club could not be found. Please choose it again.');
+          resetEditClubForm();
+          await refreshState();
+          renderAll();
+          return;
+        }
+
+        var cover = await resolveClubCover('edit', current.cover || '../zp/zq.webp');
+        var club = buildClubPayload(values, current, cover);
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            await service.updateClub(editingId, club, state.sessionUserId);
+            await refreshState();
+            renderAll();
+            editingClubId = String(editingId);
+            fillEditClubForm(state.myClubs.find(function(item){ return String(item && item.id) === String(editingClubId); }) || club);
+            openRegisterSection('edit', 'form');
+            alert('Club updated and linked display pages refreshed.');
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to update this club right now.'
+            );
+            return;
+          }
+        }
+
+        state.clubs = state.clubs.map(function(item){
+          return String(item && item.id) === editingId
+            ? Object.assign({}, item, club)
+            : item;
+        });
+
+        saveData(KEYS.clubs, state.clubs);
+        syncClubCourses(current, club);
+        syncClubMembers(current, club);
+        syncClubBookings(current, club);
+        await refreshState();
+        renderAll();
+        editingClubId = String(club.id || editingId);
+        fillEditClubForm(state.myClubs.find(function(item){ return String(item && item.id) === String(editingClubId); }) || club);
+        openRegisterSection('edit', 'form');
+        alert('Club updated and linked display pages refreshed.');
+      }
+
+      async function handleAddMember(e){
+        e.preventDefault();
+        var clubRef = document.getElementById('memberClub').value;
+        var memberName = document.getElementById('memberName').value.trim();
+        var clubRecord = findManagedClub(clubRef);
+        if(!clubRecord || !memberName){
+          alert('Please complete the member details.');
+          return;
+        }
+
+        var member = {
+          id: Date.now(),
+          clubId: clubRecord.id || '',
+          name: memberName,
+          userEmail: document.getElementById('memberEmail').value.trim(),
+          role: document.getElementById('memberRole').value,
+          clubName: clubRecord.name || '',
+          joinTime: new Date().toLocaleString()
+        };
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            await service.createMember({
+              clubId: clubRecord.id,
+              name: member.name,
+              userEmail: member.userEmail,
+              role: member.role
+            });
+            if(e.target) e.target.reset();
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to add this member right now.'
+            );
+            return;
+          }
+        }
+
+        state.members.unshift(member);
+        saveData(KEYS.members, state.members);
+        if(e.target) e.target.reset();
+        await refreshState();
+        renderAll();
+      }
+
+      async function handlePublishCourse(e){
+        e.preventDefault();
+        var values = readCourseFormValues('publish');
+        if(!values.title || !values.club){
+          alert('Please enter a course title and club.');
+          return;
+        }
+
+        var clubRecord = state.myClubs.find(function(item){
+          return item && item.name === values.club;
+        }) || null;
+        var course = buildCoursePayload(values, clubRecord);
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            await service.createCourse(course, state.sessionUserId);
+            if(e.target) e.target.reset();
+            await refreshState();
+            renderAll();
+            alert('Course published and the detail page template was generated automatically.');
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to publish this course right now.'
+            );
+            return;
+          }
+        }
+
+        state.courses.unshift(course);
+        saveData(KEYS.courses, state.courses);
+        if(e.target) e.target.reset();
+        await refreshState();
+        renderAll();
+        alert('Course published and the detail page template was generated automatically.');
+      }
+
+      async function handleEditCourseSubmit(e){
+        e.preventDefault();
+        var editingId = String(editingCourseId || '').trim();
+        if(!editingId){
+          alert('Select a course from the course list above before editing.');
+          return;
+        }
+
+        var values = readCourseFormValues('edit');
+        if(!values.title || !values.club){
+          alert('Please enter a course title and club.');
+          return;
+        }
+
+        var current = state.courses.find(function(item){ return String(item && item.id) === editingId; }) || null;
+        if(!current){
+          alert('The selected course could not be found. Please choose it again.');
+          resetEditCourseForm();
+          await refreshState();
+          renderAll();
+          return;
+        }
+
+        var clubRecord = state.myClubs.find(function(item){
+          return item && item.name === values.club;
+        }) || null;
+        var course = buildCoursePayload(values, clubRecord);
+        course.id = current.id;
+        course.slug = current.slug || course.slug;
+        course.ownerEmail = current.ownerEmail || state.sessionEmail;
+        course.createdAt = current.createdAt || course.createdAt;
+        course.updatedAt = Date.now();
+        course.popularity = Number(current.popularity || course.popularity || 0);
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          try{
+            var service = getAdminService();
+            await service.updateCourse(editingId, course, state.sessionUserId);
+            await refreshState();
+            renderAll();
+            editingCourseId = String(editingId);
+            fillEditCourseForm(state.myCourses.find(function(item){ return String(item && item.id) === String(editingCourseId); }) || course);
+            openTeachingSection('edit', 'form');
+            alert('Course updated and linked detail pages refreshed.');
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to update this course right now.'
+            );
+            return;
+          }
+        }
+
+        state.courses = state.courses.map(function(item){
+          return String(item && item.id) === editingId
+            ? Object.assign({}, item, course)
+            : item;
+        });
+
+        saveData(KEYS.courses, state.courses);
+        await refreshState();
+        renderAll();
+        editingCourseId = String(course.id || editingId);
+        fillEditCourseForm(state.myCourses.find(function(item){ return String(item && item.id) === String(editingCourseId); }) || course);
+        openTeachingSection('edit', 'form');
+        alert('Course updated and linked detail pages refreshed.');
+      }
+
+      async function handleClubActions(e){
+        var btn = e.target.closest('button[data-action]');
+        if(!btn) return;
+
+        var action = btn.getAttribute('data-action');
+        if(action === 'preview-club'){
+          var slug = decodeURIComponent(btn.getAttribute('data-slug') || '');
+          if(!slug){
+            alert('This club is missing a slug, so the detail page cannot be opened.');
+            return;
+          }
+          window.open('club_detail.html?club=' + encodeURIComponent(slug), '_blank');
+          return;
+        }
+
+        var id = String(btn.getAttribute('data-id') || '').trim();
+        var idx = state.clubs.findIndex(function(c){ return String(c && c.id || '').trim() === id; });
+        if(idx === -1) return;
+
+        if(action === 'edit-club'){
+          var selected = state.clubs[idx] || null;
+          if(!selected) return;
+          fillEditClubForm(selected);
+          openRegisterSection('edit', 'form');
+          return;
+        }
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          var service = getAdminService();
+          try{
+            if(action === 'toggle-status'){
+              var currentClub = state.clubs[idx] || null;
+              var cur = String(currentClub && currentClub.status || 'pending');
+              var nextStatus = cur === 'approved' ? 'inactive' : (cur === 'inactive' ? 'pending' : 'approved');
+              await service.updateClub(id, Object.assign({}, currentClub, { status: nextStatus }), state.sessionUserId);
+            }
+
+            if(action === 'remove-club'){
+              if(!confirm('Delete this club?')) return;
+              await service.deleteClub(id);
+            }
+
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to update this club right now.'
+            );
+            return;
+          }
+        }
+
+        if(action === 'toggle-status'){
+          var cur = String(state.clubs[idx].status || 'pending');
+          state.clubs[idx].status = cur === 'approved' ? 'inactive' : (cur === 'inactive' ? 'pending' : 'approved');
+        }
+
+        if(action === 'remove-club'){
+          if(!confirm('Delete this club?')) return;
+          state.clubs.splice(idx, 1);
+        }
+
+        saveData(KEYS.clubs, state.clubs);
+        await refreshState();
+        renderAll();
+      }
+
+      async function handleClubEditActions(e){
+        var row = e.target.closest('tr[data-club-id]');
+        var btn = e.target.closest('button[data-action]');
+        if(!btn && row){
+          var rowId = String(row.getAttribute('data-club-id') || '').trim();
+          var selectedClub = state.myClubs.find(function(item){ return String(item && item.id || '').trim() === rowId; }) || null;
+          if(!selectedClub) return;
+          fillEditClubForm(selectedClub);
+          document.getElementById('club-edit-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          renderClubEditTable();
+          return;
+        }
+        if(!btn) return;
+
+        var action = btn.getAttribute('data-action');
+        var id = String(btn.getAttribute('data-id') || '').trim();
+
+        if(action === 'edit-club'){
+          var club = state.myClubs.find(function(item){ return String(item && item.id || '').trim() === id; }) || null;
+          if(!club) return;
+          fillEditClubForm(club);
+          openRegisterSection('edit', 'form');
+          return;
+        }
+
+        if(action === 'preview-club'){
+          var slug = decodeURIComponent(btn.getAttribute('data-slug') || '');
+          if(!slug){
+            alert('This club is missing a slug, so the detail page cannot be opened.');
+            return;
+          }
+          window.open('club_detail.html?club=' + encodeURIComponent(slug), '_blank');
+          return;
+        }
+
+        if(action !== 'remove-club') return;
+        if(!confirm('Delete this club?')) return;
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          var service = getAdminService();
+          try{
+            await service.deleteClub(id);
+            if(String(id) === String(editingClubId || '')){
+              resetEditClubForm();
+            }
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to delete this club right now.'
+            );
+            return;
+          }
+        }
+
+        state.clubs = state.clubs.filter(function(c){ return String(c && c.id || '').trim() !== id; });
+        saveData(KEYS.clubs, state.clubs);
+        if(String(id) === String(editingClubId || '')){
+          resetEditClubForm();
+        }
+        await refreshState();
+        renderAll();
+      }
+
+      async function handleMemberActions(e){
+        var btn = e.target.closest('button[data-action="remove-member"]');
+        if(!btn) return;
+        if(!confirm('Remove this member?')) return;
+
+        var memberId = String(btn.getAttribute('data-id') || '').trim();
+        if(hasCloudDashboardConfigured() && state.sessionUserId && memberId){
+          var service = getAdminService();
+          try{
+            await service.deleteMember(memberId);
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to remove this member right now.'
+            );
+            return;
+          }
+        }
+
+        var key = decodeURIComponent(btn.getAttribute('data-key') || '');
+        var next = state.members.filter(function(m){
+          var mKey = [m.userEmail || '', m.clubName || '', m.joinTime || '', m.name || ''].join('|');
+          return mKey !== key;
+        });
+        state.members = next;
+        saveData(KEYS.members, state.members);
+        await refreshState();
+        renderAll();
+      }
+
+      async function handleActivityActions(e){
+        var btn = e.target.closest('button[data-action="mark-booking"]');
+        if(!btn) return;
+        var key = decodeURIComponent(btn.getAttribute('data-key') || '');
+        var bookingId = String(btn.getAttribute('data-id') || '').trim();
+        var status = btn.getAttribute('data-status') || 'Completed';
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId && bookingId){
+          var service = getAdminService();
+          try{
+            await service.updateBookingStatus(bookingId, status);
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to update this booking right now.'
+            );
+            return;
+          }
+        }
+
+        var changed = false;
+        state.bookings.forEach(function(b){
+          if(bookingKey(b) === key){
+            b.status = status;
+            changed = true;
+          }
+        });
+
+        if(!changed) return;
+        saveData(KEYS.bookings, state.bookings);
+        await refreshState();
+        renderAll();
+      }
+
+      async function handleCourseActions(e){
+        var row = e.target.closest('tr[data-course-id]');
+        var btn = e.target.closest('button[data-action]');
+        if(!btn && row){
+          var rowId = String(row.getAttribute('data-course-id') || '').trim();
+          var selectedCourse = state.myCourses.find(function(item){ return String(item && item.id || '').trim() === rowId; }) || null;
+          if(!selectedCourse) return;
+          fillEditCourseForm(selectedCourse);
+          document.getElementById('teaching-edit-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+          renderCourseTable();
+          return;
+        }
+        if(!btn) return;
+        var action = btn.getAttribute('data-action');
+        var id = String(btn.getAttribute('data-id') || '').trim();
+
+        if(action === 'edit-course'){
+          var course = state.myCourses.find(function(item){ return String(item && item.id || '').trim() === id; }) || null;
+          if(!course) return;
+          fillEditCourseForm(course);
+          openTeachingSection('edit', 'form');
+          return;
+        }
+
+        if(action === 'preview-course'){
+          if(!id) return;
+          window.open('mfms-detail.html?id=' + encodeURIComponent(id), '_blank');
+          return;
+        }
+
+        if(action !== 'remove-course') return;
+        if(!confirm('Delete this course?')) return;
+
+        if(hasCloudDashboardConfigured() && state.sessionUserId){
+          var service = getAdminService();
+          try{
+            await service.deleteCourse(id);
+            if(String(id) === String(editingCourseId || '')){
+              resetEditCourseForm();
+            }
+            await refreshState();
+            renderAll();
+            return;
+          }catch(error){
+            alert(service && typeof service.mapAdminError === 'function'
+              ? service.mapAdminError(error)
+              : 'Unable to delete this course right now.'
+            );
+            return;
+          }
+        }
+
+        state.courses = state.courses.filter(function(c){ return String(c && c.id || '').trim() !== id; });
+        saveData(KEYS.courses, state.courses);
+        if(String(id) === String(editingCourseId || '')){
+          resetEditCourseForm();
+        }
+        await refreshState();
+        renderAll();
+      }
+
+      function bindEvents(){
+        document.querySelectorAll('.side-link[data-view]').forEach(function(link){
+          link.addEventListener('click', function(){
+            if(link.getAttribute('data-role') === 'register-toggle'){
+              toggleRegisterMenu();
+              return;
+            }
+            if(link.getAttribute('data-role') === 'members-toggle'){
+              toggleMembersMenu();
+              return;
+            }
+            if(link.getAttribute('data-role') === 'teaching-toggle'){
+              toggleTeachingMenu();
+              return;
+            }
+            switchView(link.getAttribute('data-view'));
+          });
+        });
+
+        document.querySelectorAll('[data-register-target]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            openRegisterSection(btn.getAttribute('data-register-target'));
+          });
+        });
+
+        document.querySelectorAll('[data-members-target]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            openMembersSection(btn.getAttribute('data-members-target'));
+          });
+        });
+
+        document.querySelectorAll('[data-teaching-target]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            openTeachingSection(btn.getAttribute('data-teaching-target'));
+          });
+        });
+
+        document.querySelectorAll('[data-jump-view]').forEach(function(btn){
+          btn.addEventListener('click', function(){
+            var nextView = btn.getAttribute('data-jump-view');
+            if(nextView === 'register'){
+              openRegisterSection('create');
+              return;
+            }
+            if(nextView === 'members'){
+              openMembersSection('add');
+              return;
+            }
+            if(nextView === 'members-list'){
+              openMembersSection('list');
+              return;
+            }
+            if(nextView === 'teaching'){
+              openTeachingSection('publish');
+              return;
+            }
+            switchView(nextView);
+          });
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', handleRegisterSubmit);
+        document.getElementById('clubEditForm').addEventListener('submit', handleEditClubSubmit);
+        document.getElementById('addMemberForm').addEventListener('submit', handleAddMember);
+        document.getElementById('courseForm').addEventListener('submit', handlePublishCourse);
+        document.getElementById('courseEditForm').addEventListener('submit', handleEditCourseSubmit);
+        document.getElementById('clubEditCancelBtn').addEventListener('click', function(){
+          resetEditClubForm();
+          renderRegister();
+        });
+        document.getElementById('courseEditCancelBtn').addEventListener('click', function(){
+          resetEditCourseForm();
+          renderTeaching();
+        });
+
+        document.getElementById('clubCards').addEventListener('click', handleClubActions);
+        document.getElementById('clubEditTableBody').addEventListener('click', handleClubEditActions);
+        document.getElementById('memberTableBody').addEventListener('click', handleMemberActions);
+        document.getElementById('activityTableBody').addEventListener('click', handleActivityActions);
+        document.getElementById('courseTableBody').addEventListener('click', handleCourseActions);
+
+        var topProfileWrap = document.getElementById('topProfileWrap');
+        var topProfileToggle = document.getElementById('topProfileToggle');
+        var topProfileMenu = document.getElementById('topProfileMenu');
+        var topProfileArrow = document.getElementById('topProfileArrow');
+
+        function setTopProfileMenuOpen(open){
+          if(!topProfileWrap || !topProfileToggle || !topProfileMenu) return;
+          topProfileWrap.classList.toggle('open', open);
+          topProfileToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          topProfileMenu.hidden = !open;
+          if(topProfileArrow){
+            topProfileArrow.classList.toggle('open', open);
+          }
+        }
+
+        if(topProfileToggle){
+          topProfileToggle.addEventListener('click', function(event){
+            event.stopPropagation();
+            var shouldOpen = !topProfileWrap.classList.contains('open');
+            setTopProfileMenuOpen(shouldOpen);
+          });
+        }
+
+        if(topProfileMenu){
+          topProfileMenu.addEventListener('click', function(event){
+            event.stopPropagation();
+          });
+        }
+
+        document.addEventListener('click', function(event){
+          if(topProfileWrap && !topProfileWrap.contains(event.target)){
+            setTopProfileMenuOpen(false);
+          }
+        });
+
+        document.addEventListener('keydown', function(event){
+          if(event.key === 'Escape'){
+            setTopProfileMenuOpen(false);
+          }
+        });
+
+        async function handleLogout(){
+          localStorage.removeItem(KEYS.session);
+          sessionStorage.removeItem(KEYS.session);
+          var supabase = getSupabaseClientSafe();
+          if(supabase && supabase.auth && typeof supabase.auth.signOut === 'function'){
+            try{
+              await supabase.auth.signOut();
+            }catch(e){}
+          }
+          location.href = 'join.html';
+        }
+
+        var topLogoutBtn = document.getElementById('topLogoutBtn');
+        if(topLogoutBtn){
+          topLogoutBtn.addEventListener('click', handleLogout);
+        }
+      }
+
+      async function init(){
+        bindEvents();
+        await refreshState();
+        renderAll();
+        switchView('overview');
+
+        if(!state.sessionEmail){
+          document.body.classList.add('guest-mode');
+        }else{
+          document.body.classList.remove('guest-mode');
+        }
+      }
+
+      init().catch(function(error){
+        console.error('Club dashboard initialization failed.', error);
+      });
+    })();
+  </script>
+</body>
+</html>

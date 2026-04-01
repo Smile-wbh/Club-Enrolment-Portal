@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings and Account Security - Club Enrollment Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <link rel="stylesheet" href="../css/settings.css" />
+</head>
+<body>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="settings-main">
+    <div class="container">
+      <div class="settings-browser">
+        <div class="settings-window-bar" aria-hidden="true">
+          <div class="window-dots">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="window-address"></div>
+          <div class="window-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+        </div>
+
+        <div class="settings-shell">
+          <aside class="settings-sidebar">
+            <section class="settings-card profile-card">
+              <p class="settings-eyebrow">Security Center</p>
+              <h1 class="settings-title">Settings and Account Security</h1>
+              <p class="settings-lead">Manage your login password, recovery methods, dual-system login preferences, booking reminders, forum message permissions, and in-site privacy settings in one place.</p>
+              <div class="hero-badge-row">
+                <span class="hero-badge" id="accountRoleBadge">Standard User</span>
+                <span class="hero-badge muted" id="accountEmailBadge">Not logged in</span>
+                <span class="hero-badge muted" id="accountCreatedBadge">Creation time pending sync</span>
+              </div>
+              <div class="settings-quick-links">
+                <a class="hero-link" href="join.html?tab=home">Open User Dashboard</a>
+                <a class="hero-link manager-only-link" id="clubDashboardShortcut" href="club_management_dashboard.html" hidden>Open My Club Dashboard</a>
+              </div>
+            </section>
+
+            <section class="security-hero-panel security-panel-card">
+              <div class="security-score-head">
+                <div>
+                  <p class="panel-kicker">Security Score</p>
+                  <h2 id="securityGrade">Pending Check</h2>
+                </div>
+                <div class="security-ring" id="securityRing">
+                  <div class="security-ring-inner">
+                    <strong id="securityScoreValue">0</strong>
+                    <span>/100</span>
+                  </div>
+                </div>
+              </div>
+              <div class="security-meta-list" id="securityMetaList"></div>
+              <div class="security-checklist" id="securityChecklist"></div>
+            </section>
+
+            <nav class="settings-card settings-nav-card" aria-label="Settings navigation">
+              <div class="card-head compact-head">
+                <div>
+                  <p class="card-kicker">Sections</p>
+                  <h3>Settings Navigation</h3>
+                </div>
+              </div>
+              <div class="settings-nav-list">
+                <a class="settings-nav-link" href="#" data-panel="passwordPanel">Change Login Password</a>
+                <a class="settings-nav-link" href="#" data-panel="recoveryPanel">Forgot Password and Recovery</a>
+                <a class="settings-nav-link" href="#" data-panel="noticePanel">Reminders and Login Protection</a>
+                <a class="settings-nav-link" href="#" data-panel="privacyPanel">Privacy and Interaction Permissions</a>
+                <a class="settings-nav-link" href="#" data-panel="actionsPanel">Security Actions</a>
+                <a class="settings-nav-link" href="#" data-panel="historyPanel">Recent Login History</a>
+              </div>
+            </nav>
+
+            <section class="settings-card compact-card">
+              <div class="card-head compact-head">
+                <div>
+                  <p class="card-kicker">Account</p>
+                  <h3>Account Overview</h3>
+                </div>
+              </div>
+              <div class="account-summary">
+                <div class="summary-row">
+                  <span>Current Account</span>
+                  <strong id="summaryEmail">-</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Nickname</span>
+                  <strong id="summaryNickname">-</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Current Entry</span>
+                  <strong id="summaryEntry">User Dashboard</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Recovery Email</span>
+                  <strong id="summaryRecoveryEmail">Not set</strong>
+                </div>
+                <div class="summary-row">
+                  <span>Recovery Phone</span>
+                  <strong id="summaryRecoveryPhone">Not set</strong>
+                </div>
+              </div>
+            </section>
+          </aside>
+
+          <div class="settings-content">
+            <section class="settings-card settings-empty-card" id="settingsEmptyState">
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Choose Section</p>
+                  <h3>Select an item from the left first</h3>
+                </div>
+                <span class="card-pill">Two-column Layout</span>
+              </div>
+              <p class="card-desc">The content area on the right now uses on-demand display. Account security content appears here only after you click a specific settings item in the left sidebar.</p>
+              <div class="empty-state">
+                Use the left sidebar to open modules such as password updates, recovery settings, reminders, privacy permissions, security actions, and login history.
+              </div>
+            </section>
+
+            <section class="settings-card settings-content-panel" id="passwordPanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Password</p>
+                  <h3>Change Login Password</h3>
+                </div>
+                <span class="card-pill" id="passwordUpdatedText">Not updated yet</span>
+              </div>
+              <p class="card-desc">Use this when you still remember your current password. After saving, the new password will sync to the login page and user dashboard.</p>
+              <form id="passwordForm" class="field-grid">
+                <label class="field">
+                  <span>Current Password</span>
+                  <input id="currentPassword" type="password" placeholder="Enter your current password" />
+                </label>
+                <label class="field">
+                  <span>New Password</span>
+                  <input id="newPassword" type="password" placeholder="Use at least 8 characters with letters and numbers" />
+                </label>
+                <label class="field field-span-2">
+                  <span>Confirm New Password</span>
+                  <input id="confirmPassword" type="password" placeholder="Enter the new password again" />
+                </label>
+                <div class="form-actions field-span-2">
+                  <button class="btn-primary" type="submit">Save New Password</button>
+                </div>
+              </form>
+              <div class="form-status" id="passwordStatus"></div>
+            </section>
+
+            <section class="settings-card settings-content-panel" id="recoveryPanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Recovery</p>
+                  <h3>Forgot Password and Recovery Methods</h3>
+                </div>
+                <span class="card-pill" id="recoveryModeBadge">Recovery Ready</span>
+              </div>
+              <p class="card-desc" id="recoveryPanelDesc">Even when logged out, you can still use "Forgot Password" from the login page. When Supabase is enabled, password reset links are always sent to your account email and completed on the login page.</p>
+              <form id="recoveryForm" class="field-grid">
+                <label class="field">
+                  <span>Backup Contact Email</span>
+                  <input id="recoveryEmail" type="email" placeholder="Optional contact email for support follow-up" />
+                </label>
+                <label class="field">
+                  <span>Recovery Phone</span>
+                  <input id="recoveryPhone" type="tel" placeholder="Example: 13800138000" />
+                </label>
+                <div class="form-actions field-span-2">
+                  <button class="btn-secondary" type="submit">Save Recovery Method</button>
+                  <button class="btn-ghost" type="button" id="sendResetCodeBtn">Send Password Reset Email</button>
+                </div>
+              </form>
+              <div class="empty-state" id="recoveryAssistNote" hidden>
+                Supabase password recovery will open on the login page after the email link is clicked. The code-based demo form below is hidden automatically when cloud auth is enabled.
+              </div>
+              <form id="resetAssistForm" class="field-grid assist-form">
+                <label class="field">
+                  <span>Demo Verification Code</span>
+                  <input id="resetCodeInput" type="text" maxlength="6" placeholder="Enter the 6-digit code you received" />
+                </label>
+                <label class="field">
+                  <span>Demo Reset Password</span>
+                  <input id="resetNewPassword" type="password" placeholder="Enter the new login password" />
+                </label>
+                <label class="field field-span-2">
+                  <span>Confirm New Password</span>
+                  <input id="resetConfirmPassword" type="password" placeholder="Enter the new password again" />
+                </label>
+                <div class="form-actions field-span-2">
+                  <button class="btn-primary" type="submit">Reset Password with Code</button>
+                </div>
+              </form>
+              <div class="form-status" id="recoveryStatus"></div>
+            </section>
+
+            <section class="settings-card settings-content-panel" id="noticePanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Notice</p>
+                  <h3>Reminders and Login Protection</h3>
+                </div>
+                <span class="card-pill">Optimized for Booking Use</span>
+              </div>
+              <p class="card-desc">These options are tailored to how you use the club website. Once saved, they become the default reminder and login preferences for this account.</p>
+              <form id="notificationForm" class="preference-list">
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Login Security Alerts</strong>
+                    <small>Keep reminder preferences when the account signs in from a new browser.</small>
+                  </span>
+                  <input id="loginAlert" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Club Booking Alerts</strong>
+                    <small>Keep in-site reminder preferences when booking status changes.</small>
+                  </span>
+                  <input id="bookingReminder" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Course Booking Alerts</strong>
+                    <small>Quickly track course bookings, waitlists, and cancellations.</small>
+                  </span>
+                  <input id="teachingReminder" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Message Board Alerts</strong>
+                    <small>See new profile board messages first in the user dashboard.</small>
+                  </span>
+                  <input id="messageBoardAlert" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Support Reply Alerts</strong>
+                    <small>Stay updated when support responds to your club questions.</small>
+                  </span>
+                  <input id="consultAlert" type="checkbox" />
+                </label>
+                <div class="manager-setting-group" id="managerSettingGroup" hidden>
+                  <label class="preference-row">
+                    <span class="preference-copy">
+                      <strong>Club Review Alerts</strong>
+                      <small>Notify club managers when new members or bookings require action.</small>
+                    </span>
+                    <input id="managerAuditAlert" type="checkbox" />
+                  </label>
+                  <label class="preference-row">
+                    <span class="preference-copy">
+                      <strong>Always ask me to choose when both systems are available</strong>
+                      <small>If disabled, you will enter the default system below automatically.</small>
+                    </span>
+                    <input id="alwaysAskSystem" type="checkbox" />
+                  </label>
+                  <label class="field inline-field">
+                    <span>Default Dual-System Entry</span>
+                    <select id="preferredEntrySystem">
+                      <option value="user">User Dashboard</option>
+                      <option value="club">My Club Dashboard</option>
+                    </select>
+                  </label>
+                </div>
+                <div class="form-actions">
+                  <button class="btn-primary" type="submit">Save Reminder Settings</button>
+                </div>
+              </form>
+              <div class="form-status" id="notificationStatus"></div>
+            </section>
+
+            <section class="settings-card compact-card settings-content-panel" id="privacyPanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Privacy</p>
+                  <h3>Privacy and Interaction Permissions</h3>
+                </div>
+              </div>
+              <form id="privacyForm" class="preference-list">
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Allow others to leave profile messages from the forum homepage</strong>
+                    <small>If disabled, the message button on your forum profile will be unavailable to others.</small>
+                  </span>
+                  <input id="allowProfileMessages" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Show favorite clubs on the forum profile</strong>
+                    <small>Helps others understand your club interests more quickly.</small>
+                  </span>
+                  <input id="showForumClub" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Show your city on the forum profile</strong>
+                    <small>Useful for people who want to match with in-person activities.</small>
+                  </span>
+                  <input id="showProfileLocation" type="checkbox" />
+                </label>
+                <label class="preference-row">
+                  <span class="preference-copy">
+                    <strong>Hide email address by default</strong>
+                    <small>Reduce unwanted outside contact while keeping in-site communication available.</small>
+                  </span>
+                  <input id="hideEmailOnProfile" type="checkbox" />
+                </label>
+                <div class="form-actions">
+                  <button class="btn-primary" type="submit">Save Privacy Settings</button>
+                </div>
+              </form>
+              <div class="form-status" id="privacyStatus"></div>
+            </section>
+
+            <section class="settings-card compact-card settings-content-panel" id="actionsPanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">Actions</p>
+                  <h3>Security Actions</h3>
+                </div>
+              </div>
+              <div class="action-list">
+                <button class="btn-secondary action-btn" type="button" id="clearLoginHistoryBtn">Clear Recent Login History</button>
+                <button class="btn-ghost action-btn" type="button" id="resetSecurityPrefsBtn">Restore Default Security Settings</button>
+                <button class="btn-danger action-btn" type="button" id="logoutNowBtn">Log Out of Current Account</button>
+              </div>
+              <div class="tip-list">
+                <div class="tip-item">If you have both the user dashboard and club dashboard enabled, set a default entry system first.</div>
+                <div class="tip-item">If you use the forum often, it is recommended to keep both message board alerts and profile messaging enabled.</div>
+              </div>
+              <div class="form-status" id="actionStatus"></div>
+            </section>
+
+            <section class="settings-card history-card settings-content-panel" id="historyPanel" hidden>
+              <div class="card-head">
+                <div>
+                  <p class="card-kicker">History</p>
+                  <h3>Recent Login History</h3>
+                </div>
+                <span class="card-pill" id="historyCount">0 records</span>
+              </div>
+              <p class="card-desc">This section records your recent sign-ins to the user dashboard and club dashboard, helping you check for unusual access points.</p>
+              <div class="history-list" id="loginHistoryList"></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="../js/settings.js"></script>
+  <script src="../js/portal-header-auth.js"></script>
+</body>
+</html>

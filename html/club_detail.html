@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Club Details - Club Enrollment Portal</title>
+  <script src="../js/vue.js"></script>
+  <link rel="stylesheet" href="../css/yl.css">
+  <link rel="stylesheet" href="../css/chat-widget.css">
+</head>
+<body>
+  <div id="app" class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <span class="dot"></span>
+        <span>Club Enrollment Portal</span>
+      </div>
+
+      <div class="actions">
+        <a class="btn primary" href="msjs.html">↩ Back to Club Preview</a>
+      </div>
+    </div>
+
+    <section class="hero" v-if="club">
+      <div class="heroGrid">
+        <div>
+          <h1 class="heroTitle">{{ club.name }}</h1>
+          <p class="heroSub">{{ club.heroSub || club.desc }}</p>
+
+          <div class="chips" v-if="club.tags && club.tags.length">
+            <span class="chip" v-for="(t, i) in club.tags" :key="i">{{ t }}</span>
+          </div>
+          <div class="chips">
+            <span class="chip">📍 Venue: {{ club.location }}</span>
+            <a v-if="club.mapLink" class="chip chip-link" :href="toExternalUrl(club.mapLink)" target="_blank" rel="noopener">🗺 Map Link</a>
+            <a v-if="club.onlineLink" class="chip chip-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">💻 Online Room</a>
+          </div>
+        </div>
+
+        <div class="cover" :style="coverStyle">
+          <div class="coverTag">
+            <strong>This Week's Highlight</strong>
+            <span>{{ highlightText }}</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero" v-else>
+      <div class="heroGrid">
+        <div>
+          <h1 class="heroTitle">Club Not Found</h1>
+          <p class="heroSub">Please open this page from the club preview screen, or check whether the link parameters are correct.</p>
+          <div class="chips">
+            <a class="btn primary" href="msjs.html">↩ Back to Club Preview</a>
+          </div>
+        </div>
+        <div class="cover" style="background-image:url('../zp/ymq.webp')"></div>
+      </div>
+    </section>
+
+    <section class="main" v-if="club">
+      <div class="leftCol">
+        <div class="card">
+          <h2>About the Club</h2>
+          <p>{{ club.desc }}</p>
+        </div>
+
+        <div class="card">
+          <h2>Venue Information</h2>
+          <ul class="list">
+            <li v-for="(x, i) in venueList" :key="i">{{ x }}</li>
+          </ul>
+        </div>
+
+        <div class="grid2">
+          <div class="card">
+            <h2>What We Do</h2>
+            <ul class="list">
+              <li v-for="(x, i) in whatList" :key="i">{{ x }}</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h2>Who It's For</h2>
+            <ul class="list">
+              <li v-for="(x, i) in audienceList" :key="i">{{ x }}</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2>Training Plan</h2>
+          <ul class="list">
+            <li v-for="(x, i) in trainingList" :key="i">{{ x }}</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h2>Equipment and Notes</h2>
+          <ul class="list">
+            <li v-for="(x, i) in notesList" :key="i">{{ x }}</li>
+          </ul>
+        </div>
+      </div>
+
+      <aside class="card">
+        <h2>Key Information</h2>
+
+        <div class="infoRow">
+          <div class="k">Category</div>
+          <div class="v">{{ club.category || 'Sports' }}</div>
+        </div>
+
+        <div class="infoRow">
+          <div class="k">Format</div>
+          <div class="v">{{ club.mode || 'In-person' }}</div>
+        </div>
+
+        <div class="infoRow">
+          <div class="k">Location</div>
+          <div class="v">{{ club.location }}</div>
+        </div>
+        <div class="infoRow" v-if="club.mapLink">
+          <div class="k">Map Link</div>
+          <div class="v"><a class="info-link" :href="toExternalUrl(club.mapLink)" target="_blank" rel="noopener">Open Map</a></div>
+        </div>
+        <div class="infoRow" v-if="club.onlineLink">
+          <div class="k">Room Link</div>
+          <div class="v"><a class="info-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">Open Room</a></div>
+        </div>
+
+        <div class="infoRow">
+          <div class="k">Typical Time</div>
+          <div class="v">{{ club.time || '—' }}</div>
+        </div>
+
+        <div class="infoRow">
+          <div class="k">Seats</div>
+          <div class="v">{{ club.seats }}</div>
+        </div>
+
+        <div class="infoRow">
+          <div class="k">Fee</div>
+          <div class="v">{{ club.fee || '£0' }}</div>
+        </div>
+
+        <div class="cta">
+          <a :href="'specialty.html?club='+encodeURIComponent(club.slug)" class="btn success">✅ Book / Join</a>
+        </div>
+
+        <div class="note">{{ noteText }}</div>
+      </aside>
+    </section>
+  </div>
+
+  <script>
+    new Vue({
+      el:'#app',
+      data(){
+        return{
+          club: null
+        }
+      },
+      computed:{
+        coverStyle(){
+          const fallback = "../zp/ymq.webp";
+          const url = this.club && this.club.cover ? this.club.cover : fallback;
+          return { backgroundImage: `url('${url}')` };
+        },
+        highlightText(){
+          if(!this.club) return '';
+          const tags = Array.isArray(this.club.tags) ? this.club.tags : [];
+          const first = tags.find(Boolean);
+          return first ? first : 'Join this week\'s activity';
+        },
+        noteText(){
+          if(!this.club) return '';
+          const tags = Array.isArray(this.club.tags) ? this.club.tags : [];
+          const tagText = tags.length ? ('Tags: ' + tags.join(' / ') + '.') : '';
+          return `Note: Please complete your booking by choosing a date and time slot on the booking page. ${tagText}`.trim();
+        },
+        venueList(){
+          return this.toList(this.club ? this.club.venueInfo : '');
+        },
+        whatList(){
+          return this.toList(this.club ? this.club.whatWeDo : '');
+        },
+        audienceList(){
+          return this.toList(this.club ? this.club.audience : '');
+        },
+        trainingList(){
+          return this.toList(this.club ? this.club.trainingPlan : '');
+        },
+        notesList(){
+          return this.toList(this.club ? this.club.notes : '');
+        }
+      },
+      mounted(){
+        const params = new URLSearchParams(location.search);
+        const slug = params.get('club');
+        if(!slug) return;
+        this.club = this.findClub(slug);
+      },
+      methods:{
+        keyRegistry(){ return 'club_registry_v1'; },
+        loadRegistry(){
+          try{
+            const raw = localStorage.getItem(this.keyRegistry());
+            const list = raw ? JSON.parse(raw) : [];
+            return Array.isArray(list) ? list : [];
+          }catch(e){
+            return [];
+          }
+        },
+        normalizeClub(c){
+          const slots = Array.isArray(c && c.slots) ? c.slots : [];
+          const seats = (typeof c.seats === 'number')
+            ? c.seats
+            : slots.reduce((sum, s)=> sum + (Number(s && s.capacity) || 0), 0);
+          const time = c && c.time
+            ? c.time
+            : slots.map(s=>s && s.time).filter(Boolean).slice(0,2).join(' / ') || '—';
+          const tags = Array.isArray(c && c.tags) ? c.tags.map(t=>String(t).trim()).filter(Boolean) : [];
+
+          return {
+            slug: c && c.slug ? c.slug : '',
+            name: c && c.name ? c.name : 'Unnamed Club',
+            category: c && c.category ? c.category : 'Sports',
+            mode: c && c.mode ? c.mode : 'In-person',
+            location: c && c.location ? c.location : 'TBD',
+            fee: c && c.fee ? c.fee : '£0',
+            desc: c && c.desc ? c.desc : '',
+            heroSub: c && c.heroSub ? c.heroSub : '',
+            cover: c && c.cover ? c.cover : '',
+            mapLink: c && c.mapLink ? c.mapLink : '',
+            onlineLink: c && c.onlineLink ? c.onlineLink : '',
+            venueInfo: c && c.venueInfo ? c.venueInfo : '',
+            whatWeDo: c && c.whatWeDo ? c.whatWeDo : '',
+            audience: c && c.audience ? c.audience : '',
+            trainingPlan: c && c.trainingPlan ? c.trainingPlan : '',
+            notes: c && c.notes ? c.notes : '',
+            tags,
+            time,
+            seats
+          };
+        },
+        findClub(slug){
+          const reg = this.loadRegistry();
+          const found = reg.find(x=>x && x.slug === slug);
+          if(!found) return null;
+          return this.normalizeClub(found);
+        },
+        toList(text){
+          const raw = (text || '').toString().trim();
+          if(!raw) return ['—'];
+          const lines = raw
+            .split(/\r?\n/g)
+            .map(x=>x.trim())
+            .filter(Boolean);
+          if(lines.length > 1) return lines;
+          return raw
+            .split(/[.;]/g)
+            .map(x=>x.trim())
+            .filter(Boolean);
+        },
+        toExternalUrl(value){
+          const raw = String(value || '').trim();
+          if(!raw) return '#';
+          if(/^https?:\/\//i.test(raw)) return raw;
+          return 'https://' + raw;
+        }
+      }
+    })
+  </script>
+  <script src="../js/portal-detail-header.js"></script>
+  <script src="../js/portal-header-auth.js"></script>
+  <script src="../js/chat-widget.js"></script>
+</body>
+</html>

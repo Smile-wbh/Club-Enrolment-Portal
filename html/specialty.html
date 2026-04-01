@@ -1,0 +1,1344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Booking - Club Enrollment Portal</title>
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-bookings.js?v=20260401-2"></script>
+  <link rel="stylesheet" href="../css/specialty.css?v=20260401-2" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+</head>
+<body>
+<div id="app" v-cloak>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a class="active" href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="filter-section" v-if="viewState === 'list'">
+    <div class="container">
+      <div class="filter-card" id="booking-filters">
+        <div class="filter-head">
+          <div class="filter-copy">
+            <h2>Filter Bookable Clubs</h2>
+            <p>Enter a keyword or choose a category, participation format, and sort order to quickly find the booking option that suits you.</p>
+          </div>
+
+          <div class="count-badge">Results: {{ filteredClubs.length }}</div>
+        </div>
+
+        <div class="keyword-search">
+          <div class="keyword-search-row">
+            <label class="keyword-input-wrap" for="booking-keyword">
+              <span class="keyword-search-icon" aria-hidden="true"></span>
+              <input
+                id="booking-keyword"
+                type="text"
+                placeholder="Search clubs, locations, or tags..."
+                v-model.trim="q"
+                @keydown.enter.prevent="scrollToGrid"
+              />
+            </label>
+
+            <button class="toolbar-btn primary keyword-search-btn" type="button" @click="scrollToGrid">Search</button>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <label class="filter-field">
+            <span>Club Category</span>
+            <select v-model="category">
+              <option value="">All Categories</option>
+              <option value="Sports">Sports</option>
+              <option value="Academic">Academic</option>
+              <option value="Arts">Arts</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Participation Format</span>
+            <select v-model="mode">
+              <option value="">All Formats</option>
+              <option value="In-person">In-person</option>
+              <option value="Online">Online</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Sort By</span>
+            <select v-model="sortBy">
+              <option value="name">Sort by Name</option>
+              <option value="todaySlots">Sort by Today's Available Slots</option>
+              <option value="weekSeats">Sort by Weekly Remaining Seats</option>
+            </select>
+          </label>
+
+          <div class="filter-actions">
+            <button class="toolbar-btn primary" type="button" @click="scrollToGrid">View Results</button>
+            <button class="toolbar-btn ghost" type="button" @click="resetFilters">Reset Filters</button>
+          </div>
+        </div>
+
+        <div class="quick-pills" aria-label="Quick Categories">
+          <button type="button" class="quick-pill" :class="{ active: category === '' }" @click="category = ''">All</button>
+          <button type="button" class="quick-pill sports" :class="{ active: category === 'Sports' }" @click="category = 'Sports'">Sports</button>
+          <button type="button" class="quick-pill academic" :class="{ active: category === 'Academic' }" @click="category = 'Academic'">Academic</button>
+          <button type="button" class="quick-pill arts" :class="{ active: category === 'Arts' }" @click="category = 'Arts'">Arts</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="results-section">
+    <div class="container">
+      <template v-if="viewState === 'list'">
+        <div class="section-head">
+          <div>
+            <h2>Bookable Club List</h2>
+            <p>Review each club's availability first, then open the slot table to choose a specific date and time.</p>
+          </div>
+
+          <a class="section-link" href="msjs.html">View Club Details First</a>
+        </div>
+
+        <div class="more-search-note" v-if="filteredClubs.length">More search options are available in the filter card above.</div>
+
+        <div class="club-list-container" id="booking-grid" v-if="filteredClubs.length">
+          <article class="club-list-card" v-for="c in filteredClubs" :key="c.id" @click="selectClub(c)">
+            <img :src="c.cover || '../zp/ymq.webp'" :alt="c.name" class="club-list-thumb" />
+
+            <div class="club-list-info">
+              <div class="club-list-header">
+                <div>
+                  <h3 class="club-list-title">{{ c.name }}</h3>
+                  <div class="club-list-subtitle">{{ c.mode }} booking · {{ c.category }}</div>
+                  <div class="club-list-tags">{{ c.tags && c.tags.length ? c.tags.join(' / ') : 'General Activities' }}</div>
+                </div>
+              </div>
+
+              <div class="club-list-meta">
+                <span>Location: {{ c.location }}</span>
+                <span>Fee: {{ c.fee }}</span>
+              </div>
+            </div>
+
+            <div class="club-list-side">
+              <div class="club-list-stats">
+                <span>Today's Slots {{ clubAvailableTodayCount(c) }}</span>
+                <span>Seats Left This Week {{ clubWeekRemainingSeats(c) }}</span>
+              </div>
+
+              <div class="club-list-actions">
+                <a class="action-btn secondary" :href="detailHref(c)" @click.stop>View Details</a>
+                <button class="action-btn primary" type="button" @click.stop="selectClub(c)">View Slots</button>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div class="empty-state" v-else>
+          <h3>No booking options matched your filters</h3>
+          <p>Try clearing the keyword, switching the category, or restoring all filters to browse again.</p>
+          <button class="toolbar-btn primary" type="button" @click="resetFilters">Restore All Clubs</button>
+        </div>
+      </template>
+
+      <template v-else-if="viewState === 'schedule' && currentClub">
+        <div class="section-head">
+          <div>
+            <h2>{{ currentClub.name }} Booking Slots</h2>
+            <p>Green shows your booking, red means full, and blue-grey marks currently available slots.</p>
+          </div>
+
+          <button class="toolbar-btn ghost" type="button" @click="goBackToList">Back to Club List</button>
+        </div>
+
+        <div class="booking-success-banner" v-if="recentBookingSuccess && recentBookingSuccess.clubSlug === selectedClubSlug">
+          <div class="booking-success-copy">
+            <strong>Booking Confirmed</strong>
+            <span>Order {{ recentBookingSuccess.orderId }} has been paid, and your newly booked slot is now highlighted.</span>
+          </div>
+          <button class="banner-link-btn" type="button" @click="clearRecentBookingSuccess">Dismiss</button>
+        </div>
+
+        <section class="schedule-layout">
+          <div class="schedule-main-card">
+            <div class="schedule-club-head">
+              <img :src="currentClub.cover || '../zp/ymq.webp'" :alt="currentClub.name" class="schedule-thumb" />
+
+              <div class="schedule-club-copy">
+                <div class="schedule-kicker">{{ currentClub.category }} · {{ currentClub.mode }}</div>
+                <h3>{{ currentClub.name }}</h3>
+                <p>{{ clubSummary(currentClub) }}</p>
+
+                <div class="schedule-tags" v-if="currentClub.tags && currentClub.tags.length">
+                  <span class="club-tag-pill" v-for="(t, i) in currentClub.tags" :key="i">{{ t }}</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="date-nav-bar schedule-date-nav">
+              <button class="nav-btn" type="button" :disabled="isAtEarliestDate" @click="jumpToToday">|&lt;&lt;</button>
+              <button class="nav-btn" type="button" :disabled="isAtEarliestDate" @click="moveListDate(-1)">&lt;</button>
+              <div class="date-picker-wrap" ref="scheduleDatePicker">
+                <button
+                  class="date-display date-picker-box"
+                  type="button"
+                  :aria-expanded="calendarOpen ? 'true' : 'false'"
+                  @click="toggleCalendar"
+                >
+                  <span class="date-display-text">{{ currentDateStr }}</span>
+                  <span class="date-display-icon" aria-hidden="true">
+                    <span class="date-display-icon-top"></span>
+                  </span>
+                </button>
+
+                <div class="date-picker-panel" v-if="calendarOpen">
+                  <div class="date-picker-head">
+                    <button class="date-picker-switch" type="button" :disabled="isCalendarPrevDisabled" @click="shiftCalendarMonth(-1)">&lt;</button>
+                    <strong>{{ calendarMonthLabel }}</strong>
+                    <button class="date-picker-switch" type="button" @click="shiftCalendarMonth(1)">&gt;</button>
+                  </div>
+
+                  <div class="date-picker-weekdays">
+                    <span v-for="label in calendarWeekdayLabels" :key="label">{{ label }}</span>
+                  </div>
+
+                  <div class="date-picker-grid">
+                    <button
+                      v-for="day in calendarDays"
+                      :key="day.iso"
+                      class="date-picker-day"
+                      type="button"
+                      :class="{
+                        muted: !day.inCurrentMonth,
+                        today: day.isToday,
+                        selected: day.isSelected
+                      }"
+                      :disabled="day.isDisabled"
+                      @click="selectCalendarDate(day)"
+                    >
+                      {{ day.label }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <button class="nav-btn" type="button" @click="moveListDate(1)">&gt;</button>
+              <button class="nav-btn" type="button" @click="shiftWeek(7)">&gt;&gt;|</button>
+            </div>
+
+            <div class="legend-bar">
+              <div class="legend-item">
+                <span class="legend-dot available"></span>
+                <span>Available</span>
+              </div>
+
+              <div class="legend-item">
+                <span class="legend-dot mine"></span>
+                <span>My Booking</span>
+              </div>
+
+              <div class="legend-item">
+                <span class="legend-dot full"></span>
+                <span>Full / Unavailable</span>
+              </div>
+            </div>
+
+            <div class="schedule-grid">
+              <div class="day-column" v-for="day in days" :key="day.iso">
+                <div class="day-head">
+                  <strong>{{ day.week }}</strong>
+                  <span>{{ day.label_short }}</span>
+                </div>
+
+                <button
+                  v-for="slot in slotsForDay(day)"
+                  :key="slot.id + '-' + day.iso"
+                  type="button"
+                  class="slot-card"
+                  :class="[getSlotClass(slot, day), { 'recent-paid-slot': isRecentPaidSlot(slot, day) }]"
+                  :data-day-iso="day.iso"
+                  :data-slot-id="slot.id"
+                  :disabled="isSlotExpired(slot, day)"
+                  :aria-disabled="isSlotExpired(slot, day) ? 'true' : 'false'"
+                  @click="handleSlotClick(slot, day)"
+                >
+                  <strong>{{ slot.time_short }}</strong>
+                  <span v-if="isSlotExpired(slot, day)">Unavailable</span>
+                  <span v-else-if="isBooked(slot, day)">Booked</span>
+                  <span v-else-if="remaining(slot, day) <= 0">Full</span>
+                  <span v-else>{{ remaining(slot, day) }} left</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <aside class="schedule-side">
+            <div class="info-card">
+              <h3>Booking Information</h3>
+
+              <div class="info-list">
+                <div>Location: <span>{{ currentClub.location }}</span></div>
+                <div>Fee: <span>{{ currentClub.fee }}</span></div>
+                <div>Available Today: <span>{{ clubAvailableTodayCount(currentClub) }}</span></div>
+                <div>Seats Left This Week: <span>{{ clubWeekRemainingSeats(currentClub) }}</span></div>
+              </div>
+            </div>
+
+            <div class="info-card">
+              <h3>Booking Notes</h3>
+              <p v-if="isAuthed">Current signed-in account: {{ sessionEmail }}</p>
+              <p v-else>Log in to book directly and review your booking history in your personal page.</p>
+
+              <div class="hint-list">
+                <div class="hint-item">You cannot book different clubs in the same time slot. The system checks conflicts automatically.</div>
+                <div class="hint-item">Click a blue-grey slot to start a booking. After confirmation, you will be taken to payment, and the booking is saved only after payment succeeds.</div>
+                <div class="hint-item">If you arrived here through a direct club link, you can still return to the list and keep filtering other options.</div>
+              </div>
+
+              <div class="side-actions">
+                <a v-if="!isAuthed" class="toolbar-btn primary" href="join.html">Go to Login</a>
+                <button class="toolbar-btn ghost" type="button" @click="goBackToList">Choose Another Club</button>
+              </div>
+            </div>
+          </aside>
+        </section>
+      </template>
+    </div>
+  </main>
+
+  <div class="modal-mask" v-if="showLoginModal" @click.self="closeLoginModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Notice</h3>
+        <div class="close-x" @click="closeLoginModal">Close</div>
+      </div>
+      <div class="modal-body">
+        <div class="modal-text">Please log in before booking this time slot.</div>
+        <div class="modal-actions">
+          <button class="btn primary" @click="goLogin">Log in</button>
+          <button class="btn ghost" @click="closeLoginModal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask" v-if="showBookingModal" @click.self="showBookingModal = false">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Confirm Booking and Pay</h3>
+        <div class="close-x" @click="showBookingModal = false">Close</div>
+      </div>
+      <div class="modal-body">
+        <div class="summary" v-if="pendingBooking">
+          <div>Club: <span>{{ currentClub.name }}</span></div>
+          <div>Date: <span>{{ pendingBooking.dayLabel }}</span></div>
+          <div>Time Slot: <span>{{ pendingBooking.slot.time }}</span></div>
+          <div>Fee: <span>{{ currentClub.fee }}</span></div>
+        </div>
+        <div class="modal-actions">
+          <button class="btn success" @click="goToPayment">Go to Payment</button>
+          <button class="btn ghost" @click="showBookingModal = false">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const bookingApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        q: '',
+        category: '',
+        mode: '',
+        sortBy: 'name',
+        viewState: 'list',
+        selectedClubSlug: '',
+        currentClub: null,
+        currentDate: new Date(),
+        calendarOpen: false,
+        calendarViewDate: new Date(),
+        showLoginModal: false,
+        showBookingModal: false,
+        pendingBooking: null,
+        recentBookingSuccess: null,
+        sessionEmail: '',
+        sessionUserId: '',
+        bookings: [],
+        bookingAvailabilityMap: {},
+        supabaseClubs: [],
+        useSupabaseBookings: false,
+        detailPageSlugs: [
+          'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
+          'basketball', 'golf', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
+        ],
+        clubs: [
+          {
+            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
+            tags: ['Tactical Training', 'Event Sign-up', 'Teamwork'],
+            location: 'Stadium A (In-person)',
+            seats: 12, fee: '£0 (Free)', cover: '../zp/zq.webp', slots: []
+          },
+          {
+            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
+            tags: ['Doubles Training', 'Daily Practice', 'Campus Matches'],
+            location: 'Indoor Hall B (In-person)',
+            seats: 8, fee: '£3/session (Optional)', cover: '../zp/ymq.webp', slots: []
+          },
+          {
+            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
+            tags: ['Grouped Training', 'Fitness Growth', 'Safety Coaching'],
+            location: 'Aquatics Center (In-person)',
+            seats: 16, fee: '£2/session', cover: '../zp/yy1.webp', slots: []
+          },
+          {
+            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
+            tags: ['City Rides', 'Route Sharing', 'Gear Exchange'],
+            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
+            seats: 20, fee: '£0', cover: '../zp/qx.webp', slots: []
+          },
+          {
+            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
+            tags: ['Web Development', 'Python', 'Project Practice'],
+            location: 'Online meeting link (Virtual)',
+            seats: 40, fee: '£0', cover: '../zp/bc.webp', slots: []
+          },
+          {
+            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
+            tags: ['Serve Training', 'Weekend Activities', 'Beginner Welcome'],
+            location: 'Tennis Court C (In-person)',
+            seats: 10, fee: '£2/session', cover: '../zp/wq.webp', slots: []
+          },
+          {
+            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
+            tags: ['Ensemble Rehearsal', 'Stage Showcases', 'Recording Sharing'],
+            location: 'Arts Building 2F / online sharing',
+            seats: 18, fee: '£0', cover: '../zp/yy.webp', slots: []
+          },
+          {
+            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
+            tags: ['Morning Check-in', 'Endurance Growth', 'Pacing Training'],
+            location: 'Track meeting point (In-person)',
+            seats: 30, fee: '£0', cover: '../zp/pb.webp', slots: []
+          },
+          {
+            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
+            tags: ['Half-court Games', 'Shooting Practice', 'Teamwork'],
+            location: 'Basketball Court D (In-person)',
+            seats: 18, fee: '£0 (Free)', cover: '../zp/hb1.webp', slots: []
+          },
+          {
+            id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
+            tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome'],
+            location: 'Practice Ground E (In-person)',
+            seats: 12, fee: '£5/session (Optional)', cover: '../zp/hb2.webp', slots: []
+          },
+          {
+            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
+            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training'],
+            location: 'Stadium F (In-person)',
+            seats: 22, fee: '£0', cover: '../zp/hb3.webp', slots: []
+          },
+          {
+            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
+            tags: ['Attack and Defense', 'Core Coordination', 'Training Camp'],
+            location: 'Sports Hall G (In-person)',
+            seats: 16, fee: '£0', cover: '../zp/hb2.webp', slots: []
+          },
+          {
+            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
+            tags: ['Core Movements', 'Flexibility Training', 'Open Class'],
+            location: 'Gym Hall H (In-person)',
+            seats: 14, fee: '£0', cover: '../zp/hb1.webp', slots: []
+          }
+        ]
+      };
+    },
+    computed: {
+      isAuthed() {
+        return !!this.sessionEmail;
+      },
+      days() {
+        const out = [];
+        const base = new Date(this.currentDate);
+        base.setHours(0, 0, 0, 0);
+
+        for (let i = 0; i < 7; i += 1) {
+          const d = new Date(base);
+          d.setDate(base.getDate() + i);
+          out.push({
+            iso: this.formatIso(d),
+            week: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()],
+            label_short: `${d.getMonth() + 1}/${d.getDate()}`,
+            label_full: `${d.getFullYear()}-${`${d.getMonth() + 1}`.padStart(2, '0')}-${`${d.getDate()}`.padStart(2, '0')}`
+          });
+        }
+
+        return out;
+      },
+      currentWeekLabel() {
+        if (!this.days.length) return '';
+        const first = this.days[0];
+        const last = this.days[this.days.length - 1];
+        return `${first.label_full} - ${last.label_full}`;
+      },
+      currentDateStr() {
+        const current = new Date(this.currentDate);
+        return `${current.getFullYear()}-${`${current.getMonth() + 1}`.padStart(2, '0')}-${`${current.getDate()}`.padStart(2, '0')}`;
+      },
+      calendarMonthLabel() {
+        const view = new Date(this.calendarViewDate);
+        return `${view.getFullYear()}-${`${view.getMonth() + 1}`.padStart(2, '0')}`;
+      },
+      calendarWeekdayLabels() {
+        return ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+      },
+      calendarDays() {
+        const view = this.createMonthViewDate(this.calendarViewDate);
+        const start = new Date(view);
+        start.setDate(1 - view.getDay());
+
+        const items = [];
+        const todayIso = this.todayIso;
+        const selectedIso = this.formatIso(this.currentDate);
+        const monthIndex = view.getMonth();
+
+        for (let i = 0; i < 42; i += 1) {
+          const next = new Date(start);
+          next.setDate(start.getDate() + i);
+          const iso = this.formatIso(next);
+          items.push({
+            iso,
+            label: next.getDate(),
+            inCurrentMonth: next.getMonth() === monthIndex,
+            isDisabled: iso < todayIso,
+            isToday: iso === todayIso,
+            isSelected: iso === selectedIso
+          });
+        }
+
+        return items;
+      },
+      isCalendarPrevDisabled() {
+        const todayMonth = this.createMonthViewDate(new Date()).getTime();
+        return this.createMonthViewDate(this.calendarViewDate).getTime() <= todayMonth;
+      },
+      todayIso() {
+        return this.formatIso(new Date());
+      },
+      isAtEarliestDate() {
+        return this.formatIso(this.currentDate) <= this.todayIso;
+      },
+      filteredClubs() {
+        const q = (this.q || '').toLowerCase();
+        const items = this.clubs.filter((club) => {
+          const searchText = [
+            club.name,
+            club.category,
+            club.mode,
+            club.location,
+            club.fee,
+            (club.tags || []).join(' '),
+            this.clubSummary(club)
+          ].join(' ').toLowerCase();
+
+          const qMatch = !q || searchText.includes(q);
+          const categoryMatch = !this.category || club.category === this.category;
+          const modeMatch = !this.mode || club.mode === this.mode;
+          return qMatch && categoryMatch && modeMatch;
+        }).slice();
+
+        if (this.sortBy === 'todaySlots') {
+          items.sort((a, b) => this.clubAvailableTodayCount(b) - this.clubAvailableTodayCount(a) || a.name.localeCompare(b.name, 'zh-CN'));
+        } else if (this.sortBy === 'weekSeats') {
+          items.sort((a, b) => this.clubWeekRemainingSeats(b) - this.clubWeekRemainingSeats(a) || a.name.localeCompare(b.name, 'zh-CN'));
+        } else {
+          items.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+        }
+
+        return items;
+      },
+    },
+      async mounted() {
+        this.checkSession();
+        this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
+        this.refreshClubPool();
+        this.bookings = this.loadBookings();
+        window.addEventListener('storage', this.onStorageChange);
+        window.addEventListener('pageshow', this.refreshLocalState);
+        document.addEventListener('visibilitychange', this.onVisibilityChange);
+        document.addEventListener('click', this.handleDocumentClick);
+        document.addEventListener('keydown', this.handleEscapeKey);
+        await this.syncSupabaseBookingData();
+
+        const params = new URLSearchParams(location.search);
+        const clubSlug = params.get('club');
+        const requestedDay = String(params.get('day') || '').trim();
+        if (requestedDay) {
+          const targetDate = new Date(requestedDay);
+          if (!Number.isNaN(targetDate.getTime())) {
+            this.setCurrentDate(targetDate);
+          }
+        }
+        this.recentBookingSuccess = this.readRecentBookingSuccessParams(params);
+        if (this.recentBookingSuccess && this.recentBookingSuccess.dayIso) {
+          this.setCurrentDate(new Date(this.recentBookingSuccess.dayIso));
+        }
+        if (clubSlug) {
+          const found = this.clubs.find((club) => club.slug === clubSlug);
+          if (found) {
+            this.selectClub(found, false);
+            if (this.recentBookingSuccess && this.recentBookingSuccess.clubSlug === found.slug) {
+              this.stripBookingReturnParams();
+            }
+          }
+        }
+      },
+    beforeDestroy() {
+      window.removeEventListener('storage', this.onStorageChange);
+      window.removeEventListener('pageshow', this.refreshLocalState);
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+      document.removeEventListener('click', this.handleDocumentClick);
+      document.removeEventListener('keydown', this.handleEscapeKey);
+    },
+    methods: {
+      formatIso(date) {
+        const normalized = new Date(date);
+        normalized.setHours(0, 0, 0, 0);
+        const year = normalized.getFullYear();
+        const month = `${normalized.getMonth() + 1}`.padStart(2, '0');
+        const day = `${normalized.getDate()}`.padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      },
+      clampToToday(date) {
+        const next = new Date(date);
+        next.setHours(0, 0, 0, 0);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return next < today ? today : next;
+      },
+      createMonthViewDate(date) {
+        const view = new Date(date);
+        view.setHours(0, 0, 0, 0);
+        view.setDate(1);
+        return view;
+      },
+      syncCalendarView(date) {
+        this.calendarViewDate = this.createMonthViewDate(date || this.currentDate);
+      },
+      setCurrentDate(date) {
+        this.currentDate = this.clampToToday(date);
+        this.syncCalendarView(this.currentDate);
+      },
+      toggleCalendar() {
+        if (this.calendarOpen) {
+          this.calendarOpen = false;
+          return;
+        }
+
+        this.syncCalendarView(this.currentDate);
+        this.calendarOpen = true;
+      },
+      closeCalendar() {
+        this.calendarOpen = false;
+      },
+      shiftCalendarMonth(offset) {
+        const next = this.createMonthViewDate(this.calendarViewDate);
+        next.setMonth(next.getMonth() + offset);
+
+        const earliestMonth = this.createMonthViewDate(new Date());
+        if (next.getTime() < earliestMonth.getTime()) {
+          this.calendarViewDate = earliestMonth;
+          return;
+        }
+
+        this.calendarViewDate = next;
+      },
+      selectCalendarDate(day) {
+        if (!day || day.isDisabled) return;
+        this.setCurrentDate(new Date(day.iso));
+        this.closeCalendar();
+      },
+      handleDocumentClick(event) {
+        const panel = this.$refs.scheduleDatePicker;
+        if (!panel || panel.contains(event.target)) return;
+        this.closeCalendar();
+      },
+      handleEscapeKey(event) {
+        if (event.key === 'Escape') {
+          this.closeCalendar();
+        }
+      },
+      generateSlots(capacity) {
+        const slots = [];
+        for (let hour = 9; hour < 21; hour += 1) {
+          slots.push({
+            id: `s-${hour}`,
+            time: `${hour}:00-${hour + 1}:00`,
+            time_short: `${hour}:00`,
+            capacity: capacity || 10
+          });
+        }
+        return slots;
+      },
+      getBookingService() {
+        return window.clubBookingSupabase || null;
+      },
+      hasSupabaseBookings() {
+        const service = this.getBookingService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      readSession() {
+        const stores = [localStorage, sessionStorage];
+        for (let i = 0; i < stores.length; i += 1) {
+          try {
+            const raw = stores[i].getItem('user_session_v1');
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.email) return parsed;
+          } catch (error) {}
+        }
+        return null;
+      },
+      checkSession() {
+        const session = this.readSession();
+        this.sessionEmail = session && session.email ? String(session.email).trim() : '';
+        this.sessionUserId = session && session.userId ? String(session.userId).trim() : '';
+      },
+      bookingRange(days = 35) {
+        const startDate = this.formatIso(new Date());
+        const end = new Date();
+        end.setDate(end.getDate() + days);
+        return {
+          startDate,
+          endDate: this.formatIso(end)
+        };
+      },
+      async syncSupabaseBookingData() {
+        const service = this.getBookingService();
+        if (!service || !service.isConfigured()) {
+          this.useSupabaseBookings = false;
+          return false;
+        }
+
+        try {
+          const range = this.bookingRange(42);
+          const catalog = await service.fetchClubCatalog(range);
+          this.supabaseClubs = Array.isArray(catalog.clubs) ? catalog.clubs : [];
+          this.bookingAvailabilityMap = catalog && catalog.availabilityMap ? catalog.availabilityMap : {};
+          this.useSupabaseBookings = this.supabaseClubs.length > 0;
+          this.refreshClubPool();
+
+          if (this.sessionUserId) {
+            this.bookings = await service.fetchMyBookings(this.sessionUserId, this.sessionEmail);
+          } else if (!this.useSupabaseBookings) {
+            this.bookings = this.loadBookings();
+          } else {
+            this.bookings = [];
+          }
+          return this.useSupabaseBookings;
+        } catch (error) {
+          console.warn('Unable to sync club bookings from Supabase.', error);
+          this.supabaseClubs = [];
+          this.bookingAvailabilityMap = {};
+          this.useSupabaseBookings = false;
+          this.refreshClubPool();
+          this.bookings = this.loadBookings();
+          return false;
+        }
+      },
+      goLogin() {
+        location.href = 'join.html';
+      },
+      scrollToGrid() {
+        this.$nextTick(() => {
+          const grid = document.getElementById('booking-grid');
+          if (grid) {
+            grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      },
+      resetFilters() {
+        this.q = '';
+        this.category = '';
+        this.mode = '';
+        this.sortBy = 'name';
+      },
+      detailHref(club) {
+        return this.detailPageSlugs.includes(club.slug)
+          ? `club/${club.slug}.html`
+          : `club_detail.html?club=${encodeURIComponent(club.slug)}`;
+      },
+      readRecentBookingSuccessParams(params) {
+        const query = params instanceof URLSearchParams ? params : new URLSearchParams(location.search);
+        if (query.get('bookingSuccess') !== '1') return null;
+        const clubSlug = String(query.get('club') || '').trim();
+        const dayIso = String(query.get('day') || '').trim();
+        const slotId = String(query.get('slot') || '').trim();
+        const orderId = String(query.get('order') || '').trim();
+        if (!clubSlug || !dayIso || !slotId) return null;
+        return { clubSlug, dayIso, slotId, orderId };
+      },
+      stripBookingReturnParams() {
+        const url = new URL(location.href);
+        url.searchParams.delete('bookingSuccess');
+        url.searchParams.delete('day');
+        url.searchParams.delete('slot');
+        url.searchParams.delete('order');
+        const query = url.searchParams.toString();
+        history.replaceState(null, '', query ? `${url.pathname}?${query}` : url.pathname);
+      },
+      clubSummary(club) {
+        const tags = club.tags && club.tags.length ? club.tags.join(' / ') : 'General Activities';
+        return `${club.mode} format, located at ${club.location}, suitable for members interested in ${tags}.`;
+      },
+      slotSortValue(slot) {
+        const text = String(slot && (slot.startTime || slot.time_short || slot.time) || '').trim();
+        const startText = text.split('-')[0] ? text.split('-')[0].trim() : text;
+        if (!startText) return Number.MAX_SAFE_INTEGER;
+        const parts = startText.split(':');
+        const hour = Number(parts[0] || 0);
+        const minute = Number(parts[1] || 0);
+        return hour * 60 + minute;
+      },
+      clubSlotTemplate(club) {
+        if (!club) return [];
+        const buckets = [];
+        if (Array.isArray(club.slots) && club.slots.length) {
+          buckets.push(club.slots);
+        }
+        const byDay = club.slotsByDay && typeof club.slotsByDay === 'object'
+          ? Object.values(club.slotsByDay)
+          : [];
+        byDay.forEach((list) => {
+          if (Array.isArray(list) && list.length) buckets.push(list);
+        });
+
+        const seen = new Set();
+        const template = [];
+        buckets.forEach((list) => {
+          list.forEach((slot, index) => {
+            const slotTime = String(slot && slot.time || '').trim();
+            const slotShort = String(slot && slot.time_short || '').trim() || (slotTime ? slotTime.split('-')[0].trim() : '');
+            const startTime = String(slot && slot.startTime || '').trim() || slotShort;
+            const key = `${startTime}|${slotTime}|${slotShort}`;
+            if (!slotTime || seen.has(key)) return;
+            seen.add(key);
+            template.push({
+              id: String(slot && slot.id || `template-${club.slug || 'club'}-${index}`),
+              time: slotTime,
+              time_short: slotShort,
+              startTime: startTime,
+              endTime: String(slot && slot.endTime || '').trim(),
+              capacity: Number(slot && slot.capacity || club.seats || 0)
+            });
+          });
+        });
+
+        return template.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+      },
+      buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index) {
+        const slotTime = String(templateSlot && templateSlot.time || '').trim();
+        const slotShort = String(templateSlot && templateSlot.time_short || '').trim() || (slotTime ? slotTime.split('-')[0].trim() : '');
+        return {
+          id: `missing-${club && club.slug || 'club'}-${dayIso}-${index}`,
+          dbId: '',
+          time: slotTime,
+          time_short: slotShort,
+          capacity: 0,
+          dayIso: dayIso,
+          dayLabel: dayIso,
+          startTime: String(templateSlot && templateSlot.startTime || '').trim() || slotShort,
+          endTime: String(templateSlot && templateSlot.endTime || '').trim(),
+          syntheticUnavailable: true
+        };
+      },
+      slotsForClubDay(club, day) {
+        if (!club || !day) return [];
+        const dayIso = String(day.iso || '').trim();
+        const actual = club.slotsByDay && Array.isArray(club.slotsByDay[dayIso])
+          ? club.slotsByDay[dayIso].slice()
+          : [];
+        const template = this.clubSlotTemplate(club);
+        if (!template.length) {
+          if (!actual.length) return Array.isArray(club.slots) ? club.slots : [];
+          return actual.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+        }
+
+        if (!actual.length) {
+          if (this.useSupabaseBookings || String(club.source || '').trim() === 'supabase') {
+            return template.map((templateSlot, index) => this.buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index));
+          }
+          return Array.isArray(club.slots) ? club.slots : [];
+        }
+
+        const actualByTime = {};
+        actual.forEach((slot) => {
+          const slotTime = String(slot && slot.time || '').trim();
+          if (slotTime) actualByTime[slotTime] = slot;
+        });
+
+        return template.map((templateSlot, index) => {
+          const slotTime = String(templateSlot && templateSlot.time || '').trim();
+          if (slotTime && actualByTime[slotTime]) {
+            return actualByTime[slotTime];
+          }
+          return this.buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index);
+        });
+      },
+      slotsForDay(day) {
+        return this.slotsForClubDay(this.currentClub, day);
+      },
+      bookedCountFor(clubSlug, slotId, dayIso) {
+        if (this.useSupabaseBookings) {
+          return Number(this.bookingAvailabilityMap[String(slotId || '').trim() + '|' + String(dayIso || '').trim()] || 0);
+        }
+        return this.bookings.filter((booking) => (
+          booking.clubSlug === clubSlug &&
+          booking.dayIso === dayIso &&
+          booking.slotId === slotId &&
+          booking.status !== 'Cancelled'
+        )).length;
+      },
+      getSlotStartTimestamp(slot, day) {
+        const dayIso = String(day && day.iso || '').trim();
+        const timeText = String(slot && slot.time || slot && slot.time_short || '').trim();
+        const startText = timeText.split('-')[0] ? timeText.split('-')[0].trim() : '';
+        if (!dayIso || !startText) return 0;
+        const normalizedTime = startText.length === 5 ? `${startText}:00` : (startText.length === 4 ? `0${startText}:00` : startText);
+        const ts = Date.parse(`${dayIso}T${normalizedTime}`);
+        return Number.isNaN(ts) ? 0 : ts;
+      },
+      isSlotExpired(slot, day) {
+        const startTs = this.getSlotStartTimestamp(slot, day);
+        return !!startTs && startTs <= Date.now();
+      },
+      remainingFor(club, slot, dayIso) {
+        if (slot && slot.syntheticUnavailable) return 0;
+        return Math.max(0, (slot.capacity || club.seats || 0) - this.bookedCountFor(club.slug, slot.id, dayIso));
+      },
+      clubAvailableSlotCount(club, day) {
+        const dayIso = day && day.iso ? day.iso : this.formatIso(new Date());
+        return this.slotsForClubDay(club, { iso: dayIso }).filter((slot) => {
+          if (this.isSlotExpired(slot, { iso: dayIso })) return false;
+          return this.remainingFor(club, slot, dayIso) > 0;
+        }).length;
+      },
+      clubAvailableTodayCount(club) {
+        return this.clubAvailableSlotCount(club, { iso: this.formatIso(new Date()) });
+      },
+      clubWeekRemainingSeats(club) {
+        return this.days.reduce((total, day) => {
+          return total + this.slotsForClubDay(club, day).reduce((seatTotal, slot) => {
+            if (this.isSlotExpired(slot, day)) return seatTotal;
+            return seatTotal + this.remainingFor(club, slot, day.iso);
+          }, 0);
+        }, 0);
+      },
+      selectClub(club, updateUrl = true) {
+        this.currentClub = club;
+        this.selectedClubSlug = club.slug;
+        this.viewState = 'schedule';
+        this.closeCalendar();
+
+        if (updateUrl) {
+          const url = new URL(location.href);
+          url.searchParams.set('club', club.slug);
+          history.replaceState(null, '', `${url.pathname}?${url.searchParams.toString()}`);
+        }
+
+        this.$nextTick(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          this.jumpToRecentPaidSlot();
+        });
+      },
+      goBackToList() {
+        this.viewState = 'list';
+        this.currentClub = null;
+        this.selectedClubSlug = '';
+        this.setCurrentDate(new Date());
+        this.recentBookingSuccess = null;
+        this.closeCalendar();
+
+        const url = new URL(location.href);
+        ['club', 'day', 'slot', 'order', 'bookingSuccess'].forEach((key) => url.searchParams.delete(key));
+        const query = url.searchParams.toString();
+        history.replaceState(null, '', query ? `${url.pathname}?${query}` : url.pathname);
+
+        this.$nextTick(() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+      },
+      shiftWeek(offset) {
+        const next = new Date(this.currentDate);
+        next.setDate(next.getDate() + offset);
+        this.setCurrentDate(next);
+        this.closeCalendar();
+      },
+      moveListDate(offset) {
+        const next = new Date(this.currentDate);
+        next.setDate(next.getDate() + offset);
+        this.setCurrentDate(next);
+        this.closeCalendar();
+      },
+      jumpToToday() {
+        this.setCurrentDate(new Date());
+        this.closeCalendar();
+      },
+      getSlotClass(slot, day) {
+        if (this.isSlotExpired(slot, day)) return 'expired';
+        if (this.isBooked(slot, day)) return 'mine';
+        if (this.remaining(slot, day) <= 0) return 'full';
+        return 'available';
+      },
+      isRecentPaidSlot(slot, day) {
+        return !!(
+          this.recentBookingSuccess &&
+          this.recentBookingSuccess.clubSlug === this.selectedClubSlug &&
+          this.recentBookingSuccess.dayIso === day.iso &&
+          this.recentBookingSuccess.slotId === slot.id
+        );
+      },
+      jumpToRecentPaidSlot() {
+        if (!this.recentBookingSuccess || this.recentBookingSuccess.clubSlug !== this.selectedClubSlug) return;
+        const target = document.querySelector(
+          '.slot-card[data-day-iso="' + this.recentBookingSuccess.dayIso + '"][data-slot-id="' + this.recentBookingSuccess.slotId + '"]'
+        );
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+        }
+      },
+      clearRecentBookingSuccess() {
+        this.recentBookingSuccess = null;
+      },
+      isBooked(slot, day) {
+        if (!this.isAuthed || !this.currentClub) return false;
+        return this.bookings.some((booking) => (
+          booking.clubSlug === this.selectedClubSlug &&
+          booking.dayIso === day.iso &&
+          booking.slotId === slot.id &&
+          booking.userEmail === this.sessionEmail &&
+          booking.status !== 'Cancelled'
+        ));
+      },
+      checkTimeConflict(slot, day) {
+        if (!this.isAuthed) return false;
+        return this.bookings.find((booking) => (
+          booking.userEmail === this.sessionEmail &&
+          booking.dayIso === day.iso &&
+          booking.slotTime === slot.time &&
+          booking.status !== 'Cancelled'
+        ));
+      },
+      remaining(slot, day) {
+        if (!this.currentClub) return 0;
+        return this.remainingFor(this.currentClub, slot, day.iso);
+      },
+      handleSlotClick(slot, day) {
+        if (!this.isAuthed) {
+          this.openLoginModal();
+          return;
+        }
+
+        if (this.isSlotExpired(slot, day)) {
+          alert('This slot is unavailable and cannot be booked.');
+          return;
+        }
+
+        if (this.remaining(slot, day) <= 0) {
+          alert('This slot is full or unavailable.');
+          return;
+        }
+
+        if (this.isBooked(slot, day)) {
+          alert('You have already booked this time slot.');
+          return;
+        }
+
+        const conflict = this.checkTimeConflict(slot, day);
+        if (conflict) {
+          alert(`Booking conflict: you already booked this time slot in ${conflict.clubName} (${conflict.slotTime}). Please cancel the original booking first.`);
+          return;
+        }
+
+        this.pendingBooking = {
+          slot,
+          dayIso: day.iso,
+          dayLabel: day.label_full
+        };
+        this.showBookingModal = true;
+      },
+      confirmBooking() {
+        this.goToPayment();
+      },
+      bookingKey() {
+        return 'specialty_bookings_v1';
+      },
+      pendingPaymentKey() {
+        return 'specialty_pending_payment_v1';
+      },
+      registryKey() {
+        return 'club_registry_v1';
+      },
+      extraClubsKey() {
+        return 'specialty_clubs_v1';
+      },
+      loadBookings() {
+        try {
+          return JSON.parse(localStorage.getItem(this.bookingKey()) || '[]');
+        } catch (error) {
+          return [];
+        }
+      },
+      saveBookings(all) {
+        localStorage.setItem(this.bookingKey(), JSON.stringify(all));
+      },
+      createPaymentOrderId() {
+        const now = new Date();
+        const stamp = [
+          now.getFullYear(),
+          `${now.getMonth() + 1}`.padStart(2, '0'),
+          `${now.getDate()}`.padStart(2, '0'),
+          `${now.getHours()}`.padStart(2, '0'),
+          `${now.getMinutes()}`.padStart(2, '0'),
+          `${now.getSeconds()}`.padStart(2, '0')
+        ].join('');
+        const tail = `${Math.floor(Math.random() * 900) + 100}`;
+        return `CBP${stamp}${tail}`;
+      },
+      parseFeeAmount(feeText) {
+        const text = String(feeText || '').trim();
+        const match = text.match(/£\s*(\d+(?:\.\d+)?)/i);
+        return match ? Number(match[1]) : 0;
+      },
+      goToPayment() {
+        if (!this.pendingBooking || !this.currentClub || !this.sessionEmail) return;
+
+        const baseFee = this.parseFeeAmount(this.currentClub.fee);
+        const serviceFee = baseFee > 0 ? 1 : 0;
+        const pendingOrder = {
+          orderId: this.createPaymentOrderId(),
+          bookingSource: this.useSupabaseBookings && !!(this.currentClub.dbId && this.pendingBooking.slot && this.pendingBooking.slot.dbId) ? 'supabase' : 'local',
+          clubId: this.currentClub.dbId || '',
+          clubSlug: this.selectedClubSlug,
+          clubName: this.currentClub.name,
+          category: this.currentClub.category,
+          mode: this.currentClub.mode,
+          cover: this.currentClub.cover || '../zp/ymq.webp',
+          dayIso: this.pendingBooking.dayIso,
+          dayLabel: this.pendingBooking.dayLabel,
+          slotId: this.pendingBooking.slot.dbId || this.pendingBooking.slot.id,
+          slotTime: this.pendingBooking.slot.time,
+          location: this.currentClub.location,
+          feeText: this.currentClub.fee,
+          baseFee: baseFee,
+          serviceFee: serviceFee,
+          discount: 0,
+          payableAmount: Math.max(0, baseFee + serviceFee),
+          userEmail: this.sessionEmail,
+          createdAt: new Date().toISOString(),
+          status: 'Pending Payment'
+        };
+
+        localStorage.setItem(this.pendingPaymentKey(), JSON.stringify(pendingOrder));
+        this.showBookingModal = false;
+        this.pendingBooking = null;
+        location.href = 'specialty-payment.html';
+      },
+      loadRegistryClubs() {
+        try {
+          return JSON.parse(localStorage.getItem(this.registryKey()) || '[]');
+        } catch (error) {
+          return [];
+        }
+      },
+      loadExtraClubs() {
+        try {
+          return JSON.parse(localStorage.getItem(this.extraClubsKey()) || '[]');
+        } catch (error) {
+          return [];
+        }
+      },
+      normalizeStoredClub(club, source) {
+        if (!club) return null;
+
+        const slug = String(club.slug || '').trim();
+        if (!slug) return null;
+
+        const rawSlotsByDay = club.slotsByDay && typeof club.slotsByDay === 'object' ? club.slotsByDay : null;
+        const rawSlots = Array.isArray(club.slots) ? club.slots : [];
+        const slotCapacity = rawSlots.reduce((sum, slot) => {
+          return sum + (Number(slot && slot.capacity) || 0);
+        }, 0);
+        const seats = Number(club.seats || 0) > 0
+          ? Number(club.seats)
+          : (slotCapacity > 0 ? slotCapacity : 20);
+        const slots = rawSlots.length
+          ? rawSlots.map((slot, index) => {
+              const timeText = String(slot && slot.time || '').trim();
+              return {
+                id: String(slot && slot.id || `${source}-${slug}-s-${index}`),
+                dbId: String(slot && (slot.dbId || slot.id) || ''),
+                time: timeText || `${9 + index}:00-${10 + index}:00`,
+                time_short: String(slot && slot.time_short || '').trim() || (timeText ? timeText.split('-')[0] : `${9 + index}:00`),
+                capacity: Number(slot && slot.capacity) > 0 ? Number(slot.capacity) : seats,
+                dayIso: String(slot && slot.dayIso || '').trim(),
+                dayLabel: String(slot && slot.dayLabel || '').trim()
+              };
+            })
+          : this.generateSlots(seats);
+        const slotsByDay = rawSlotsByDay
+          ? Object.keys(rawSlotsByDay).reduce((map, dayIso) => {
+              map[dayIso] = (Array.isArray(rawSlotsByDay[dayIso]) ? rawSlotsByDay[dayIso] : []).map((slot, index) => {
+                const timeText = String(slot && slot.time || '').trim();
+                return {
+                  id: String(slot && slot.id || `${source}-${slug}-${dayIso}-s-${index}`),
+                  dbId: String(slot && (slot.dbId || slot.id) || ''),
+                  time: timeText,
+                  time_short: String(slot && slot.time_short || '').trim() || (timeText ? timeText.split('-')[0] : ''),
+                  capacity: Number(slot && slot.capacity) > 0 ? Number(slot.capacity) : seats,
+                  dayIso: dayIso,
+                  dayLabel: String(slot && slot.dayLabel || dayIso).trim()
+                };
+              });
+              return map;
+            }, {})
+          : null;
+
+        return Object.assign({}, club, {
+          id: `${source}-${club.id || slug}`,
+          dbId: String(club.dbId || club.id || ''),
+          source: source,
+          slug: slug,
+          name: String(club.name || 'Unnamed Club').trim(),
+          category: String(club.category || 'Sports').trim(),
+          mode: String(club.mode || 'In-person').trim(),
+          desc: String(club.desc || club.heroSub || '').trim(),
+          location: String(club.location || 'Location TBD').trim(),
+          time: String(club.time || '').trim(),
+          seats: seats,
+          fee: String(club.fee || '£0').trim(),
+          cover: String(club.cover || '../zp/gywm.webp').trim(),
+          tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map((tag) => String(tag).trim()) : [],
+          slots: slots,
+          slotsByDay: slotsByDay
+        });
+      },
+      refreshClubPool() {
+        const supabase = (this.supabaseClubs || [])
+          .map((club) => this.normalizeStoredClub(club, 'supabase'))
+          .filter(Boolean);
+        const base = (this.baseClubsSnapshot || [])
+          .map((club) => this.normalizeStoredClub(club, 'base'))
+          .filter(Boolean);
+        const registry = this.loadRegistryClubs()
+          .map((club) => this.normalizeStoredClub(club, 'registry'))
+          .filter(Boolean);
+        const extra = this.loadExtraClubs()
+          .map((club) => this.normalizeStoredClub(club, 'extra'))
+          .filter(Boolean);
+        const seen = new Set();
+        const next = [];
+
+        (supabase.length ? supabase.concat(registry, extra, base) : registry.concat(extra, base)).forEach((club) => {
+          if (!club || !club.slug || seen.has(club.slug)) return;
+          seen.add(club.slug);
+          next.push(club);
+        });
+
+        this.clubs = next;
+
+        if (this.selectedClubSlug) {
+          const found = next.find((club) => club.slug === this.selectedClubSlug) || null;
+          if (found) {
+            this.currentClub = found;
+          } else {
+            this.currentClub = null;
+            this.selectedClubSlug = '';
+            this.viewState = 'list';
+          }
+        }
+      },
+      onStorageChange(event) {
+        if (event && (event.key === this.extraClubsKey() || event.key === this.registryKey())) {
+          this.refreshClubPool();
+        }
+        if (event && event.key === this.bookingKey()) {
+          if (this.useSupabaseBookings) {
+            this.syncSupabaseBookingData();
+          } else {
+            this.bookings = this.loadBookings();
+          }
+        }
+      },
+      refreshLocalState() {
+        this.checkSession();
+        this.refreshClubPool();
+        if (this.hasSupabaseBookings()) {
+          this.syncSupabaseBookingData();
+        } else {
+          this.bookings = this.loadBookings();
+        }
+      },
+      onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          this.refreshLocalState();
+        }
+      },
+      openLoginModal() {
+        this.showLoginModal = true;
+      },
+      closeLoginModal() {
+        this.showLoginModal = false;
+      }
+    }
+  });
+</script>
+
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

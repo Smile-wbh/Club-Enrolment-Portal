@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Booking Payment - Club Enrollment Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-bookings.js"></script>
+  <link rel="stylesheet" href="../css/specialty-payment.css" />
+</head>
+<body>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a class="active" href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="payment-page">
+    <div class="container">
+      <section class="payment-shell">
+        <div class="payment-topbar">
+          <button class="back-link-btn" type="button" id="paymentBackBtn">Back</button>
+        </div>
+
+        <div class="payment-steps" id="paymentSteps">
+          <div class="step-item is-done">
+            <span class="step-dot">1</span>
+            <strong>Confirm Details</strong>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-item is-active">
+            <span class="step-dot">2</span>
+            <strong>Select Payment Method</strong>
+          </div>
+          <div class="step-line"></div>
+          <div class="step-item" id="completeStep">
+            <span class="step-dot">3</span>
+            <strong>Complete Payment</strong>
+          </div>
+        </div>
+
+        <section class="payment-empty" id="paymentEmpty" hidden>
+          <h2>There is no booking waiting for payment</h2>
+          <p>Please go back to the club booking page, choose a time slot, and then continue to payment.</p>
+          <div class="empty-actions">
+            <a class="primary-btn" href="specialty.html">Back to Club Booking</a>
+            <a class="ghost-btn" href="join.html?tab=club_bookings">View My Bookings</a>
+          </div>
+        </section>
+
+        <section class="payment-success" id="paymentSuccess" hidden>
+          <div class="success-badge">Booking Confirmed</div>
+          <h2>Payment complete, and the booking has been added to your dashboard</h2>
+          <p id="successLead">You can go back to the club booking page to browse more time slots, or open the user dashboard to review your bookings.</p>
+          <p class="success-return-note" id="successAutoRedirectText">You will be redirected back to the club booking page shortly.</p>
+
+          <div class="success-grid">
+            <div class="success-card">
+              <span>Order ID</span>
+              <strong id="successOrderId">-</strong>
+            </div>
+            <div class="success-card">
+              <span>Club</span>
+              <strong id="successClubName">-</strong>
+            </div>
+            <div class="success-card">
+              <span>Date</span>
+              <strong id="successDayLabel">-</strong>
+            </div>
+            <div class="success-card">
+              <span>Time Slot</span>
+              <strong id="successSlotTime">-</strong>
+            </div>
+          </div>
+
+          <div class="empty-actions">
+            <a class="primary-btn" id="successBackToBooking" href="specialty.html">Book Another Slot</a>
+            <a class="ghost-btn" href="join.html?tab=club_bookings">Open User Dashboard</a>
+          </div>
+        </section>
+
+        <div class="payment-layout" id="paymentLayout" hidden>
+          <section class="payment-card order-card">
+            <div class="card-head">
+              <h2>Order Information</h2>
+              <span class="info-pill" id="paymentStateText">Pending Payment</span>
+            </div>
+
+            <div class="info-group">
+              <div class="info-row"><span>Club Name</span><strong id="orderClubName">-</strong></div>
+              <div class="info-row"><span>Category</span><strong id="orderCategory">-</strong></div>
+              <div class="info-row"><span>Date</span><strong id="orderDayLabel">-</strong></div>
+              <div class="info-row"><span>Time</span><strong id="orderSlotTime">-</strong></div>
+              <div class="info-row"><span>Location</span><strong id="orderLocation">-</strong></div>
+              <div class="info-row"><span>Order ID</span><strong id="orderIdText">-</strong></div>
+              <div class="info-row"><span>Payment Account</span><strong id="orderUserEmail">-</strong></div>
+            </div>
+
+            <div class="divide-line"></div>
+
+            <div class="card-head secondary-head">
+              <h3>Fee Breakdown</h3>
+            </div>
+
+            <div class="fee-group">
+              <div class="info-row"><span>Booking Fee</span><strong id="baseFeeText">£0.00</strong></div>
+              <div class="info-row"><span>Platform Service Fee</span><strong id="serviceFeeText">£0.00</strong></div>
+              <div class="info-row discount-row"><span>Coupon Discount</span><strong id="discountText">-£0.00</strong></div>
+            </div>
+
+            <div class="divide-line"></div>
+
+            <div class="info-row total-row">
+              <span>Amount Payable</span>
+              <strong id="payableAmountText">£0.00</strong>
+            </div>
+          </section>
+
+          <section class="payment-card method-card">
+            <div class="card-head">
+              <h2>Select Payment Method</h2>
+            </div>
+
+            <div class="method-list">
+              <button class="method-option is-active" type="button" data-method="card">Card Payment</button>
+              <button class="method-option" type="button" data-method="paypal">PayPal</button>
+              <button class="method-option" type="button" data-method="apple">Apple Pay</button>
+            </div>
+
+            <div class="method-intro" id="methodIntro">Recommended for regular activity bookings. Once completed, it will sync to "User Dashboard -> Club Bookings".</div>
+
+            <div id="cardFields">
+              <div class="field-stack">
+                <label class="pay-field">
+                  <span>Cardholder Name</span>
+                  <input id="cardHolderName" type="text" placeholder="Enter the cardholder name" />
+                </label>
+
+                <label class="pay-field">
+                  <span>Card Number</span>
+                  <input id="cardNumber" type="text" placeholder="1234 5678 9012 3456" />
+                </label>
+
+                <div class="mini-grid">
+                  <label class="pay-field">
+                    <span>Expiry Date</span>
+                    <input id="cardExpiry" type="text" placeholder="MM / YY" />
+                  </label>
+                  <label class="pay-field">
+                    <span>Security Code</span>
+                    <input id="cardCvv" type="text" placeholder="CVV" />
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="coupon-block">
+              <div class="card-head secondary-head">
+                <h3>Promo Code</h3>
+              </div>
+              <div class="coupon-row">
+                <input id="couponInput" type="text" placeholder="Enter CLUB2026 / WELCOME" />
+                <button class="apply-btn" type="button" id="applyCouponBtn">Apply</button>
+              </div>
+              <div class="inline-status" id="couponStatus"></div>
+            </div>
+
+            <div class="payment-note" id="paymentDeadlineText">Please complete payment within 15 minutes. A booking confirmation will appear once payment succeeds.</div>
+            <div class="inline-status" id="paymentStatus"></div>
+
+            <div class="pay-footer">
+              <div class="secure-note">Secure Payment · Secure Payment</div>
+              <button class="pay-submit-btn" type="button" id="paySubmitBtn">Confirm Payment £0.00</button>
+            </div>
+          </section>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/specialty-payment.js"></script>
+  <script src="../js/portal-header-auth.js"></script>
+</body>
+</html>

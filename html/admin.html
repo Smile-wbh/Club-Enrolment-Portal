@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Dashboard</title>
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <link rel="stylesheet" href="../css/join.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+  <style>
+    .stats-grid{
+      display:grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap:16px;
+      margin-bottom: 20px;
+    }
+    .stat-card{
+      background:#fff;
+      border-radius: 6px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+    .stat-title{
+      font-size: 12px;
+      color:#909399;
+      margin-bottom: 8px;
+    }
+    .stat-value{
+      font-size: 22px;
+      font-weight: 700;
+      color:#303133;
+    }
+    .stat-sub{
+      margin-top: 8px;
+      font-size: 12px;
+      color:#606266;
+    }
+    .toolbar{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .toolbar input, .toolbar select{
+      height: 32px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      padding: 0 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    .pill.warn{ background:#fff7e6; border-color:#ffd591; color:#ad6800; }
+    .pill.good{ background:#f6ffed; border-color:#b7eb8f; color:#389e0d; }
+    .pill.bad{ background:#fff1f0; border-color:#ffa39e; color:#cf1322; }
+    .policy-card{
+      background:#fff;
+      border-radius: 6px;
+      padding: 16px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .policy-title{
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color:#303133;
+    }
+    .policy-list{
+      margin:0;
+      padding-left: 18px;
+      color:#606266;
+      line-height: 1.7;
+      font-size: 14px;
+    }
+    .chat-admin-layout{
+      display:grid;
+      grid-template-columns: 260px 1fr;
+      gap: 16px;
+    }
+    .chat-user-list{
+      border: 1px solid #ebeef5;
+      border-radius: 8px;
+      background:#fafafa;
+      padding: 8px;
+      max-height: 520px;
+      overflow:auto;
+    }
+    .chat-user{
+      background:#fff;
+      border: 1px solid #eef1f5;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: .15s ease;
+    }
+    .chat-user.active{
+      border-color:#cfe0ff;
+      box-shadow: 0 6px 14px rgba(18, 38, 70, 0.08);
+    }
+    .chat-user-title{
+      font-weight: 600;
+      font-size: 13px;
+      color:#303133;
+    }
+    .chat-user-sub{
+      font-size: 12px;
+      color:#909399;
+      margin-top: 4px;
+    }
+    .chat-user-meta{
+      font-size: 11px;
+      color:#b1b7c0;
+      margin-top: 4px;
+    }
+    .chat-thread{
+      border: 1px solid #ebeef5;
+      border-radius: 8px;
+      background:#fff;
+      display:flex;
+      flex-direction: column;
+      min-height: 520px;
+    }
+    .chat-thread-head{
+      padding: 10px 14px;
+      border-bottom: 1px solid #ebeef5;
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+    .chat-thread-body{
+      flex: 1;
+      padding: 12px 14px;
+      background:#f5f7fb;
+      overflow:auto;
+    }
+    .chat-bubble{
+      max-width: 80%;
+      padding: 8px 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .chat-bubble.user{
+      margin-left:auto;
+      background:#d8f0ee;
+      color:#103c3a;
+    }
+    .chat-bubble.bot,
+    .chat-bubble.admin{
+      background:#fff;
+      color:#1f2a3a;
+      border: 1px solid #e6ecf3;
+    }
+    .chat-bubble-meta{
+      font-size: 11px;
+      color:#9aa4b2;
+      margin-top: 4px;
+    }
+    .chat-attachments{
+      display:grid;
+      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+      gap: 8px;
+      margin-top: 6px;
+    }
+    .chat-attachment{
+      border: 1px solid #e6ecf3;
+      border-radius: 8px;
+      background:#fff;
+      padding: 6px;
+      text-align:center;
+      font-size: 12px;
+      color:#334155;
+    }
+    .chat-attachment img{
+      width: 100%;
+      height: 70px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+    .chat-attachment a{
+      color:#2f5bd5;
+      text-decoration:none;
+      display:block;
+      word-break: break-all;
+    }
+    .chat-attachment-meta{
+      font-size: 11px;
+      color:#9aa4b2;
+      margin-top: 4px;
+    }
+    .chat-reply{
+      border-top: 1px solid #ebeef5;
+      padding: 12px 14px;
+      background:#fff;
+    }
+    .chat-reply textarea{
+      width: 100%;
+      min-height: 80px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      padding: 8px 10px;
+      font-size: 12px;
+      resize: vertical;
+      outline: none;
+    }
+    .chat-reply-actions{
+      margin-top: 8px;
+      display:flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .template-row{
+      display:flex;
+      align-items:center;
+      gap: 10px;
+    }
+    .template-keywords{
+      font-size: 12px;
+      color:#909399;
+    }
+    @media (max-width: 1200px){
+      .stats-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 768px){
+      .stats-grid{ grid-template-columns: 1fr; }
+      .chat-admin-layout{ grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <div class="dashboard-layout">
+    <div class="sidebar">
+      <div class="sidebar-header">
+        <span>Admin</span>
+      </div>
+      <div class="sidebar-menu">
+        <div class="menu-item" :class="{active: adminTab==='overview'}" @click="adminTab='overview'">
+          <i class="icon">📊</i> Overview
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='audit'}" @click="adminTab='audit'">
+          <i class="icon">🧾</i> Club Review
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='content'}" @click="adminTab='content'">
+          <i class="icon">🛡️</i> Content Review
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='bookings'}" @click="adminTab='bookings'">
+          <i class="icon">📅</i> Booking Review
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='users'}" @click="adminTab='users'">
+          <i class="icon">👥</i> User Management
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='policies'}" @click="adminTab='policies'">
+          <i class="icon">📜</i> Platform Policies
+        </div>
+        <div class="menu-item" :class="{active: adminTab==='consult'}" @click="adminTab='consult'">
+          <i class="icon">💬</i> Support Desk
+        </div>
+        <a href="index1.html" class="menu-item"><i class="icon">🏠</i> Back to Home</a>
+      </div>
+    </div>
+
+    <div class="main-content">
+      <div class="top-header">
+        <div class="header-title">
+          <span style="margin-right:10px; cursor:pointer">☰</span>
+          Admin Dashboard
+        </div>
+        <div class="header-right">
+          <div class="header-search">
+            <input type="text" placeholder="Search demo unavailable" disabled style="background:#f5f7fa; cursor:not-allowed">
+            <span style="position:absolute; right:10px; top:8px; color:#999">🔍</span>
+          </div>
+          <div style="cursor:pointer" title="Notifications">🔔</div>
+          <div style="display:flex; align-items:center; gap:8px; cursor:pointer">
+            <span style="font-size:14px; color:#333">Super Admin</span>
+            <span style="font-size:12px; color:#999">▼</span>
+          </div>
+          <button class="btn danger" style="padding:6px 12px; min-width:auto; font-size:12px;" @click="refreshAll">Refresh</button>
+        </div>
+      </div>
+
+      <div class="dashboard-content">
+        <div v-if="adminTab === 'overview'">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-title">Registered Users</div>
+              <div class="stat-value">{{ stats.totalUsers }}</div>
+              <div class="stat-sub">Data source: club_users</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Club (Approved / Pending Review)</div>
+              <div class="stat-value">{{ stats.approvedClubs }} / {{ stats.pendingClubs }}</div>
+              <div class="stat-sub">Data source: club_registry_v1</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Bookings (Active / No-show)</div>
+              <div class="stat-value">{{ stats.activeBookings }} / {{ stats.noShowBookings }}</div>
+              <div class="stat-sub">Data source: specialty_bookings_v1</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-title">Forum Posts / Comments</div>
+              <div class="stat-value">{{ stats.totalPosts }} / {{ stats.totalComments }}</div>
+              <div class="stat-sub">Data source: spjs_forum_posts_v1</div>
+            </div>
+          </div>
+
+          <div class="content-card">
+            <div class="page-header">
+              <div class="page-title">Risk Overview</div>
+              <span class="pill gray">Monitoring</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Category</th>
+                  <th>Metric</th>
+                  <th>Threshold</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>No-show Violations</td>
+                  <td>{{ stats.violationUsers }} users</td>
+                  <td>3 cumulative no-shows</td>
+                  <td>
+                    <span class="pill" :class="stats.violationUsers>0 ? 'warn' : 'good'">
+                      {{ stats.violationUsers>0 ? 'Needs Review' : 'Normal' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Clubs Pending Review</td>
+                  <td>{{ stats.pendingClubs }} clubs</td>
+                  <td>Review within 24 hours</td>
+                  <td>
+                    <span class="pill" :class="stats.pendingClubs>0 ? 'warn' : 'good'">
+                      {{ stats.pendingClubs>0 ? 'Backlog' : 'Normal' }}
+                    </span>
+                  </td>
+                </tr>
+                <tr>
+                  <td>Flagged Content</td>
+                  <td>{{ stats.flaggedPosts }} items</td>
+                  <td>Manual Review</td>
+                  <td>
+                    <span class="pill" :class="stats.flaggedPosts>0 ? 'warn' : 'good'">
+                      {{ stats.flaggedPosts>0 ? 'Needs Review' : 'Cleared' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="adminTab === 'audit'">
+          <div class="content-card">
+            <div class="page-header">
+              <div class="page-title">Club Registration Review</div>
+              <span class="pill gray">Verify name, authenticity, and image compliance</span>
+            </div>
+            <div class="toolbar">
+              <select v-model="filters.clubStatus">
+                <option value="">AllStatus</option>
+                <option value="pending">Pending Review</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <input type="text" v-model.trim="filters.clubKeyword" placeholder="Search by club name or owner email">
+              <button class="btn btn-blue" style="min-width:auto;" @click="refreshAll">Refresh</button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Club</th>
+                  <th>Category</th>
+                  <th>Owner</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="c in filteredClubs" :key="c.id">
+                  <td>
+                    <div>{{ c.name }}</div>
+                    <div style="font-size:12px; color:#999">{{ c.location || '-' }}</div>
+                  </td>
+                  <td>{{ c.category || '-' }}</td>
+                  <td>{{ c.ownerEmail || '-' }}</td>
+                  <td>
+                    <span class="pill" :class="statusClass(c.status)">
+                      {{ formatStatus(c.status) }}
+                    </span>
+                  </td>
+                  <td>{{ c.createdAt || '-' }}</td>
+                  <td>
+                    <button class="action-btn btn-blue" @click="approveClub(c)">Approve</button>
+                    <button class="action-btn btn-red" @click="rejectClub(c)">Reject</button>
+                    <button class="action-btn" @click="removeClub(c)">Delete</button>
+                  </td>
+                </tr>
+                <tr v-if="filteredClubs.length===0">
+                  <td colspan="6" style="text-align:center; padding:20px; color:#999">No club applications</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="adminTab === 'content'">
+          <div class="content-card" style="margin-bottom:20px;">
+            <div class="page-header">
+              <div class="page-title">Forum Content</div>
+              <span class="pill gray">Posts and comments</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="filters.postKeyword" placeholder="Search by title, author, or club">
+              <select v-model="filters.postType">
+                <option value="">All Types</option>
+                <option value="Question">Question</option>
+                <option value="Experience Sharing">Experience Sharing</option>
+                <option value="Event Sign-Up">Event Sign-Up</option>
+                <option value="Competition Updates">Competition Updates</option>
+              </select>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Type</th>
+                  <th>Club</th>
+                  <th>Author</th>
+                  <th>Time</th>
+                  <th>Comments</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="p in filteredPosts" :key="p.id">
+                  <td>{{ p.title }}</td>
+                  <td>{{ p.type }}</td>
+                  <td>{{ p.club }}</td>
+                  <td>{{ p.author }}</td>
+                  <td>{{ p.time }}</td>
+                  <td>{{ (p.comments || []).length }}</td>
+                  <td>
+                    <button class="action-btn btn-red" @click="removePost(p)">Delete</button>
+                    <button class="action-btn" @click="flagPost(p)">Flag</button>
+                  </td>
+                </tr>
+                <tr v-if="filteredPosts.length===0">
+                  <td colspan="7" style="text-align:center; padding:20px; color:#999">No content</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="adminTab === 'bookings'">
+          <div class="content-card" style="margin-bottom:20px;">
+            <div class="page-header">
+              <div class="page-title">Club Booking</div>
+              <span class="pill gray">Check-in and no-show rules</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="filters.bookingKeyword" placeholder="Search by club or user email">
+              <select v-model="filters.bookingStatus">
+                <option value="">AllStatus</option>
+                <option value="Booked">Booked</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="No-show">No-show</option>
+                <option value="Checked In">Checked In</option>
+              </select>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Club</th>
+                  <th>User</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                  <th>Created At</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="b in filteredBookings" :key="b.id">
+                  <td>
+                    <div>{{ b.clubName }}</div>
+                    <div style="font-size:12px; color:#999">{{ b.location || '-' }}</div>
+                  </td>
+                  <td>{{ b.userEmail }}</td>
+                  <td>{{ b.dayLabel }} {{ b.slotTime }}</td>
+                  <td>
+                    <span class="pill" :class="bookingStatusClass(b.status)">
+                      {{ formatBookingStatus(b.status) }}
+                    </span>
+                  </td>
+                  <td>{{ b.createdAt }}</td>
+                  <td>
+                    <button class="action-btn btn-blue" @click="markBooking(b,'Checked In')">Check In</button>
+                    <button class="action-btn" @click="markBooking(b,'Cancelled')">Cancel</button>
+                    <button class="action-btn btn-red" @click="markBooking(b,'No-show')">No-show</button>
+                  </td>
+                </tr>
+                <tr v-if="filteredBookings.length===0">
+                  <td colspan="6" style="text-align:center; padding:20px; color:#999">No booking records</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="content-card">
+            <div class="page-header">
+              <div class="page-title">Course Bookings</div>
+              <span class="pill gray">mfms_teaching_bookings_v1</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Course</th>
+                  <th>Learner</th>
+                  <th>Owner</th>
+                  <th>Time</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="t in teachingBookings" :key="t.id">
+                  <td>{{ t.title || t.courseTitle || '-' }}</td>
+                  <td>{{ t.userEmail || '-' }}</td>
+                  <td>{{ t.ownerEmail || '-' }}</td>
+                  <td>{{ t.time || t.createdAt || '-' }}</td>
+                  <td>{{ t.status || 'Booked' }}</td>
+                </tr>
+                <tr v-if="teachingBookings.length===0">
+                  <td colspan="5" style="text-align:center; padding:20px; color:#999">No course bookings</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="adminTab === 'users'">
+          <div class="content-card" style="margin-bottom:20px;">
+            <div class="page-header">
+              <div class="page-title">User Accounts</div>
+              <span class="pill gray">Identity & Access</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="filters.userKeyword" placeholder="Search by email or nickname">
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Nickname</th>
+                  <th>Created At</th>
+                  <th>Violation Count</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="u in filteredUsers" :key="u.email">
+                  <td>{{ u.email }}</td>
+                  <td>{{ u.nickname || '-' }}</td>
+                  <td>{{ u.createdAt || '-' }}</td>
+                  <td>
+                    <span class="pill" :class="violationClass(u.email)">
+                      {{ violationCount(u.email) }}
+                    </span>
+                  </td>
+                </tr>
+                <tr v-if="filteredUsers.length===0">
+                  <td colspan="4" style="text-align:center; padding:20px; color:#999">No users</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="content-card">
+            <div class="page-header">
+              <div class="page-title">No-show Violations</div>
+              <span class="pill gray">Three-strike rule</span>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>UserEmail</th>
+                  <th>Count</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="v in violationList" :key="v.email">
+                  <td>{{ v.email }}</td>
+                  <td>
+                    <span class="pill" :class="v.count>=3 ? 'bad' : 'warn'">{{ v.count }}</span>
+                  </td>
+                  <td>
+                    <button class="action-btn btn-red" @click="resetViolation(v.email)">Cleared</button>
+                  </td>
+                </tr>
+                <tr v-if="violationList.length===0">
+                  <td colspan="3" style="text-align:center; padding:20px; color:#999">No violations</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div v-if="adminTab === 'policies'">
+          <div class="policy-card">
+            <div class="policy-title">User Guidelines</div>
+            <ul class="policy-list">
+              <li>Registration must use a real and valid email address, and account credentials should be stored securely.</li>
+              <li>Only one booking is allowed per time slot to avoid wasting shared resources.</li>
+              <li>Bookings should be cancelled at least 2 hours in advance.</li>
+              <li>After 3 no-shows, booking access should be suspended for 7 days.</li>
+              <li>Forum posts and comments should remain respectful, with abusive or non-compliant content prohibited.</li>
+            </ul>
+          </div>
+          <div class="policy-card">
+            <div class="policy-title">Club Registration Standards</div>
+            <ul class="policy-list">
+              <li>Club names must be unique and should avoid misleading terms such as official.</li>
+              <li>Descriptions must be truthful and images must be compliant and clear. False promotion is not allowed.</li>
+              <li>Applications should be reviewed within 24 hours of submission.</li>
+            </ul>
+          </div>
+          <div class="policy-card">
+            <div class="policy-title">Club Operations Rules</div>
+            <ul class="policy-list">
+              <li>Owners should keep their club information up to date.</li>
+              <li>Cancelled activities should be communicated to all booked users in advance.</li>
+              <li>Do not abuse announcements or maliciously mark users as no-shows.</li>
+            </ul>
+          </div>
+          <div class="policy-card">
+            <div class="policy-title">Admin Governance Rules</div>
+            <ul class="policy-list">
+              <li>Reviews should be strict, fair, and neutral.</li>
+              <li>Violations may lead to content removal, mute actions, or account suspension.</li>
+              <li>Administrators must protect user privacy and personal information.</li>
+            </ul>
+          </div>
+        </div>
+        <div v-if="adminTab === 'consult'">
+          <div class="content-card" style="margin-bottom:20px;">
+            <div class="page-header">
+              <div class="page-title">Support Conversations</div>
+              <span class="pill gray">chat_messages_v1</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="chatFilter" placeholder="Search by user or keyword">
+              <button class="btn btn-blue" style="min-width:auto;" @click="loadChatData">Refresh</button>
+            </div>
+            <div class="chat-admin-layout">
+              <div class="chat-user-list">
+                <div class="chat-user" v-for="u in filteredChatUsers" :key="u.userId" :class="{active: u.userId===selectedChatUser}" @click="selectChat(u.userId)">
+                  <div class="chat-user-title">{{ u.userLabel }}</div>
+                  <div class="chat-user-sub">{{ u.lastText }}</div>
+                  <div class="chat-user-meta">{{ u.lastTime }}</div>
+                </div>
+                <div v-if="filteredChatUsers.length===0" style="text-align:center; padding:20px; color:#999">No conversations</div>
+              </div>
+              <div class="chat-thread">
+                <div class="chat-thread-head">
+                  <div>{{ selectedChatLabel }}</div>
+                  <span class="pill" :class="selectedChatStatusClass">{{ selectedChatStatus }}</span>
+                </div>
+                <div class="chat-thread-body">
+                  <div class="chat-bubble" v-for="m in selectedChatMessages" :key="m.id" :class="m.role">
+                    <div v-if="m.text">{{ m.text }}</div>
+                    <div v-if="m.attachments && m.attachments.length" class="chat-attachments">
+                      <div v-for="a in m.attachments" :key="a.id" class="chat-attachment">
+                        <img v-if="a.type && a.type.indexOf('image/')===0" :src="a.dataUrl" :alt="a.name">
+                        <a v-else :href="a.dataUrl" :download="a.name">{{ a.name }}</a>
+                        <div v-if="a.size" class="chat-attachment-meta">{{ formatAttachmentSize(a.size) }}</div>
+                      </div>
+                    </div>
+                    <div class="chat-bubble-meta">{{ m.createdAt }}</div>
+                  </div>
+                  <div v-if="selectedChatMessages.length===0" style="text-align:center; color:#999; padding:20px;">Select a conversation on the left</div>
+                </div>
+                <div class="chat-reply">
+                  <textarea v-model.trim="chatReplyText" placeholder="Type a reply"></textarea>
+                  <div class="chat-reply-actions">
+                    <button class="btn btn-blue" style="min-width:auto;" @click="sendAdminReply">Send Reply</button>
+                    <button class="btn" style="min-width:auto;" @click="sendAutoReply">Auto Reply</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="content-card">
+            <div class="page-header">
+              <div class="page-title">Reply Templates</div>
+              <span class="pill gray">chat_templates_v1</span>
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="templateForm.title" placeholder="Template title">
+              <input type="text" v-model.trim="templateForm.keywords" placeholder="Keywords (comma-separated)">
+            </div>
+            <div class="toolbar">
+              <input type="text" v-model.trim="templateForm.reply" placeholder="Reply text">
+              <button class="btn btn-blue" style="min-width:auto;" @click="addTemplate">Add Template</button>
+            </div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Keywords</th>
+                  <th>Reply text</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="t in chatTemplates" :key="t.id">
+                  <td>{{ t.title }}</td>
+                  <td class="template-keywords">{{ (t.keywords || []).join(', ') }}</td>
+                  <td>{{ t.reply }}</td>
+                  <td>
+                    <span class="pill" :class="t.active ? 'good' : 'warn'">{{ t.active ? 'Enabled' : 'Disabled' }}</span>
+                  </td>
+                  <td class="template-row">
+                    <button class="action-btn" @click="toggleTemplate(t)">{{ t.active ? 'Disabled' : 'Enabled' }}</button>
+                    <button class="action-btn btn-red" @click="removeTemplate(t)">Delete</button>
+                  </td>
+                </tr>
+                <tr v-if="chatTemplates.length===0">
+                  <td colspan="5" style="text-align:center; padding:20px; color:#999">No templates</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data(){
+      return{
+        adminTab: 'overview',
+        registry: [],
+        members: [],
+        users: [],
+        bookings: [],
+        teachingBookings: [],
+        courses: [],
+        posts: [],
+        violations: {},
+        flaggedPostIds: [],
+        chatMessages: [],
+        chatTemplates: [],
+        chatFilter: '',
+        selectedChatUser: '',
+        chatReplyText: '',
+        templateForm: {
+          title: '',
+          keywords: '',
+          reply: ''
+        },
+        filters: {
+          clubStatus: '',
+          clubKeyword: '',
+          postKeyword: '',
+          postType: '',
+          bookingKeyword: '',
+          bookingStatus: '',
+          userKeyword: ''
+        }
+      }
+    },
+    computed:{
+      stats(){
+        const pending = this.registry.filter(c => !c.status || c.status === 'pending').length;
+        const approved = this.registry.filter(c => c.status === 'approved').length;
+        const rejected = this.registry.filter(c => c.status === 'rejected').length;
+        const noShow = this.bookings.filter(b => b.status === 'No-show' || b.status === 'No-show').length;
+        const active = this.bookings.filter(b => b.status !== 'Cancelled').length;
+        const comments = (this.posts || []).reduce((sum, p)=> sum + ((p.comments || []).length), 0);
+        return {
+          totalUsers: this.users.length,
+          pendingClubs: pending,
+          approvedClubs: approved,
+          rejectedClubs: rejected,
+          activeBookings: active,
+          noShowBookings: noShow,
+          totalPosts: this.posts.length,
+          totalComments: comments,
+          violationUsers: Object.keys(this.violations || {}).filter(k => (this.violations[k] || 0) > 0).length,
+          flaggedPosts: this.flaggedPostIds.length
+        };
+      },
+      filteredClubs(){
+        const kw = (this.filters.clubKeyword || '').toLowerCase();
+        return this.registry.filter(c => {
+          const matchStatus = !this.filters.clubStatus || (c.status || 'pending') === this.filters.clubStatus;
+          const matchKw = !kw || (String(c.name || '').toLowerCase().includes(kw) || String(c.ownerEmail || '').toLowerCase().includes(kw));
+          return matchStatus && matchKw;
+        });
+      },
+      filteredPosts(){
+        const kw = (this.filters.postKeyword || '').toLowerCase();
+        return this.posts.filter(p => {
+          const matchType = !this.filters.postType || p.type === this.filters.postType;
+          const matchKw = !kw || (String(p.title || '').toLowerCase().includes(kw) || String(p.author || '').toLowerCase().includes(kw) || String(p.club || '').toLowerCase().includes(kw));
+          return matchType && matchKw;
+        });
+      },
+      filteredBookings(){
+        const kw = (this.filters.bookingKeyword || '').toLowerCase();
+        return this.bookings.filter(b => {
+          const matchStatus = !this.filters.bookingStatus || b.status === this.filters.bookingStatus;
+          const matchKw = !kw || (String(b.clubName || '').toLowerCase().includes(kw) || String(b.userEmail || '').toLowerCase().includes(kw));
+          return matchStatus && matchKw;
+        });
+      },
+      filteredUsers(){
+        const kw = (this.filters.userKeyword || '').toLowerCase();
+        return this.users.filter(u => {
+          return !kw || (String(u.email || '').toLowerCase().includes(kw) || String(u.nickname || '').toLowerCase().includes(kw));
+        });
+      },
+      violationList(){
+        return Object.keys(this.violations || {}).map(email => ({
+          email,
+          count: this.violations[email] || 0
+        })).filter(v => v.count > 0).sort((a,b)=> b.count - a.count);
+      },
+      chatUsers(){
+        const map = {};
+        (this.chatMessages || []).forEach(m=>{
+          if(!m || !m.userId) return;
+          if(!map[m.userId]) map[m.userId] = { userId: m.userId, userLabel: m.userEmail || m.userId, lastText:'', lastTime:'', lastRole:'' };
+          map[m.userId].userLabel = m.userEmail || m.userId;
+          if(!map[m.userId].lastTime || new Date(m.createdAt) >= new Date(map[m.userId].lastTime)){
+            const hasAttachments = m.attachments && m.attachments.length;
+            map[m.userId].lastText = m.text || (hasAttachments ? '[Attachment]' : '');
+            map[m.userId].lastTime = m.createdAt || '';
+            map[m.userId].lastRole = m.role || '';
+          }
+        });
+        return Object.values(map).sort((a,b)=> String(b.lastTime || '').localeCompare(String(a.lastTime || '')));
+      },
+      filteredChatUsers(){
+        const kw = (this.chatFilter || '').toLowerCase();
+        return this.chatUsers.filter(u=>{
+          if(!kw) return true;
+          return String(u.userLabel || '').toLowerCase().includes(kw) || String(u.lastText || '').toLowerCase().includes(kw);
+        });
+      },
+      selectedChatMessages(){
+        const id = this.selectedChatUser;
+        if(!id) return [];
+        return (this.chatMessages || []).filter(m=> m.userId === id);
+      },
+      selectedChatLabel(){
+        const u = this.chatUsers.find(x => x.userId === this.selectedChatUser);
+        return u ? u.userLabel : 'None selected';
+      },
+      selectedChatStatus(){
+        const list = this.selectedChatMessages;
+        if(!list.length) return 'Pending';
+        const last = list[list.length - 1];
+        return last && (last.role === 'admin' || last.role === 'bot') ? 'Replied' : 'Awaiting Reply';
+      },
+      selectedChatStatusClass(){
+        return this.selectedChatStatus === 'Replied' ? 'good' : 'warn';
+      }
+    },
+    mounted(){
+      this.refreshAll();
+      this.loadChatData();
+    },
+    methods:{
+      refreshAll(){
+        this.registry = this.safeParse('club_registry_v1', []);
+        this.members = this.safeParse('club_members_v1', []);
+        this.users = this.safeParse('club_users', []);
+        this.bookings = this.safeParse('specialty_bookings_v1', []);
+        this.teachingBookings = this.safeParse('mfms_teaching_bookings_v1', []);
+        this.courses = this.safeParse('mfms_courses_v1', []);
+        this.posts = this.safeParse('spjs_forum_posts_v1', []);
+        this.violations = this.safeParse('user_violations_v1', {});
+        this.flaggedPostIds = this.safeParse('admin_flagged_posts_v1', []);
+        this.loadChatData();
+      },
+      safeParse(key, fallback){
+        try{
+          const raw = localStorage.getItem(key);
+          if(raw === null || raw === undefined || raw === '') return fallback;
+          return JSON.parse(raw);
+        }catch(e){
+          return fallback;
+        }
+      },
+      persist(key, value){
+        localStorage.setItem(key, JSON.stringify(value));
+      },
+      statusClass(status){
+        if(status === 'approved') return 'good';
+        if(status === 'rejected') return 'bad';
+        return 'warn';
+      },
+      formatStatus(status){
+        if(status === 'approved') return 'Approved';
+        if(status === 'rejected') return 'Rejected';
+        return 'Pending Review';
+      },
+      bookingStatusClass(status){
+        if(status === 'Checked In') return 'good';
+        if(status === 'No-show') return 'bad';
+        if(status === 'Cancelled') return 'warn';
+        return 'pill';
+      },
+      formatBookingStatus(status){
+        if(status === 'Checked In') return 'Checked In';
+        if(status === 'No-show') return 'No-show';
+        if(status === 'Cancelled') return 'Cancelled';
+        if(status === 'Booked') return 'Booked';
+        return status || '-';
+      },
+      formatAttachmentSize(size){
+        const n = Number(size || 0);
+        if(n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+        if(n >= 1024) return Math.round(n / 1024) + ' KB';
+        return n + ' B';
+      },
+      approveClub(c){
+        c.status = 'approved';
+        this.persist('club_registry_v1', this.registry);
+        this.syncToSpecialty();
+      },
+      rejectClub(c){
+        c.status = 'rejected';
+        this.persist('club_registry_v1', this.registry);
+        this.syncToSpecialty();
+      },
+      removeClub(c){
+        this.registry = this.registry.filter(x => x.id !== c.id);
+        this.persist('club_registry_v1', this.registry);
+        this.syncToSpecialty();
+      },
+      syncToSpecialty(){
+        const list = this.registry
+          .filter(c => !c.status || c.status === 'approved')
+          .map(c=>({
+            slug: c.slug,
+            name: c.name,
+            mode: c.mode,
+            location: c.location,
+            fee: c.fee,
+            slots: c.slots
+          }));
+        this.persist('specialty_clubs_v1', list);
+      },
+      removePost(p){
+        this.posts = this.posts.filter(x => x.id !== p.id);
+        this.persist('spjs_forum_posts_v1', this.posts);
+      },
+      flagPost(p){
+        const set = new Set(this.flaggedPostIds || []);
+        set.add(p.id);
+        this.flaggedPostIds = Array.from(set);
+        this.persist('admin_flagged_posts_v1', this.flaggedPostIds);
+      },
+      markBooking(b, status){
+        b.status = status;
+        const idx = this.bookings.findIndex(x => x.id === b.id);
+        if(idx > -1){
+          this.bookings.splice(idx, 1, b);
+          this.persist('specialty_bookings_v1', this.bookings);
+        }
+        if(status === 'No-show'){
+          this.recordNoShow(b.userEmail);
+        }
+      },
+      recordNoShow(email){
+        const next = { ...(this.violations || {}) };
+        const key = String(email || '').trim();
+        if(!key) return;
+        if(!next[key]) next[key] = 0;
+        next[key] += 1;
+        this.violations = next;
+        this.persist('user_violations_v1', next);
+      },
+      violationCount(email){
+        const key = String(email || '').trim();
+        return (this.violations && this.violations[key]) ? this.violations[key] : 0;
+      },
+      violationClass(email){
+        const count = this.violationCount(email);
+        if(count >= 3) return 'bad';
+        if(count > 0) return 'warn';
+        return 'gray';
+      },
+      resetViolation(email){
+        const next = { ...(this.violations || {}) };
+        if(next[email] !== undefined){
+          delete next[email];
+        }
+        this.violations = next;
+        this.persist('user_violations_v1', next);
+      },
+      loadChatData(){
+        this.chatMessages = this.safeParse('chat_messages_v1', []);
+        let templates = this.safeParse('chat_templates_v1', []);
+        if(!Array.isArray(templates) || templates.length === 0){
+          templates = this.defaultTemplates();
+          this.persist('chat_templates_v1', templates);
+        }
+        this.chatTemplates = templates;
+        if(!this.selectedChatUser && this.chatUsers.length){
+          this.selectedChatUser = this.chatUsers[0].userId;
+        }
+      },
+      defaultTemplates(){
+        return [
+          { id: 't1', title:'Course Advice', keywords:['course','recommend','suitable','beginner'], reply:'If this is your first time, start with a beginner course and check the time and available seats. Tell me your interest area if you want a tailored suggestion.', active:true },
+          { id: 't2', title:'Booking Process', keywords:['book','booking','sign up','how to book'], reply:'Open the course details page and click Book Now. After logging in, the booking will appear in the course bookings list in the user dashboard.', active:true },
+          { id: 't3', title:'Time and Location', keywords:['time','location','schedule','class'], reply:'Each course includes its own schedule and location details. Open the course card to view the full arrangement.', active:true }
+        ];
+      },
+      selectChat(userId){
+        this.selectedChatUser = userId;
+        this.chatReplyText = '';
+      },
+      sendAdminReply(){
+        const text = String(this.chatReplyText || '').trim();
+        if(!text || !this.selectedChatUser) return;
+        const msg = {
+          id: String(Date.now()) + Math.random().toString(36).slice(2,6),
+          role: 'admin',
+          text,
+          userId: this.selectedChatUser,
+          userEmail: '',
+          createdAt: new Date().toLocaleString()
+        };
+        this.chatMessages.push(msg);
+        this.persist('chat_messages_v1', this.chatMessages);
+        this.chatReplyText = '';
+      },
+      sendAutoReply(){
+        if(!this.selectedChatUser) return;
+        const list = this.selectedChatMessages;
+        const lastUser = list.slice().reverse().find(m => m.role === 'user');
+        if(!lastUser) return;
+        const reply = this.matchTemplate(lastUser.text || '');
+        const msg = {
+          id: String(Date.now()) + Math.random().toString(36).slice(2,6),
+          role: 'bot',
+          text: reply,
+          userId: this.selectedChatUser,
+          userEmail: '',
+          createdAt: new Date().toLocaleString()
+        };
+        this.chatMessages.push(msg);
+        this.persist('chat_messages_v1', this.chatMessages);
+      },
+      matchTemplate(text){
+        const t = String(text || '').toLowerCase();
+        for(const tpl of this.chatTemplates){
+          if(tpl && tpl.active === false) continue;
+          const keys = Array.isArray(tpl.keywords) ? tpl.keywords : String(tpl.keywords || '').split(/[,，]/);
+          for(const key of keys){
+            const k = String(key || '').trim().toLowerCase();
+            if(k && t.includes(k)) return tpl.reply || '';
+          }
+        }
+        return 'We have received your question and will reply as soon as possible.';
+      },
+      addTemplate(){
+        const title = String(this.templateForm.title || '').trim();
+        const keywords = String(this.templateForm.keywords || '').split(/[,，]/).map(x=>x.trim()).filter(Boolean);
+        const reply = String(this.templateForm.reply || '').trim();
+        if(!title || !reply) return;
+        const next = {
+          id: String(Date.now()),
+          title,
+          keywords,
+          reply,
+          active: true
+        };
+        this.chatTemplates.unshift(next);
+        this.persist('chat_templates_v1', this.chatTemplates);
+        this.templateForm = { title:'', keywords:'', reply:'' };
+      },
+      toggleTemplate(t){
+        t.active = !t.active;
+        this.persist('chat_templates_v1', this.chatTemplates);
+      },
+      removeTemplate(t){
+        this.chatTemplates = this.chatTemplates.filter(x => x.id !== t.id);
+        this.persist('chat_templates_v1', this.chatTemplates);
+      }
+    }
+  })
+</script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Support Center - Club Enrollment Portal</title>
+
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-support.js"></script>
+  <link rel="stylesheet" href="../css/tzgg.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+
+</head>
+
+<body>
+<div id="app" v-cloak>
+
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a class="active" href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="consult-hero">
+    <div class="container">
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Support Center</p>
+          <h1>Browse FAQs, submit a question online, and track your reply history</h1>
+          <p class="hero-sub">
+            This page brings together the platform FAQ, support hours, and the online chat entry point. You can search common questions first, or start a support conversation directly on the right without changing the original page flow.
+          </p>
+          <div class="hero-actions">
+            <a class="hero-btn primary" href="#consult-main">Open Support Area</a>
+            <a class="hero-btn secondary" href="join.html">Go to Login</a>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <strong>{{ faqs.length }}</strong>
+            <span>FAQ Items</span>
+          </article>
+          <article class="stat-card">
+            <strong>{{ filteredFaq.length }}</strong>
+            <span>Filtered Results</span>
+          </article>
+          <article class="stat-card">
+            <strong>{{ filteredConsultMessages.length }}</strong>
+            <span>My Conversations</span>
+          </article>
+          <article class="stat-card">
+            <strong>24-48h</strong>
+            <span>Average Reply Time</span>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-head">
+    <div class="container">
+      <div class="page-card">
+        <div class="page-title-row">
+          <div>
+            <h2 class="page-title">Support Entry and Service Information</h2>
+            <p class="page-sub">Search the FAQ first, then review common questions or start a live support conversation below.</p>
+          </div>
+          <div class="count-badge">FAQ: {{ filteredFaq.length }}</div>
+        </div>
+
+        <div class="search-box">
+          <label class="keyword-input-wrap" for="faq-top-search">
+            <span class="keyword-search-icon" aria-hidden="true"></span>
+            <input id="faq-top-search" type="text" placeholder="Search FAQ keywords" v-model.trim="faqQ">
+          </label>
+          <button class="toolbar-btn primary" @click="noop">Search FAQ</button>
+        </div>
+
+        <div class="service-panel">
+          <div class="service-title">Service Information</div>
+          <div class="service-kv">
+            <div>Support Hours: <span>Monday to Friday 09:00 - 18:00</span></div>
+            <div>Email: <span>support@club-portal.demo</span></div>
+            <div>Phone: <span>+44 0000 000000</span></div>
+            <div>Reply Time: <span>24-48 hours</span></div>
+            <div class="service-note">You can browse the FAQ on this page. To submit a question, use the chat window below. History can be viewed in "User Login → Personal Center → My Support".</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main content -->
+      <div class="consult-layout" id="consult-main">
+        <div class="card faq-card">
+          <div class="card-head">
+            <h3>Frequently Asked Questions</h3>
+            <span class="pill">Click a question to expand or collapse it</span>
+          </div>
+          <div class="card-body">
+            <div class="faq-search">
+              <select v-model="faqType">
+                <option value="">All Types</option>
+                <option value="Booking">Booking</option>
+                <option value="Capacity">Capacity</option>
+                <option value="Payment">Payment</option>
+                <option value="Club Onboarding">Club Onboarding</option>
+                <option value="Messaging">Messaging</option>
+              </select>
+              <input type="text" v-model.trim="faqQ" placeholder="Filter FAQ by keyword">
+              <button class="toolbar-btn primary" @click="noop">Search</button>
+            </div>
+
+            <div class="faq-scroll">
+              <div class="faq-item" v-for="f in filteredFaq" :key="f.id">
+                <div class="faq-q" @click="toggleFaq(f.id)">
+                  <div>{{ f.q }}</div>
+                  <span class="pill">{{ f.type }}</span>
+                </div>
+                <div class="faq-a" v-if="openFaqId === f.id">{{ f.a }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card consult-card">
+          <div class="card-head">
+            <h3>Online Support</h3>
+            <span class="pill">{{ isAuthed ? 'Logged in' : 'Please log in first' }}</span>
+          </div>
+          <div class="card-body">
+            <div class="consult-chat">
+              <div class="consult-chat-head">
+                <div class="consult-chat-title">Support Conversation</div>
+                <div class="consult-chat-sub">{{ sessionEmail || 'Guest User' }}</div>
+              </div>
+              <div class="consult-chat-body" ref="consultBody">
+                <div v-if="filteredConsultMessages.length === 0" class="consult-chat-empty">No support history yet</div>
+                <div v-for="m in filteredConsultMessages" :key="m.id" class="consult-bubble" :class="m.role">
+                  <div v-if="m.text">{{ m.text }}</div>
+                  <div v-if="m.attachments && m.attachments.length" class="consult-attachments">
+                    <div v-for="a in m.attachments" :key="a.id" class="consult-attachment">
+                      <img v-if="a.type && a.type.indexOf('image/')===0" :src="a.dataUrl" :alt="a.name">
+                      <a v-else :href="a.dataUrl" :download="a.name">{{ a.name }}</a>
+                      <div v-if="a.size" class="consult-attachment-meta">{{ formatAttachmentSize(a.size) }}</div>
+                    </div>
+                  </div>
+                  <div class="consult-bubble-meta">{{ m.createdAt }}</div>
+                </div>
+              </div>
+              <div class="consult-chat-input">
+                <textarea v-model.trim="consultInput" :disabled="!isAuthed" placeholder="Type your question..."></textarea>
+                <div class="consult-chat-actions">
+                  <label class="consult-upload-btn">
+                    <input type="file" multiple :disabled="!isAuthed" @change="handleConsultFiles">
+                    Upload Attachments
+                  </label>
+                  <button class="btn primary" :disabled="!isAuthed || (!consultInput && consultAttachments.length===0)" @click="sendConsult">Send</button>
+                </div>
+              </div>
+              <div v-if="consultAttachments.length" class="consult-attachments-preview">
+                <div class="consult-attachment-chip" v-for="a in consultAttachments" :key="a.id">
+                  <span>{{ a.name }}</span>
+                  <button type="button" @click="removeConsultAttachment(a.id)">×</button>
+                </div>
+              </div>
+              <div v-if="consultUploadError" class="consult-upload-error">{{ consultUploadError }}</div>
+              <div v-if="!isAuthed" class="consult-chat-hint">
+                Please complete login from "User Login" before starting a support conversation.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  new Vue({
+    el: '#app',
+    data(){
+      return{
+        sessionEmail: '',
+        sessionUserId: '',
+        sessionNickname: '',
+        faqType: '',
+        faqQ: '',
+        openFaqId: null,
+        consultInput: '',
+        consultMessages: [],
+        consultAttachments: [],
+        consultUploadError: '',
+        faqs:[
+          {
+            id: 1, type:'Booking',
+            q:'How do I book a club training session or course?',
+            a:'Open the "Club Booking" page, choose a club and an available time slot, then confirm to complete the booking.'
+          },
+          {
+            id: 2, type:'Capacity',
+            q:'What happens if all seats are full? Is there a waitlist?',
+            a:'When the remaining seats reach 0, the slot can no longer be booked. You can watch for later updates, and contact the club through the forum or support area if you need waitlist help.'
+          },
+          {
+            id: 3, type:'Payment',
+            q:'Does the platform support payments?',
+            a:'If a club has set a fee, the system will display the fee information and provide a simulated payment flow for this front-end demo.'
+          },
+          {
+            id: 4, type:'Messaging',
+            q:'How can users contact a club?',
+            a:'You can submit a question on the support page, or communicate through the forum and messaging features.'
+          },
+          {
+            id: 5, type:'Club Onboarding',
+            q:'How can a club join the platform?',
+            a:'Clubs can submit onboarding information on the club registration page, including the club name, summary, address or online link, available slots, capacity, and more.'
+          },
+          {
+            id: 6, type:'Booking',
+            q:'Where can I view my booking after it succeeds?',
+            a:'You can review your booking and registration records in the personal center. In this front-end demo, the data is stored with localStorage.'
+          },
+          {
+            id: 7, type:'Capacity',
+            q:'How do I check the remaining seats?',
+            a:'The time-slot cards on the "Club Booking" page show the remaining seats. Booking is disabled when the count is 0.'
+          },
+          {
+            id: 8, type:'Payment',
+            q:'What if payment fails or is interrupted?',
+            a:'This is a demo payment flow, so you can click the payment button again to complete the status change.'
+          },
+          {
+            id: 9, type:'Booking',
+            q:'Can I cancel a booking? Are there any rules?',
+            a:'Yes. You can cancel from the booking list in your personal center. Some cases require cancellation at least 2 hours in advance.'
+          },
+          {
+            id: 10, type:'Messaging',
+            q:'How long will it take to receive a reply after I ask a question?',
+            a:'Replies usually arrive within 24-48 hours. For urgent issues, please contact us by phone or email.'
+          },
+          {
+            id: 11, type:'Club Onboarding',
+            q:'How long does onboarding review take after submission?',
+            a:'Reviews usually finish within 1-3 working days. Approved clubs will then appear on the platform.'
+          },
+          {
+            id: 12, type:'Messaging',
+            q:'Can I upload images or attachments in support?',
+            a:'This version supports text support by default, with room for future image and attachment support.'
+          },
+          {
+            id: 13, type:'Booking',
+            q:'What should I do if course times conflict?',
+            a:'Check the schedule before booking. If needed, cancel the existing booking first and then choose a new slot.'
+          },
+          {
+            id: 14, type:'Payment',
+            q:'Are refunds supported?',
+            a:'If fees are involved, the club\'s actual rules apply. The platform can help guide you through the support process.'
+          },
+          {
+            id: 15, type:'Club Onboarding',
+            q:'What information is required for onboarding?',
+            a:'Prepare the club name, summary, activity schedule, address or online link, capacity, and fee details.'
+          }
+        ]
+      }
+    },
+    computed:{
+      isAuthed(){
+        return !!this.sessionEmail;
+      },
+      consultUserId(){
+        return this.sessionEmail ? ('user:' + this.sessionEmail) : '';
+      },
+      filteredConsultMessages(){
+        const email = this.sessionEmail;
+        const uid = this.consultUserId;
+        if(!email) return [];
+        return this.consultMessages.filter(m => (m.userEmail === email || m.userId === uid));
+      },
+      filteredFaq(){
+        const q = (this.faqQ || '').toLowerCase();
+        return this.faqs.filter(f=>{
+          const matchType = !this.faqType || f.type === this.faqType;
+          const matchQ = !q || (f.q + ' ' + f.a).toLowerCase().includes(q);
+          return matchType && matchQ;
+        });
+      }
+    },
+    methods:{
+      noop(){},
+      getSupportService(){
+        return window.clubSupportSupabase || null;
+      },
+      hasSupabaseSupportConfigured(){
+        const service = this.getSupportService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      loadSession(){
+        const tryLoad = (store) => {
+          try{
+            const raw = store.getItem('user_session_v1');
+            return raw ? JSON.parse(raw) : null;
+          }catch(e){
+            return null;
+          }
+        };
+        const session = tryLoad(localStorage) || tryLoad(sessionStorage);
+        this.sessionEmail = session && session.email ? String(session.email).trim() : '';
+        this.sessionUserId = session && session.userId ? String(session.userId).trim() : '';
+        this.sessionNickname = session && session.nickname ? String(session.nickname).trim() : '';
+      },
+      loadLocalConsultMessages(){
+        try{
+          const raw = localStorage.getItem('chat_messages_v1');
+          const list = raw ? JSON.parse(raw) : [];
+          return Array.isArray(list) ? list : [];
+        }catch(e){
+          return [];
+        }
+      },
+      async loadConsultMessages(){
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          try{
+            this.consultMessages = await service.fetchMySupportMessages(this.sessionUserId, this.sessionEmail);
+            return;
+          }catch(e){}
+        }
+        this.consultMessages = this.loadLocalConsultMessages();
+      },
+      saveConsultMessages(){
+        localStorage.setItem('chat_messages_v1', JSON.stringify(this.consultMessages));
+      },
+      handleConsultFiles(e){
+        this.consultUploadError = '';
+        const files = Array.from((e && e.target && e.target.files) ? e.target.files : []);
+        if(!files.length) return;
+        const maxSize = 5 * 1024 * 1024;
+        const tasks = [];
+        files.forEach(file=>{
+          if(file.size > maxSize){
+            this.consultUploadError = 'Each file must be 5MB or smaller.';
+            return;
+          }
+          tasks.push(this.readFileAsDataUrl(file).then(dataUrl=>{
+            this.consultAttachments.push({
+              id: String(Date.now()) + Math.random().toString(36).slice(2,6),
+              name: file.name,
+              type: file.type || '',
+              size: file.size,
+              dataUrl
+            });
+          }));
+        });
+        Promise.all(tasks).finally(()=>{
+          if(e && e.target) e.target.value = '';
+        });
+      },
+      readFileAsDataUrl(file){
+        return new Promise((resolve, reject)=>{
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => reject(new Error('read error'));
+          reader.readAsDataURL(file);
+        });
+      },
+      removeConsultAttachment(id){
+        this.consultAttachments = this.consultAttachments.filter(a => a.id !== id);
+      },
+      async sendConsult(){
+        if(!this.isAuthed) return;
+        const text = String(this.consultInput || '').trim();
+        if(!text && this.consultAttachments.length === 0) return;
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          try{
+            const created = await service.sendSupportMessage({
+              text: text,
+              attachments: this.consultAttachments.slice(),
+              category: 'General'
+            }, this.sessionUserId, this.sessionEmail, this.sessionNickname || this.sessionEmail);
+            this.consultMessages = (this.consultMessages || []).concat(created);
+            this.consultInput = '';
+            this.consultAttachments = [];
+            this.$nextTick(()=> this.scrollConsultBottom());
+            return;
+          }catch(e){
+            alert(service.mapSupportError(e));
+            return;
+          }
+        }
+        const msg = {
+          id: String(Date.now()) + Math.random().toString(36).slice(2,6),
+          role: 'user',
+          text,
+          userId: this.consultUserId,
+          userEmail: this.sessionEmail,
+          createdAt: new Date().toLocaleString(),
+          createdTs: Date.now(),
+          attachments: this.consultAttachments.slice()
+        };
+        this.consultMessages.push(msg);
+        this.saveConsultMessages();
+        this.consultInput = '';
+        this.consultAttachments = [];
+        this.$nextTick(()=> this.scrollConsultBottom());
+      },
+      formatAttachmentSize(size){
+        const n = Number(size || 0);
+        if(n >= 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB';
+        if(n >= 1024) return Math.round(n / 1024) + ' KB';
+        return n + ' B';
+      },
+      scrollConsultBottom(){
+        const el = this.$refs.consultBody;
+        if(el) el.scrollTop = el.scrollHeight;
+      },
+      toggleFaq(id){
+        this.openFaqId = (this.openFaqId === id) ? null : id;
+      }
+    },
+    async mounted(){
+      this.loadSession();
+      await this.loadConsultMessages();
+      this.$nextTick(()=> this.scrollConsultBottom());
+      window.addEventListener('storage', (e)=>{
+        if(e && e.key === 'chat_messages_v1'){
+          this.loadConsultMessages();
+          this.$nextTick(()=> this.scrollConsultBottom());
+        }
+      });
+    }
+  })
+</script>
+
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

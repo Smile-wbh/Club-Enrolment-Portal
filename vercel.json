@@ -1,0 +1,55 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/html/index1.html",
+      "permanent": false
+    },
+    {
+      "source": "/login",
+      "destination": "/html/join.html",
+      "permanent": false
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/html/join.html?tab=home",
+      "permanent": false
+    },
+    {
+      "source": "/club-dashboard",
+      "destination": "/html/club_management_dashboard.html",
+      "permanent": false
+    },
+    {
+      "source": "/clubs",
+      "destination": "/html/msjs.html",
+      "permanent": false
+    },
+    {
+      "source": "/booking",
+      "destination": "/html/specialty.html",
+      "permanent": false
+    },
+    {
+      "source": "/courses",
+      "destination": "/html/mfms.html",
+      "permanent": false
+    },
+    {
+      "source": "/forum",
+      "destination": "/html/spjs.html",
+      "permanent": false
+    },
+    {
+      "source": "/support",
+      "destination": "/html/tzgg.html",
+      "permanent": false
+    },
+    {
+      "source": "/settings",
+      "destination": "/html/settings.html",
+      "permanent": false
+    }
+  ]
+}

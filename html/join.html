@@ -1,0 +1,3507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Management System</title>
+
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-storage.js?v=20260401-2"></script>
+  <script src="../js/supabase-bookings.js"></script>
+  <script src="../js/supabase-courses.js"></script>
+  <script src="../js/supabase-forum.js"></script>
+  <script src="../js/supabase-support.js"></script>
+  <link rel="stylesheet" href="../css/join.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+  <style>
+    
+    body { margin: 0; }
+    [v-cloak] { display: none; }
+    
+    
+    .modal-mask {
+      position: fixed; z-index: 9998; top: 0; left: 0; width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.5); display: flex; justify-content: center; align-items: center;
+    }
+    .modal {
+      width: 500px; background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      overflow: hidden; animation: fadeIn 0.3s ease;
+    }
+    .modal-head {
+      padding: 15px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; background: #f9f9f9;
+    }
+    .modal-head h3 { margin: 0; font-size: 18px; color: #333; }
+    .close-x { cursor: pointer; color: #999; font-weight: bold; }
+    .modal-body { padding: 20px; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+    .email-verify-field { display: flex; gap: 10px; }
+    .email-verify-field .auth-input { flex: 1; }
+    .forgot-modal { width: 640px; }
+    .forgot-desc { color: #555; line-height: 1.6; margin-bottom: 18px; }
+    .captcha-box { margin: 18px 0; padding: 16px; border: 1px solid #e6e6e6; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; background: #fafafa; }
+    .captcha-row { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+    .captcha-brand { display: flex; align-items: center; gap: 10px; color: #777; }
+    .captcha-icon { font-size: 22px; color: #4a90e2; }
+    .captcha-text { font-size: 12px; line-height: 1.2; }
+    .captcha-sub { font-size: 10px; color: #aaa; }
+    .error-text { color: #e53935; margin-top: 12px; }
+    .system-picker-modal { width: 520px; }
+    .system-picker-desc { color: #4b5563; line-height: 1.7; margin-bottom: 16px; }
+    .system-picker-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+    .system-picker-actions .btn { min-width: 180px; }
+  </style>
+
+</head>
+
+<body>
+<div id="app" v-cloak>
+
+  
+  <template v-if="!isAuthed">
+    <header class="guest-portal-header">
+      <div class="container">
+        <a class="guest-brand" href="index1.html">
+          <span class="guest-brand-mark">
+            <img src="../zp/gywm.webp" alt="Platform logo" />
+          </span>
+          <span class="guest-brand-text">
+            <strong>Club Enrollment Portal</strong>
+            <em>Booking platform for campus and community clubs</em>
+          </span>
+        </a>
+
+        <nav class="guest-top-nav" aria-label="Primary navigation">
+          <a href="index1.html">Home</a>
+          <a href="msjs.html">Club Preview</a>
+          <a href="specialty.html">Club Booking</a>
+          <a href="mfms.html">Club Courses</a>
+          <a href="spjs.html">Club Forum</a>
+          <a href="tzgg.html">Support Center</a>
+          <a class="active" href="join.html">User Login</a>
+        </nav>
+
+        <div class="guest-top-actions">
+          <a class="guest-top-btn accent" href="tzgg.html">Get Help</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="guest-hero-section">
+      <div class="container">
+        <div class="guest-hero-panel">
+          <div class="guest-hero-media" aria-hidden="true">
+            <img src="../zp/hb2.webp" alt="" />
+          </div>
+
+          <div class="guest-hero-content">
+            <div class="guest-hero-copy">
+              <p class="guest-eyebrow">One account for clubs, bookings, and updates</p>
+              <h1>{{ authView === 'login' ? 'Welcome Back to Your Club Dashboard' : 'Create Your Club Enrollment Account' }}</h1>
+              <p class="guest-hero-text">
+                {{ authView === 'login'
+                  ? 'Sign in to manage bookings, review upcoming sessions, and keep track of your club activity in one place.'
+                  : 'Create an account to join clubs, unlock booking tools, and receive the latest updates from your favorite activities.' }}
+              </p>
+
+              <div class="guest-hero-actions">
+                <a class="guest-hero-btn primary" href="msjs.html">Browse Clubs</a>
+                <a class="guest-hero-btn warm" href="specialty.html">View Booking Slots</a>
+                <a class="guest-hero-btn success" href="spjs.html">Explore the Forum</a>
+              </div>
+
+              <div class="guest-feature-list" aria-label="Platform highlights">
+                <span>Booking history at a glance</span>
+                <span>Club updates and event reminders</span>
+                <span>Quick access to courses and support</span>
+              </div>
+            </div>
+
+            <div class="auth-box card guest-auth-box">
+              <div class="auth-head">
+                <div class="auth-title">{{ authView === 'login' ? 'Account Login' : 'Create an Account' }}</div>
+              </div>
+
+              <div class="card-body">
+                <div v-if="authView === 'login'">
+                  <div class="field">
+                    <input v-model.trim="login.email" class="auth-input" placeholder="Email address">
+                  </div>
+                  <div class="field">
+                    <input type="password" v-model.trim="login.password" class="auth-input" placeholder="Enter password">
+                  </div>
+
+                  <div class="auth-row">
+                    <label class="auth-check">
+                      <input type="checkbox" v-model="remember">
+                      <span>Keep me signed in for 30 days</span>
+                    </label>
+                    <div class="auth-links">
+                      <a href="#" class="auth-link" @click.prevent="forgotPassword">Forgot password</a>
+                      <a href="#" class="auth-link" @click.prevent="openSignup">Sign up</a>
+                    </div>
+                  </div>
+
+                  <button class="btn primary auth-btn" @click="doLogin">Log In</button>
+
+                  <div class="hint" v-if="loginStatus">{{ loginStatus }}</div>
+                </div>
+
+                <div v-else>
+                  <div class="field">
+                    <input v-model.trim="signup.nickname" class="auth-input" placeholder="Nickname">
+                  </div>
+                  <div class="field">
+                    <input v-model.trim="signup.email" class="auth-input" placeholder="Email">
+                  </div>
+                  <div class="field email-verify-field">
+                    <input v-model.trim="signup.emailCodeInput" class="auth-input" placeholder="Email verification code">
+                    <button class="btn ghost mini-btn" @click="sendSignupCode">Send code</button>
+                  </div>
+                  <div class="field">
+                    <input type="password" v-model.trim="signup.password" class="auth-input" placeholder="Password (at least 6 characters)">
+                  </div>
+                  <div class="field">
+                    <input type="password" v-model.trim="signup.password2" class="auth-input" placeholder="Confirm password">
+                  </div>
+                  <div class="auth-row signup-system-row">
+                    <label class="auth-check">
+                      <input type="checkbox" v-model="signup.withClubManagement">
+                      <span>Enable My Club Dashboard</span>
+                    </label>
+                  </div>
+
+                  <button class="btn success auth-btn" @click="doSignup">Sign Up</button>
+                  <button class="btn ghost auth-btn ghost-btn" @click="resetSignup">Reset</button>
+
+                  <div class="auth-row auth-row-end">
+                    <div class="auth-links">
+                      <a href="#" class="auth-link" @click.prevent="openLogin">Back to login</a>
+                    </div>
+                  </div>
+
+                  <div class="hint" v-if="signupStatus">{{ signupStatus }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="guest-search-hub">
+      <div class="container">
+        <div class="guest-notice-strip">
+          <div class="guest-notice-frame">
+            <span class="guest-notice-label">Account Tips</span>
+            <div class="guest-notice-copy">
+              <p>Sign in first to access your dashboard, saved bookings, and personal records.</p>
+              <p>After logging in, the page will take you straight to your personal dashboard automatically.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="modal-mask" v-if="showForgotModal" @click.self="closeForgotModal">
+      <div class="modal forgot-modal">
+        <div class="modal-head">
+          <h3>Reset Password</h3>
+          <div class="close-x" @click="closeForgotModal">✕</div>
+        </div>
+        <div class="modal-body">
+          <div class="forgot-desc">Enter your email address below to request a new password. A message with a verification link will be sent to that address.</div>
+          <div class="field">
+            <label>Email</label>
+            <input v-model.trim="forgotForm.email" class="auth-input" placeholder="user@example.com">
+          </div>
+          <div class="captcha-box">
+            <label class="captcha-row">
+              <input type="checkbox" v-model="forgotForm.captcha">
+              <span>Complete the human verification</span>
+            </label>
+            <div class="captcha-brand">
+              <div class="captcha-icon">⟳</div>
+              <div class="captcha-text">
+                <div>reCAPTCHA</div>
+                <div class="captcha-sub">Privacy - Terms of Use</div>
+              </div>
+            </div>
+          </div>
+          <button class="btn primary auth-btn" @click="submitForgot">Reset Password</button>
+          <div class="hint error-text" v-if="forgotStatus">{{ forgotStatus }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" v-if="showRecoveryModal" @click.self="closeRecoveryModal">
+      <div class="modal system-picker-modal">
+        <div class="modal-head">
+          <h3>Set a New Password</h3>
+          <div class="close-x" @click="closeRecoveryModal">✕</div>
+        </div>
+        <div class="modal-body">
+          <div class="system-picker-desc">Create a new password for your account. After saving, you can continue using the portal with the updated password.</div>
+          <div class="field">
+            <input type="password" v-model.trim="recoveryForm.password" class="auth-input" placeholder="New password (at least 6 characters)">
+          </div>
+          <div class="field">
+            <input type="password" v-model.trim="recoveryForm.password2" class="auth-input" placeholder="Confirm new password">
+          </div>
+          <div class="modal-actions">
+            <button class="btn primary auth-btn" @click="submitRecoveryPassword">Save Password</button>
+            <button class="btn ghost auth-btn" @click="closeRecoveryModal">Cancel</button>
+          </div>
+          <div class="hint" v-if="recoveryStatus">{{ recoveryStatus }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-mask" v-if="showSystemPicker" @click.self="closeSystemPicker">
+      <div class="modal system-picker-modal">
+        <div class="modal-head">
+          <h3>Choose a dashboard</h3>
+          <div class="close-x" @click="closeSystemPicker">✕</div>
+        </div>
+        <div class="modal-body">
+          <div class="system-picker-desc">This account has access to both the User Dashboard and My Club Dashboard. Choose which one to enter.</div>
+          <div class="system-picker-actions">
+            <button class="btn primary" @click="enterSelectedSystem('user')">Open User Dashboard</button>
+            <button class="btn success" @click="enterSelectedSystem('club')">Open My Club Dashboard</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <div class="container footer-inner">
+        <div class="footer-links">
+          <a href="index1.html">Home</a>
+          <a href="msjs.html">Club Preview</a>
+          <a href="specialty.html">Club Booking</a>
+          <a href="tzgg.html">Support Center</a>
+        </div>
+        <p>Copyright © beihong wang 2026</p>
+      </div>
+    </div>
+  </template>
+
+
+  
+  <template v-else>
+    <header class="user-portal-header">
+      <div class="container">
+        <a class="user-brand" href="index1.html">
+          <span class="user-brand-mark">
+            <img src="../zp/gywm.webp" alt="Platform logo" />
+          </span>
+          <span class="user-brand-text">
+            <strong>Club Enrollment Portal</strong>
+            <em>Booking platform for campus and community clubs</em>
+          </span>
+        </a>
+
+        <nav class="user-portal-nav" aria-label="User dashboard navigation">
+          <a href="index1.html">Home</a>
+          <a href="msjs.html">Club Preview</a>
+          <a href="specialty.html">Club Booking</a>
+          <a href="mfms.html">Club Courses</a>
+          <a href="spjs.html">Club Forum</a>
+          <a href="tzgg.html">Support Center</a>
+        </nav>
+
+        <div class="user-top-actions">
+          <div class="header-user-wrap" ref="headerProfileWrap">
+            <button class="header-user-identity" type="button" @click.stop="toggleHeaderProfileMenu">
+              <img :src="profile.avatar || '../zp/hb1.webp'" class="header-user-avatar" onerror="this.src='https://via.placeholder.com/32'">
+              <span class="header-user-meta">
+                <span class="header-user-name">{{ profile.nickname || (sessionEmail ? sessionEmail.split('@')[0] : 'User') }}</span>
+                <span class="header-user-sub">{{ sessionEmail || 'Not logged in' }}</span>
+              </span>
+              <span class="header-user-arrow" :class="{open: headerProfileOpen}">▼</span>
+            </button>
+              <div class="header-profile-menu" v-if="headerProfileOpen" @click.stop>
+                <a class="header-profile-item" href="join.html?tab=home">User Dashboard</a>
+                <a class="header-profile-item" v-if="hasClubManagement" href="club_management_dashboard.html">My Club Dashboard</a>
+                <a class="header-profile-item" href="settings.html">Settings</a>
+              </div>
+          </div>
+          <button class="header-logout-btn" @click="logout">Log Out</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="user-dashboard-shell">
+      <div class="container">
+        <div class="dashboard-layout">
+      
+      <div class="sidebar">
+        <div class="sidebar-header">
+          <span>User Dashboard</span>
+        </div>
+        <div class="sidebar-menu">
+          <div class="menu-item" @click="myOpen = !myOpen">
+            <i class="icon">👤</i> Personal Center
+            <span style="margin-left:auto; font-size:12px;">{{ myOpen ? '▼' : '▶' }}</span>
+          </div>
+          <div class="submenu" v-if="myOpen">
+            <div class="menu-item" :class="{active: dashboardTab==='home'}" @click="dashboardTab='home'">
+              <i class="icon"></i> Home Overview
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='profile'}" @click="dashboardTab='profile'">
+              <i class="icon"></i> Profile
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='club_bookings'}" @click="dashboardTab='club_bookings'">
+              <i class="icon"></i> Club Booking
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='teaching_bookings'}" @click="dashboardTab='teaching_bookings'">
+              <i class="icon"></i> Course Bookings
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='forum'}" @click="dashboardTab='forum'">
+              <i class="icon"></i> My Forum
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='consults'}" @click="dashboardTab='consults'">
+              <i class="icon"></i> My Support
+            </div>
+            <div class="menu-item" :class="{active: dashboardTab==='favs'}" @click="dashboardTab='favs'">
+              <i class="icon"></i> My Favorites
+            </div>
+          </div>
+          
+          <div class="menu-item" :class="{active: dashboardTab==='message_board'}" @click="openProfileTab('message_board')"><i class="icon">💬</i> Message Board</div>
+        </div>
+      </div>
+
+      
+      <div class="main-content">
+          
+          <div class="dashboard-content">
+              <div class="content-card dashboard-surface">
+            
+            
+            <div v-if="dashboardTab === 'home'" class="dashboard-home">
+              <div class="page-header profile-page-header">
+                <div class="page-title">
+                  Dashboard
+                  <span class="pill gray">Date: {{ profileDateText }}</span>
+                  <select class="profile-select">
+                    <option>{{ profilePrimaryClub }}</option>
+                  </select>
+                  <span class="pill gray">{{ profilePrimaryClub }}</span>
+                </div>
+                <button class="btn btn-blue profile-refresh-btn" @click="refreshProfileOverview">Refresh Schedule</button>
+              </div>
+
+              <div class="custom-tabs">
+                <button class="custom-tab active" type="button">Booking Overview</button>
+                <button class="custom-tab" type="button" @click="openProfileTab('club_bookings')">Member List</button>
+                <button class="custom-tab" type="button" @click="openProfileTab('consults')">Pending Requests</button>
+              </div>
+
+              <div class="overview-top-grid">
+                <article class="board-card ring-card">
+                  <div class="board-head">
+                    <h4>Booking Completion Rate</h4>
+                    <span class="trend-text">{{ profileCompletionRate }}% completed</span>
+                  </div>
+                  <div class="ring-wrap">
+                    <div class="ring-progress" :style="{ '--ring': profileCompletionRate + '%' }">
+                      <span>{{ profileCompletionRate }}%</span>
+                    </div>
+                    <div class="ring-meta">
+                      <div class="ring-row"><span>Club Booking</span><strong>{{ myBookings.length }}</strong></div>
+                      <div class="ring-row"><span>Course Bookings</span><strong>{{ myTeachingBookings.length }}</strong></div>
+                      <div class="ring-row"><span>Pending</span><strong>{{ profilePendingCount }}</strong></div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="board-card timeline-card">
+                  <div class="board-head">
+                    <h4>Booking Schedule</h4>
+                    <span class="pill gray">Latest {{ profileSchedulePreview.length }} items</span>
+                  </div>
+
+                  <ul class="schedule-list" v-if="profileSchedulePreview.length">
+                    <li class="schedule-item" v-for="item in profileSchedulePreview" :key="item.key">
+                      <span class="schedule-type">{{ item.type }}</span>
+                      <div class="schedule-body">
+                        <div class="schedule-title">{{ item.title }}</div>
+                        <div class="schedule-meta">{{ item.timeText }} · {{ item.meta }}</div>
+                      </div>
+                      <span class="schedule-status" :class="item.statusClass">{{ item.statusText }}</span>
+                    </li>
+                  </ul>
+                  <div class="profile-empty-note" v-else>No booking schedule yet. You can start by making a booking in the activity or course pages.</div>
+                </article>
+              </div>
+
+              <div class="overview-bottom-grid">
+                <article class="board-card promo-card">
+                  <div class="promo-title">Booking Reminder Board</div>
+                  <div class="promo-sub">Keep a steady training rhythm and join activities and courses on time.</div>
+
+                  <div class="promo-values">
+                    <div class="promo-item">
+                      <span>My Forum</span>
+                      <strong>{{ myPosts.length }}</strong>
+                    </div>
+                    <div class="promo-item">
+                      <span>My Favorites</span>
+                      <strong>{{ myFavs.length }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="quick-links">
+                    <a href="#" class="quick-link" @click.prevent="openProfileTab('club_bookings')">Go to Club Booking</a>
+                    <a href="#" class="quick-link" @click.prevent="openProfileTab('teaching_bookings')">Go to Course Bookings</a>
+                    <a href="#" class="quick-link" @click.prevent="openProfileTab('forum')">Go to Forum Interaction</a>
+                  </div>
+                </article>
+
+                <article class="board-card">
+                  <div class="board-head">
+                    <h4>Upcoming Bookings</h4>
+                    <span class="pill">Top 5</span>
+                  </div>
+
+                  <ul class="schedule-list" v-if="profileUpcomingList.length">
+                    <li class="schedule-item" v-for="item in profileUpcomingList" :key="'top-' + item.key">
+                      <span class="schedule-type">{{ item.type }}</span>
+                      <div class="schedule-body">
+                        <div class="schedule-title">{{ item.title }}</div>
+                        <div class="schedule-meta">{{ item.timeText }} · {{ item.meta }}</div>
+                      </div>
+                      <span class="schedule-status" :class="item.statusClass">{{ item.statusText }}</span>
+                    </li>
+                  </ul>
+                  <div class="profile-empty-note" v-else>No upcoming bookings.</div>
+                </article>
+
+                <article class="board-card month-card">
+                  <div class="board-head">
+                    <h4>Monthly Booking Trend</h4>
+                    <span class="pill gray">Past 6 months</span>
+                  </div>
+                  <div class="month-bars">
+                    <div class="month-bar-item" v-for="bar in profileMonthlyTrend" :key="bar.key">
+                      <div class="bar-wrap">
+                        <div class="bar-fill" :style="{height: bar.height + '%'}"></div>
+                      </div>
+                      <div class="bar-label">{{ bar.label }}</div>
+                      <div class="bar-val">{{ bar.value }}</div>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            
+            <div v-if="dashboardTab === 'profile'">
+              <div class="page-header">
+                <div class="page-title">Profile</div>
+              </div>
+
+              <div class="profile-form-shell">
+                <div class="profile-avatar-block">
+                  <button class="profile-avatar-btn" type="button" @click="$refs.avatarInput.click()">
+                    <img :src="profile.avatar || '../zp/hb1.webp'" alt="avatar">
+                    <span class="profile-avatar-overlay">Change Avatar</span>
+                  </button>
+                  <input type="file" ref="avatarInput" accept="image/*" style="display:none" @change="onProfileAvatarChange">
+                  <div class="profile-avatar-tip">Click the avatar to upload a new image (1:1 ratio recommended)</div>
+                </div>
+
+                <div class="form-grid">
+                  <div class="field">
+                    <label>Nickname</label>
+                    <input v-model.trim="profile.nickname" placeholder="e.g. bhw">
+                  </div>
+                  <div class="field">
+                    <label>Gender</label>
+                    <select v-model="profile.gender">
+                      <option value="">Please select</option>
+                      <option value="Male">Male</option>
+                      <option value="Female">Female</option>
+                      <option value="Other">Other</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label>Email</label>
+                    <input v-model.trim="profile.email" disabled style="background:#f5f5f5">
+                  </div>
+                  <div class="field">
+                    <label>Phone Number</label>
+                    <input v-model.trim="profile.phone" placeholder="Enter a contact number">
+                  </div>
+
+                  <div class="field">
+                    <label>Date of Birth</label>
+                    <input type="date" v-model="profile.birthday">
+                  </div>
+                  <div class="field">
+                    <label>Location</label>
+                    <input v-model.trim="profile.location" placeholder="e.g. London">
+                  </div>
+
+                  <div class="field" style="grid-column:1/-1;">
+                    <label>Hobbies</label>
+                    <input v-model.trim="profile.hobbies" placeholder="e.g. Badminton, photography, programming...">
+                  </div>
+
+                  <div class="field" style="grid-column:1/-1;">
+                    <label>Bio</label>
+                    <textarea v-model.trim="profile.bio" placeholder="Write a short introduction..." style="height:120px;"></textarea>
+                  </div>
+                </div>
+
+                <div class="profile-form-actions">
+                  <button class="btn btn-blue" @click="saveProfile">Save Changes</button>
+                </div>
+              </div>
+            </div>
+
+            
+            <div v-if="dashboardTab === 'club_bookings'">
+              <div class="page-header">
+                <div class="page-title">Club Booking</div>
+                <div class="page-actions">
+                  <button class="btn btn-light" style="min-width:auto;" @click="showBookingHistory = !showBookingHistory">
+                    {{ showBookingHistory ? 'Hide Booking History' : 'Booking History' }}
+                  </button>
+                  <button class="btn btn-blue" style="min-width:auto;" @click="loadMyBookings">Refresh List</button>
+                </div>
+              </div>
+              
+	              <div class="content-card booking-table-card">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Club</th>
+                      <th>Date</th>
+                      <th>Time Slot</th>
+                      <th>Location</th>
+                      <th>Fee</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="b in myBookings" :key="b.id">
+                      <td>{{ b.clubName }}</td>
+                      <td>{{ b.dayLabel }}</td>
+                      <td>{{ b.slotTime }}</td>
+                      <td>{{ b.location }}</td>
+                      <td>{{ b.fee }}</td>
+                      <td><span class="pill" style="background:#e1f3d8; color:#67c23a; border-color:#e1f3d8;">{{ b.status }}</span></td>
+                      <td>
+                        <button class="action-btn btn-red" @click="cancelBooking(b)">Cancel Booking</button>
+                      </td>
+                    </tr>
+                    <tr v-if="myBookings.length === 0">
+                      <td colspan="7" style="text-align:center; padding:40px; color:#999">No current bookings</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+	              <div class="content-card booking-table-card booking-history-card" v-if="showBookingHistory">
+                <div class="page-header booking-history-header">
+                  <div class="page-title history-title">Booking History</div>
+                </div>
+
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Club</th>
+                      <th>Date</th>
+                      <th>Time Slot</th>
+                      <th>Location</th>
+                      <th>Fee</th>
+                      <th>Record Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="b in myBookingHistory" :key="'history-' + b.id">
+                      <td>{{ b.clubName }}</td>
+                      <td>{{ b.dayLabel }}</td>
+                      <td>{{ b.slotTime }}</td>
+                      <td>{{ b.location }}</td>
+                      <td>{{ b.fee }}</td>
+                      <td>
+                        <span
+                          class="pill"
+                          :style="b.historyStatus === 'Cancelled'
+                            ? 'background:#fde8e8; color:#e35d5d; border-color:#fde8e8;'
+                            : 'background:#eef3ff; color:#5b78b5; border-color:#eef3ff;'"
+                        >
+                          {{ b.historyStatus }}
+                        </span>
+                      </td>
+                    </tr>
+                    <tr v-if="myBookingHistory.length === 0">
+                      <td colspan="6" style="text-align:center; padding:40px; color:#999">No booking history yet</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            
+            <div v-if="dashboardTab === 'teaching_bookings'">
+              <div class="page-header">
+                <div class="page-title">Course Bookings</div>
+                <button class="btn btn-blue" style="min-width:auto;" @click="loadMyTeachingBookings">Refresh List</button>
+              </div>
+              
+              <div class="content-card">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Course</th>
+                      <th>Club</th>
+                      <th>Time</th>
+                      <th>Location</th>
+                      <th>Fee</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="t in myTeachingBookings" :key="t.id">
+                      <td>{{ t.title }}</td>
+                      <td>{{ t.clubName }}</td>
+                      <td>{{ t.time }}</td>
+                      <td>{{ t.location }}</td>
+                      <td>{{ t.fee }}</td>
+                      <td><span class="pill" style="background:#e1f3d8; color:#67c23a; border-color:#e1f3d8;">{{ t.status }}</span></td>
+                      <td>
+                        <button class="action-btn btn-red" @click="cancelTeachingBooking(t.id)">Cancel Booking</button>
+                      </td>
+                    </tr>
+                    <tr v-if="myTeachingBookings.length === 0">
+                      <td colspan="7" style="text-align:center; padding:40px; color:#999">No course bookings</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            
+            <div v-if="dashboardTab === 'forum'" class="my-forum-page" @click="closeForumMenus">
+              <div class="forum-hero-card">
+                <div
+                  class="forum-hero-banner"
+                  :class="{ 'has-image': !!myForumBannerImage, clickable: true }"
+                  :style="myForumBannerStyle"
+                  tabindex="0"
+                  role="button"
+                  @click="openForumCoverViewer"
+                  @keydown.enter.prevent="openForumCoverViewer"
+                  @keydown.space.prevent="openForumCoverViewer"
+                >
+                  <div class="forum-hero-banner-head" @click.stop>
+                    <button class="btn ghost small forum-banner-btn" type="button" @click.stop="openProfileTab('home')">Back</button>
+                    <a class="forum-banner-link" href="spjs.html" @click.stop>Main Forum</a>
+                  </div>
+                </div>
+
+                <div class="forum-hero-main">
+                  <div class="forum-hero-avatar" :class="{ 'has-image': !!forumAvatarSrc }">
+                    <img v-if="forumAvatarSrc" :src="forumAvatarSrc" :alt="forumProfileName + ' avatar'">
+                    <span v-else>{{ forumAvatarText }}</span>
+                  </div>
+
+                  <div class="forum-hero-content">
+                    <div class="forum-hero-top">
+                      <div class="forum-hero-copy">
+                        <h3>{{ forumProfileName }}</h3>
+                        <div class="forum-hero-sub">Active in Club Forum · Most active club {{ myForumMainClub }}</div>
+                      </div>
+
+                      <div class="forum-hero-actions">
+                        <div class="forum-follow-wrap" :class="{ 'menu-open': forumFollowMenuOpen }" @mouseleave="forumFollowMenuOpen = false">
+                          <button class="forum-hero-action" :class="{ primary: !isFollowingMyForumProfile, followed: isFollowingMyForumProfile }" type="button" @click.stop="handleForumFollowClick">
+                            {{ isFollowingMyForumProfile ? 'Following' : '+ Follow' }}
+                          </button>
+                          <div class="forum-post-menu-dropdown forum-follow-menu" v-if="isFollowingMyForumProfile && forumFollowMenuOpen">
+                            <button class="forum-post-menu-item" type="button" @click.stop="notifyForumFollowAction('Added to close follow list')">Add to Close Follow</button>
+                            <button class="forum-post-menu-item" type="button" @click.stop="notifyForumFollowAction('Opened group settings.')">Group Settings</button>
+                            <button class="forum-post-menu-item" type="button" @click.stop="notifyForumFollowAction('Opened note settings.')">Note Settings</button>
+                            <button class="forum-post-menu-item danger" type="button" @click.stop="unfollowMyForumProfile">Unfollow</button>
+                          </div>
+                        </div>
+                        <button class="forum-hero-action" type="button" @click.stop="openForumMessageComposer" :disabled="!myForumLatestPost">Send Message</button>
+                        <div class="forum-post-menu-wrap forum-hero-more-wrap" @click.stop>
+                          <button class="forum-hero-more" type="button" @click.stop="toggleForumMoreMenu">...</button>
+                          <div class="forum-post-menu-dropdown forum-hero-more-menu" v-if="forumMoreMenuOpen">
+                            <button class="forum-post-menu-item" type="button" @click.stop="openForumPostModal">Create New Post</button>
+                            <button class="forum-post-menu-item" type="button" @click.stop="refreshMyForumPosts">Refresh List</button>
+                            <button class="forum-post-menu-item" type="button" @click.stop="shareMyForumHome">Share Profile</button>
+                            <button class="forum-post-menu-item" type="button" @click.stop="openForumHome">Open Main Forum</button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="forum-hero-stats">
+                      <div class="forum-hero-stat"><strong>{{ myPosts.length }}</strong><span>Posts</span></div>
+                      <div class="forum-hero-stat"><strong>{{ myForumVideoPosts.length }}</strong><span>Videos</span></div>
+                      <div class="forum-hero-stat"><strong>{{ myForumTotalLikes }}</strong><span>Likes</span></div>
+                      <div class="forum-hero-stat"><strong>{{ myForumTotalComments }}</strong><span>Comments</span></div>
+                    </div>
+
+                    <div class="forum-hero-tags">
+                      <span class="forum-highlight-pill" v-if="myForumTopPost">Most Liked {{ forumPostPreviewText(myForumTopPost, 14) }}</span>
+                      <span class="forum-highlight-pill" v-if="myForumLatestTime">Latest Post {{ myForumLatestTime }}</span>
+                    </div>
+
+                    <div class="forum-hero-note">
+                      Latest Post: {{ myForumLatestPost ? forumPostPreviewText(myForumLatestPost, 22) : 'No published content yet' }}
+                    </div>
+                  </div>
+                </div>
+
+                <div class="forum-hero-tabs">
+                  <button class="forum-hero-tab" :class="{ active: forumTab === 'Featured' }" type="button" @click.stop="setForumTab('Featured')">Featured</button>
+                  <button class="forum-hero-tab" :class="{ active: forumTab === 'Posts' }" type="button" @click.stop="setForumTab('Posts')">Posts</button>
+                  <button class="forum-hero-tab" :class="{ active: forumTab === 'Videos' }" type="button" @click.stop="setForumTab('Videos')">Videos</button>
+                  <button class="forum-hero-tab" :class="{ active: forumTab === 'Engagement' }" type="button" @click.stop="setForumTab('Engagement')">Engagement</button>
+                  <button class="forum-hero-tab" :class="{ active: forumTab === 'Most Liked' }" type="button" @click.stop="setForumTab('Most Liked')">Most Liked</button>
+                </div>
+              </div>
+
+              <div class="forum-publish-section">
+                <div class="forum-section-title">Published Content</div>
+
+                <div class="content-card forum-posts-card">
+                  <div class="forum-posts-head">
+                    <h3>{{ myForumSectionTitle }}</h3>
+                    <span class="pill">{{ visibleMyForumPosts.length }} items</span>
+                  </div>
+
+                  <div v-if="visibleMyForumPosts.length === 0" class="hint forum-empty-note">
+                    There is no content under the current filter yet. Click Create New Post above and it will appear here.
+                  </div>
+
+                  <div v-else class="forum-post-list">
+                    <article class="forum-post-card" v-for="p in visibleMyForumPosts" :key="p.id">
+                      <div class="forum-post-card-head">
+                        <div class="forum-post-user">
+                          <div class="forum-post-avatar" :class="{ 'has-image': !!forumPostAvatarSrc(p) }">
+                            <img v-if="forumPostAvatarSrc(p)" :src="forumPostAvatarSrc(p)" :alt="forumPostAuthorName(p) + ' avatar'">
+                            <span v-else>{{ forumAvatarText }}</span>
+                          </div>
+
+                          <div class="forum-post-main">
+                            <div class="forum-post-top">
+                              <div>
+                                <div class="forum-post-author">{{ forumPostAuthorName(p) }}</div>
+                                <div class="forum-post-time">{{ p.time || 'Just now' }}</div>
+                              </div>
+
+                              <div class="forum-post-menu-wrap" @click.stop>
+                                <button class="forum-post-menu-trigger" type="button" @click.stop="toggleForumPostMenu(p.id)" aria-label="More actions">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m7 10 5 5 5-5"></path>
+                                  </svg>
+                                </button>
+                                <div class="forum-post-menu-dropdown" v-if="activeForumPostMenuId === p.id">
+                                  <button class="forum-post-menu-item" type="button" @click.stop="shareMyForumPost(p)">Share</button>
+                                  <button class="forum-post-menu-item danger" type="button" @click.stop="deletePost(p.id)">Delete</button>
+                                </div>
+                              </div>
+                            </div>
+
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="forum-post-content-stack" :class="{ 'has-media': ((p.imageUrls || []).length > 0) || !!p.videoUrl }">
+                        <div class="forum-post-body">{{ p.content || p.title || 'No post body' }}</div>
+
+                        <div class="forum-post-gallery" v-if="(p.imageUrls || []).length">
+                          <div class="forum-post-gallery-item" v-for="(img, idx) in p.imageUrls" :key="'forum-post-img-' + p.id + '-' + idx" @click="openImageViewer(img, forumPostAuthorName(p) + ' image ' + (idx + 1))">
+                            <img :src="img" :alt="forumPostAuthorName(p) + ' image ' + (idx + 1)">
+                          </div>
+                        </div>
+
+                        <div class="forum-post-video" v-if="p.videoUrl">
+                          <div class="video-frame-shell social-video-frame">
+                            <video
+                              class="video-frame-media"
+                              playsinline
+                              preload="auto"
+                              :src="p.videoUrl"
+                              @loadedmetadata="hydrateMediaFrame($event)"
+                              @loadeddata="hydrateMediaFrame($event)"
+                              @play="syncMediaFrameState($event, true)"
+                              @pause="syncMediaFrameState($event, false)"
+                              @ended="handleMediaFrameEnded($event)"
+                            ></video>
+                            <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                              <span class="video-frame-play">
+                                <span class="video-frame-play-icon" aria-hidden="true"></span>
+                              </span>
+                              <span class="video-frame-copy">Play Video</span>
+                            </button>
+                            <div class="video-frame-meta">
+                              <span class="video-frame-duration">00:00</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="forum-post-actions">
+                        <button class="forum-post-action" type="button" @click.stop="shareMyForumPost(p)">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M14 5h5v5"></path>
+                            <path d="M10 14 19 5"></path>
+                            <path d="M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4"></path>
+                          </svg>
+                          <span>Share</span>
+                        </button>
+                        <button class="forum-post-action" type="button" @click.stop="openForumCommentComposer(p)">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 15a2 2 0 0 1-2 2H9l-4 3v-3H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2Z"></path>
+                          </svg>
+                          <span>Comments {{ forumCommentCount(p) }}</span>
+                        </button>
+                        <button class="forum-post-action" type="button" @click.stop="likeForumPost(p)">
+                          <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 11v9"></path>
+                            <path d="M14 9V5.5A2.5 2.5 0 0 0 11.5 3L10 9l-3 4v7h9.5a2 2 0 0 0 2-1.6l1.2-6a2 2 0 0 0-2-2.4Z"></path>
+                            <path d="M7 20H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h2"></path>
+                          </svg>
+                          <span>Likes {{ Number(p.likes) || 0 }}</span>
+                        </button>
+                      </div>
+
+                      <div class="forum-post-comment-section" :id="'forum-comments-' + p.id">
+                        <div class="forum-post-comment-title">Comments {{ forumCommentCount(p) }}</div>
+                        <div v-if="forumCommentCount(p) === 0" class="forum-post-empty">No comments yet.</div>
+                        <div
+                          class="forum-comment-item"
+                          v-for="row in forumCommentRows(p)"
+                          :key="'forum-comment-row-' + p.id + '-' + row.node.id"
+                          :class="{ reply: row.depth > 0 }"
+                          :style="forumCommentIndentStyle(row.depth)"
+                        >
+                          <div class="forum-comment-content">
+                            <div class="forum-comment-text">
+                              <strong>{{ forumCommentAuthorName(row.node) }}</strong>
+                              <span>:</span>
+                              <span>{{ row.node.text }}</span>
+                            </div>
+                          </div>
+                          <div class="forum-comment-meta">
+                            <span>{{ row.node.time || 'Just now' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="dashboardTab === 'consults'">
+              <div class="page-header">
+                <div class="page-title">My Support</div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <input v-model.trim="consultQuery" placeholder="Search support messages" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; min-width:200px;">
+                  <button class="btn btn-blue" style="min-width:auto;" @click="loadConsultMessages">Refresh Records</button>
+                  <button class="btn danger" style="min-width:auto;" @click="clearMyConsults">Clear Records</button>
+                  <a href="tzgg.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Support</a>
+                </div>
+              </div>
+              <div class="content-card">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Role</th>
+                      <th>Content</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="m in myConsultMessages" :key="m.id">
+                      <td>
+                        <span class="pill" :class="m.role==='user'?'':'gray'">{{ formatConsultRole(m.role) }}</span>
+                      </td>
+                      <td>{{ m.text }}</td>
+                      <td>{{ m.createdAt }}</td>
+                    </tr>
+                    <tr v-if="myConsultMessages.length === 0">
+                      <td colspan="3" style="text-align:center; padding:40px; color:#999">No support records</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div v-if="dashboardTab === 'message_board'">
+              <div class="page-header">
+                <div class="page-title">Message Board</div>
+                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                  <button class="btn btn-blue" style="min-width:auto;" @click="loadMyMessageBoard">Refresh List</button>
+                  <a href="spjs.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Main Forum</a>
+                </div>
+              </div>
+              <div class="content-card">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Type</th>
+                      <th>User</th>
+                      <th>Content</th>
+                      <th>Source</th>
+                      <th>Time</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in messageBoardItems" :key="item.id">
+                      <td>{{ messageBoardDirectionText(item) }}</td>
+                      <td>{{ messageBoardSenderText(item) }}</td>
+                      <td>{{ item.text || 'No content' }}</td>
+                      <td>{{ messageBoardSourceText(item) }}</td>
+                      <td>{{ item.createdAt || '-' }}</td>
+                    </tr>
+                    <tr v-if="messageBoardItems.length === 0">
+                      <td colspan="5" style="text-align:center; padding:40px; color:#999">No message-board activity yet. Messages you receive and messages you leave from forum profile pages will both appear here.</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            
+            <div v-if="dashboardTab === 'favs'">
+              <div class="page-header">
+                <div class="page-title">My Favorites</div>
+                <button class="btn btn-blue" style="min-width:auto;" @click="loadMyFavs">Refresh List</button>
+              </div>
+              
+              <div class="content-card">
+                <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap:20px;">
+                   <div v-for="f in myFavs" :key="f.id" class="card" style="display:flex; flex-direction:column; height:auto; box-shadow: 0 2px 6px rgba(0,0,0,0.08);">
+                      <div style="padding:15px;">
+                        <div style="font-weight:bold; font-size:16px; margin-bottom:5px;">{{ f.title }}</div>
+                        <div style="font-size:12px; color:#666; margin-bottom:10px;">{{ f.clubName }} · {{ f.level }} · {{ f.mode }}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                           <span style="color:#f56c6c;">{{ f.fee }}</span>
+                           <button class="btn danger" style="padding:4px 8px; font-size:12px; min-width:auto;" @click="removeFav(f.courseId)">Remove Favorite</button>
+                        </div>
+                      </div>
+                   </div>
+                </div>
+                <div v-if="myFavs.length === 0" style="text-align:center; padding:40px; color:#999">No favorites yet</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+      </div>
+    </section>
+  </template>
+
+  
+  <div class="modal-mask" v-if="showPostModal" @click.self="showPostModal=false">
+    <div class="modal forum-post-modal">
+      <div class="modal-head">
+        <h3>Create New Post</h3>
+        <div class="close-x" @click="showPostModal=false">Close</div>
+      </div>
+      <div class="modal-body">
+        <div class="field forum-compose-field">
+          <label>Content</label>
+          <textarea v-model.trim="newPost.content" placeholder="Say something..." class="forum-compose-textarea"></textarea>
+        </div>
+
+        <div class="forum-upload-grid">
+          <div class="field forum-media-upload-field">
+            <label>Image Upload</label>
+            <label class="forum-upload-dropzone image" for="join-post-image-upload">
+              <input id="join-post-image-upload" class="forum-upload-input" type="file" accept="image/*" multiple @change="handlePostImageUpload">
+              <strong>Click to upload images</strong>
+              <span>Supports JPG / PNG / WebP, up to 3 images, with 1.5MB recommended per image.</span>
+            </label>
+            <div class="forum-upload-preview-grid" v-if="(newPost.imageUrls || []).length">
+              <div class="forum-upload-preview-card" v-for="(img, idx) in newPost.imageUrls" :key="'join-new-img-' + idx" @click="openImageViewer(img, 'Uploaded Image ' + (idx + 1))">
+                <span class="forum-upload-preview-badge">Image {{ idx + 1 }}</span>
+                <img :src="img" :alt="'Uploaded Image ' + (idx + 1)">
+                <button class="forum-upload-remove-btn" type="button" @click.stop="removePostImage(idx)">Remove</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="field forum-media-upload-field">
+            <label>Video Upload</label>
+            <label class="forum-upload-dropzone video" for="join-post-video-upload">
+              <input id="join-post-video-upload" class="forum-upload-input" type="file" accept="video/*" @change="handlePostVideoUpload">
+              <strong>Click to upload video</strong>
+              <span>Supports MP4 / WebM / Ogg. A file under 2.5MB is recommended.</span>
+            </label>
+            <div class="forum-upload-video-preview" v-if="newPost.videoUploadUrl">
+              <div class="video-frame-shell social-video-frame">
+                <video
+                  class="video-frame-media"
+                  playsinline
+                  preload="auto"
+                  :src="newPost.videoUploadUrl"
+                  @loadedmetadata="hydrateMediaFrame($event)"
+                  @loadeddata="hydrateMediaFrame($event)"
+                  @play="syncMediaFrameState($event, true)"
+                  @pause="syncMediaFrameState($event, false)"
+                  @ended="handleMediaFrameEnded($event)"
+                ></video>
+                <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                  <span class="video-frame-play">
+                    <span class="video-frame-play-icon" aria-hidden="true"></span>
+                  </span>
+                  <span class="video-frame-copy">Play Video</span>
+                </button>
+                <div class="video-frame-meta">
+                  <span class="video-frame-duration">00:00</span>
+                </div>
+              </div>
+              <div class="forum-upload-video-meta">
+                <span>The local video is ready and will appear in the post after publishing.</span>
+                <button class="forum-upload-inline-btn" type="button" @click="removePostVideo">Remove Video</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="forum-upload-tip">Images upload to Supabase Storage when cloud sync is available; otherwise they stay in this browser.</div>
+
+        <div class="modal-actions">
+          <button class="btn primary" @click="createPost">Publish</button>
+          <button class="btn ghost" @click="resetForumPostComposer">Clear</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask image-viewer-mask" v-if="showImageViewer" @click.self="closeImageViewer">
+    <div class="image-viewer-shell">
+      <button class="image-viewer-close" type="button" @click="closeImageViewer">Close</button>
+      <img :src="imageViewerSrc" :alt="imageViewerAlt">
+      <div class="image-viewer-footer" :class="{ 'with-action': imageViewerContext === 'forum-cover' }">
+        <div class="image-viewer-caption" v-if="imageViewerAlt">{{ imageViewerAlt }}</div>
+        <label class="image-viewer-action" v-if="imageViewerContext === 'forum-cover'">
+          <input class="forum-hidden-file" type="file" accept="image/*" @change="handleForumCoverUpload">
+          <span>Change Cover</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  new Vue({
+    el:'#app',
+    data(){
+      return{
+        remember:true,
+        authView:'login',
+
+        signup:{ nickname:'', favoriteClub:'', email:'', emailCode:'', emailCodeInput:'', password:'', password2:'', withClubManagement:false },
+        login:{ email:'', password:'' },
+        signupStatus:'',
+        loginStatus:'',
+        showForgotModal: false,
+        showRecoveryModal: false,
+        showSystemPicker: false,
+        loginCandidate: null,
+        forgotForm: { email:'', captcha:false },
+        forgotStatus:'',
+        recoveryForm: { password:'', password2:'' },
+        recoveryStatus:'',
+
+        sessionUserId:'',
+        sessionEmail:'',
+        hasClubManagement: false,
+        authStateSubscription: null,
+        
+        // Dashboard
+        myOpen: true,
+        headerProfileOpen: false,
+        dashboardTab: 'home', // default tab
+
+        profile: { nickname:'', email:'', bio:'', gender:'', phone:'', birthday:'', location:'', hobbies:'', avatar:'', forumCoverUrl:'' },
+        myBookings: [],
+        myBookingHistory: [],
+        showBookingHistory: false,
+        
+        // New Features Data
+        myMaterials: [],
+        myTeachingBookings: [],
+        myPosts: [],
+        myFavs: [],
+        messageBoardItems: [],
+        consultMessages: [],
+        consultQuery: '',
+        forumTab: 'Posts',
+        forumSelfFollowed: true,
+        forumFollowMenuOpen: false,
+        forumMoreMenuOpen: false,
+        activeForumPostMenuId: null,
+        showImageViewer: false,
+        imageViewerSrc: '',
+        imageViewerAlt: '',
+        imageViewerContext: '',
+        profileCoverMap: {},
+        showPostModal: false,
+        newPost: { title:'', type:'Experience Sharing', club:'Platform General', content:'', imageUrls:[], videoUploadUrl:'', videoUploadName:'' }
+      }
+    },
+    computed:{
+      isAuthed(){
+        return !!this.sessionEmail;
+      },
+      myConsultMessages(){
+        const email = this.sessionEmail;
+        const uid = email ? ('user:' + email) : '';
+        if(!email) return [];
+        const query = String(this.consultQuery || '').toLowerCase();
+        return this.consultMessages
+          .filter(m => (m.userEmail === email || m.userId === uid))
+          .filter(m => {
+            if(!query) return true;
+            const text = String(m.text || '').toLowerCase();
+            const role = String(this.formatConsultRole(m.role) || '').toLowerCase();
+            const time = String(m.createdAt || '').toLowerCase();
+            return text.includes(query) || role.includes(query) || time.includes(query);
+          })
+          .slice()
+          .sort((a,b) => (b.createdTs || 0) - (a.createdTs || 0));
+      },
+      profileDateText(){
+        const d = new Date();
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+      },
+      profilePrimaryClub(){
+        const regular = this.myBookings.find(b => b && b.clubName);
+        if(regular) return regular.clubName;
+        const teaching = this.myTeachingBookings.find(t => t && t.clubName);
+        if(teaching) return teaching.clubName;
+        return 'Default Club';
+      },
+      profileRecords(){
+        const records = [];
+        this.myBookings.forEach((b, idx) => {
+          const ts = this.getBookingTimestamp(b.dayIso, b.dayLabel, b.slotTime);
+          records.push({
+            key: 'club-' + (b.id != null ? b.id : idx),
+            type: 'Club Booking',
+            title: b.clubName || 'Unnamed Club',
+            timeText: b.dayLabel || b.dayIso || 'Time TBD',
+            meta: (b.location || 'Location TBD') + ' · ' + (b.slotTime || 'Time Slot TBD'),
+            statusText: b.status || 'Booked',
+            statusClass: this.toScheduleStatusClass(b.status),
+            ts: ts
+          });
+        });
+
+        this.myTeachingBookings.forEach((t, idx) => {
+          const ts = this.getBookingTimestamp('', t.time, '');
+          records.push({
+            key: 'teaching-' + (t.id != null ? t.id : idx),
+            type: 'Course Bookings',
+            title: t.title || 'Untitled Course',
+            timeText: this.formatDateTextFromTime(t.time),
+            meta: (t.clubName || 'Default Club') + ' · ' + (t.location || 'Location TBD'),
+            statusText: t.status || 'Booked',
+            statusClass: this.toScheduleStatusClass(t.status),
+            ts: ts
+          });
+        });
+
+        return records.sort((a, b) => {
+          const ta = a.ts || 0;
+          const tb = b.ts || 0;
+          return tb - ta;
+        });
+      },
+      profileSchedulePreview(){
+        return this.profileRecords.slice(0, 8);
+      },
+      profileUpcomingList(){
+        return this.profileRecords.slice(0, 5);
+      },
+      profilePendingCount(){
+        return this.profileRecords.filter(item => item.statusClass === 'warn').length;
+      },
+      profileCompletionRate(){
+        if(this.profileRecords.length === 0) return 0;
+        const completed = this.profileRecords.filter(item => item.statusClass === 'good').length;
+        return Math.round((completed / this.profileRecords.length) * 100);
+      },
+      profileMonthlyTrend(){
+        const now = new Date();
+        const months = [];
+        const monthMap = {};
+
+        for(let i = 5; i >= 0; i--){
+          const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          const label = String(d.getMonth() + 1).padStart(2, '0') ;
+          const item = { key: key, label: label, value: 0, height: 8 };
+          months.push(item);
+          monthMap[key] = item;
+        }
+
+        this.profileRecords.forEach(item => {
+          if(!item.ts) return;
+          const d = new Date(item.ts);
+          const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+          if(monthMap[key]) monthMap[key].value += 1;
+        });
+
+        const max = Math.max(1, ...months.map(item => item.value));
+        months.forEach(item => {
+          item.height = Math.max(8, Math.round((item.value / max) * 100));
+        });
+        return months;
+      },
+      forumProfileName(){
+        const nickname = String(this.profile.nickname || '').trim();
+        if(nickname) return nickname;
+        const email = String(this.sessionEmail || '').trim();
+        if(!email) return 'My Forum';
+        return email.split('@')[0] || 'My Forum';
+      },
+      isFollowingMyForumProfile(){
+        return !!this.forumSelfFollowed;
+      },
+      forumAvatarSrc(){
+        const avatar = String(this.profile.avatar || '').trim();
+        if(avatar) return avatar;
+        const fromPost = this.myPosts.find(p => String((p && p.avatarUrl) || '').trim());
+        return fromPost ? String(fromPost.avatarUrl || '').trim() : '';
+      },
+      forumAvatarText(){
+        const text = this.forumProfileName || 'Me';
+        return text.slice(0, 2).toUpperCase();
+      },
+      myForumCoverSrc(){
+        const remote = String(this.profile.forumCoverUrl || '').trim();
+        if(remote) return remote;
+        const key = this.myForumCoverStorageKey();
+        if(!key) return '';
+        return String((this.profileCoverMap && this.profileCoverMap[key]) || '').trim();
+      },
+      myForumBannerImage(){
+        return this.myForumCoverSrc;
+      },
+      myForumBannerStyle(){
+        const src = String(this.myForumBannerImage || '').trim();
+        if(!src) return null;
+        return {
+          '--forum-banner-image': 'url(\"' + src.replace(/"/g, '\\"') + '\")'
+        };
+      },
+      myForumCoverViewerSrc(){
+        const src = String(this.myForumCoverSrc || '').trim();
+        if(src) return src;
+        return this.forumCoverPlaceholderSrc();
+      },
+      myForumVideoPosts(){
+        return this.myPosts.filter(p => this.isForumVideoPost(p));
+      },
+      myForumLatestPost(){
+        const list = this.sortForumPosts(this.myPosts);
+        return list.length ? list[0] : null;
+      },
+      myForumLatestTime(){
+        return this.myForumLatestPost ? String(this.myForumLatestPost.time || '') : '';
+      },
+      myForumTotalLikes(){
+        return this.myPosts.reduce((sum, post) => sum + (Number(post && post.likes) || 0), 0);
+      },
+      myForumTotalComments(){
+        return this.myPosts.reduce((sum, post) => sum + this.forumCommentCount(post), 0);
+      },
+      myForumMainClub(){
+        const counter = {};
+        this.myPosts.forEach(post => {
+          const club = String((post && post.club) || 'Platform General').trim() || 'Platform General';
+          counter[club] = (counter[club] || 0) + 1;
+        });
+        const clubs = Object.keys(counter);
+        if(clubs.length === 0) return 'Platform General';
+        return clubs.sort((a, b) => counter[b] - counter[a])[0];
+      },
+      myForumTopPost(){
+        const list = this.sortForumPosts(this.myPosts, (a, b) => {
+          const scoreA = (Number(a && a.likes) || 0) + this.forumCommentCount(a) * 2;
+          const scoreB = (Number(b && b.likes) || 0) + this.forumCommentCount(b) * 2;
+          return scoreB - scoreA;
+        });
+        return list.length ? list[0] : null;
+      },
+      visibleMyForumPosts(){
+        const posts = this.myPosts.slice();
+        if(this.forumTab === 'Featured'){
+          return this.sortForumPosts(posts, (a, b) => {
+            const scoreA = (Number(a && a.likes) || 0) + this.forumCommentCount(a) * 2;
+            const scoreB = (Number(b && b.likes) || 0) + this.forumCommentCount(b) * 2;
+            return scoreB - scoreA;
+          }).slice(0, 3);
+        }
+        if(this.forumTab === 'Videos'){
+          return this.sortForumPosts(posts.filter(p => this.isForumVideoPost(p)));
+        }
+        if(this.forumTab === 'Engagement'){
+          return this.sortForumPosts(posts.filter(p => this.forumCommentCount(p) > 0));
+        }
+        if(this.forumTab === 'Most Liked'){
+          return this.sortForumPosts(posts, (a, b) => (Number(b && b.likes) || 0) - (Number(a && a.likes) || 0));
+        }
+        return this.sortForumPosts(posts);
+      },
+      myForumSectionTitle(){
+        if(this.forumTab === 'Featured') return 'Featured';
+        if(this.forumTab === 'Videos') return 'Videos';
+        if(this.forumTab === 'Engagement') return 'Discussions';
+        if(this.forumTab === 'Most Liked') return 'Most Liked';
+        return 'All Published Content';
+      }
+    },
+    watch:{
+      dashboardTab(val){
+        if(val === 'home') this.refreshProfileOverview();
+        if(val === 'club_bookings') this.loadMyBookings();
+        if(val === 'teaching_bookings') this.loadMyTeachingBookings();
+        if(val === 'forum') this.loadMyPosts();
+        if(val === 'message_board') this.loadMyMessageBoard();
+        if(val === 'consults') this.loadConsultMessages();
+        if(val === 'favs') this.loadMyFavs();
+      }
+    },
+    async mounted(){
+      await this.bootstrapAuthState();
+      this.bindSupabaseAuthListener();
+      this.checkRecoveryEntry();
+      if(this.isAuthed){
+        this.loadAuthedData();
+      }
+      this.loadProfileCoverState();
+
+      // Handle query params
+      const params = new URLSearchParams(location.search);
+      const tab = params.get('tab');
+      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','message_board','consults','favs'].includes(tab)){
+        this.dashboardTab = tab;
+      }
+      window.addEventListener('storage', this.handleStorageEvent);
+      window.addEventListener('pageshow', this.handlePageShow);
+      document.addEventListener('visibilitychange', this.handleVisibilityChange);
+      document.addEventListener('click', this.handleDocumentClick);
+      this.bookingAutoRefreshHandle = window.setInterval(() => {
+        if(this.isAuthed){
+          this.loadMyBookings();
+          this.loadMyTeachingBookings();
+          this.loadMyFavs();
+        }
+      }, 60000);
+    },
+    beforeDestroy(){
+      window.removeEventListener('storage', this.handleStorageEvent);
+      window.removeEventListener('pageshow', this.handlePageShow);
+      document.removeEventListener('visibilitychange', this.handleVisibilityChange);
+      document.removeEventListener('click', this.handleDocumentClick);
+      if(this.authStateSubscription && typeof this.authStateSubscription.unsubscribe === 'function'){
+        this.authStateSubscription.unsubscribe();
+        this.authStateSubscription = null;
+      }
+      if(this.bookingAutoRefreshHandle){
+        window.clearInterval(this.bookingAutoRefreshHandle);
+        this.bookingAutoRefreshHandle = null;
+      }
+    },
+    methods:{
+      refreshProfileOverview(){
+        this.loadMyBookings();
+        this.loadMyTeachingBookings();
+        this.loadMyPosts();
+        this.loadMyFavs();
+        this.loadMyMessageBoard();
+        this.loadConsultMessages();
+      },
+      setMediaFrameClass(target, className, enabled){
+        const shell = target && typeof target.closest === 'function'
+          ? target.closest('.video-frame-shell')
+          : null;
+        if(!shell) return;
+        shell.classList.toggle(className, !!enabled);
+      },
+      formatMediaDuration(value){
+        const totalSeconds = Math.max(0, Math.round(Number(value) || 0));
+        if(!totalSeconds) return '00:00';
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        if(hours > 0){
+          return [hours, minutes, seconds].map(part => String(part).padStart(2, '0')).join(':');
+        }
+        return [minutes, seconds].map(part => String(part).padStart(2, '0')).join(':');
+      },
+      hydrateMediaFrame(event){
+        const video = event && event.target;
+        if(!video) return;
+        const shell = typeof video.closest === 'function' ? video.closest('.video-frame-shell') : null;
+        if(!shell) return;
+        const width = Number(video.videoWidth || 0);
+        const height = Number(video.videoHeight || 0);
+        const ratio = width > 0 && height > 0 ? (width / height) : (16 / 9);
+        const isPortrait = ratio < 0.95;
+        const isSquare = ratio >= 0.95 && ratio <= 1.05;
+        shell.classList.toggle('is-portrait', isPortrait);
+        shell.classList.toggle('is-square', isSquare);
+        shell.classList.toggle('is-landscape', !isPortrait && !isSquare);
+        shell.style.setProperty('--video-ratio', width > 0 && height > 0 ? (width + ' / ' + height) : '16 / 9');
+        const durationNode = shell.querySelector('.video-frame-duration');
+        if(durationNode){
+          durationNode.textContent = this.formatMediaDuration(video.duration);
+        }
+      },
+      playMediaFrame(event){
+        const trigger = event && event.currentTarget;
+        const shell = trigger && typeof trigger.closest === 'function'
+          ? trigger.closest('.video-frame-shell')
+          : null;
+        const video = shell ? shell.querySelector('video') : null;
+        if(!video) return;
+        shell.classList.add('has-started');
+        shell.classList.remove('is-ended');
+        video.controls = true;
+        try{
+          const result = video.play();
+          if(result && typeof result.catch === 'function'){
+            result.catch(()=>{});
+          }
+        }catch(e){}
+      },
+      syncMediaFrameState(event, isPlaying){
+        const target = event && event.target;
+        if(!target) return;
+        if(isPlaying){
+          this.setMediaFrameClass(target, 'has-started', true);
+          this.setMediaFrameClass(target, 'is-ended', false);
+        }
+        this.setMediaFrameClass(target, 'is-playing', isPlaying);
+      },
+      handleMediaFrameEnded(event){
+        const target = event && event.target;
+        if(!target) return;
+        this.setMediaFrameClass(target, 'is-playing', false);
+        this.setMediaFrameClass(target, 'is-ended', true);
+        target.controls = false;
+        try{
+          target.currentTime = 0;
+        }catch(e){}
+      },
+      openProfileTab(tab){
+        this.dashboardTab = tab;
+        this.myOpen = true;
+        this.headerProfileOpen = false;
+        this.closeForumMenus();
+      },
+      getBookingTimestamp(dayIso, dayLabel, slotTime){
+        const baseDate = String(dayIso || dayLabel || '').trim();
+        const startTime = String(slotTime || '').split('-')[0].trim();
+        if(baseDate){
+          const text = startTime
+            ? (baseDate + 'T' + (startTime.length === 5 ? (startTime + ':00') : startTime))
+            : baseDate;
+          const ts = Date.parse(text);
+          if(!Number.isNaN(ts)) return ts;
+        }
+        if(dayLabel){
+          const ts = Date.parse(String(dayLabel));
+          if(!Number.isNaN(ts)) return ts;
+        }
+        return 0;
+      },
+      getBookingEndTimestamp(dayIso, dayLabel, slotTime){
+        const baseDate = String(dayIso || dayLabel || '').trim();
+        const timeParts = String(slotTime || '').split('-').map(part => String(part || '').trim()).filter(Boolean);
+        const endTime = timeParts[1] || '';
+        if(baseDate && endTime){
+          const text = baseDate + 'T' + (endTime.length === 5 ? (endTime + ':00') : endTime);
+          const ts = Date.parse(text);
+          if(!Number.isNaN(ts)) return ts;
+        }
+        const startTs = this.getBookingTimestamp(dayIso, dayLabel, slotTime);
+        return startTs ? (startTs + 60 * 60 * 1000) : 0;
+      },
+      bookingHasExpired(booking){
+        if(!booking) return false;
+        const status = String(booking.status || '').trim();
+        if(status === 'Cancelled') return true;
+        const endTs = this.getBookingEndTimestamp(booking.dayIso, booking.dayLabel, booking.slotTime);
+        return !!endTs && endTs <= Date.now();
+      },
+      bookingHistoryStatusText(booking){
+        const status = String((booking && booking.status) || '').trim();
+        if(status === 'Cancelled') return 'Cancelled';
+        return this.bookingHasExpired(booking) ? 'Completed' : (status || 'Booked');
+      },
+      formatDateTextFromTime(text){
+        if(!text) return 'Time TBD';
+        const ts = Date.parse(String(text));
+        if(Number.isNaN(ts)) return String(text);
+        const d = new Date(ts);
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + day;
+      },
+      toScheduleStatusClass(status){
+        const s = String(status || '').toLowerCase();
+        if(!s) return 'normal';
+        if(s.includes('checked') || s.includes('done') || s.includes('complete')) return 'good';
+        if(s.includes('pending') || s.includes('booked')) return 'warn';
+        if(s.includes('cancel') || s.includes('reject') || s.includes('fail')) return 'bad';
+        return 'normal';
+      },
+      toggleHeaderProfileMenu(){
+        this.headerProfileOpen = !this.headerProfileOpen;
+      },
+      handleStorageEvent(e){
+        if(!e) return;
+        if(e.key === 'specialty_bookings_v1'){
+          this.loadMyBookings();
+        }
+        if(e.key === 'mfms_teaching_bookings_v1'){
+          this.loadMyTeachingBookings();
+        }
+        if(e.key === 'mfms_fav_courses_v1'){
+          this.loadMyFavs();
+        }
+        if(e.key === 'chat_messages_v1'){
+          this.loadConsultMessages();
+        }
+        if(e.key === this.messageBoardKey()){
+          this.loadMyMessageBoard();
+        }
+        if(e.key === this.coverKey()){
+          this.loadProfileCoverState();
+        }
+      },
+      handlePageShow(){
+        if(!this.isAuthed) return;
+        this.loadMyBookings();
+        this.loadMyTeachingBookings();
+        this.loadMyFavs();
+        this.loadMyMessageBoard();
+        this.loadConsultMessages();
+      },
+      handleVisibilityChange(){
+        if(document.visibilityState !== 'visible' || !this.isAuthed) return;
+        this.loadMyBookings();
+        this.loadMyTeachingBookings();
+        this.loadMyFavs();
+        this.loadMyMessageBoard();
+        this.loadConsultMessages();
+      },
+      handleDocumentClick(e){
+        const wrap = this.$refs.headerProfileWrap;
+        if(wrap && !wrap.contains(e.target)){
+          this.headerProfileOpen = false;
+        }
+        this.closeForumMenus();
+      },
+      readCompatSession(){
+        const stores = [localStorage, sessionStorage];
+        for(let i = 0; i < stores.length; i += 1){
+          try{
+            const raw = stores[i].getItem('user_session_v1');
+            if(!raw) continue;
+            const parsed = JSON.parse(raw);
+            if(this.normalizeEmail(parsed && parsed.email)) return parsed;
+          }catch(e){}
+        }
+        return null;
+      },
+      persistCompatSession(sessionData){
+        if(!sessionData) return;
+        const text = JSON.stringify(sessionData);
+        try{ localStorage.setItem('user_session_v1', text); }catch(e){}
+        try{ sessionStorage.setItem('user_session_v1', text); }catch(e){}
+      },
+      clearCompatSession(){
+        try{ localStorage.removeItem('user_session_v1'); }catch(e){}
+        try{ sessionStorage.removeItem('user_session_v1'); }catch(e){}
+      },
+      clearSupabaseBrowserSession(){
+        const clearStore = (store) => {
+          if(!store) return;
+          try{
+            for(let i = store.length - 1; i >= 0; i -= 1){
+              const key = String(store.key(i) || '');
+              if((key.indexOf('sb-') === 0 && key.indexOf('auth-token') > -1) || key.indexOf('supabase.auth.token') > -1){
+                store.removeItem(key);
+              }
+            }
+          }catch(e){}
+        };
+        clearStore(localStorage);
+        clearStore(sessionStorage);
+      },
+      getSupabaseClientSafe(){
+        if(typeof window.getSupabaseClient !== 'function') return null;
+        try{
+          return window.getSupabaseClient();
+        }catch(e){
+          return null;
+        }
+      },
+      hasSupabaseConfigured(){
+        const config = window.APP_CONFIG || {};
+        return !!(config.SUPABASE_URL && config.SUPABASE_ANON_KEY && this.getSupabaseClientSafe());
+      },
+      getCourseService(){
+        return window.clubCourseSupabase || null;
+      },
+      getForumService(){
+        return window.clubForumSupabase || null;
+      },
+      getStorageService(){
+        return window.clubStorageSupabase || null;
+      },
+      getSupportService(){
+        return window.clubSupportSupabase || null;
+      },
+      hasSupabaseCoursesConfigured(){
+        const service = this.getCourseService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      hasSupabaseForumConfigured(){
+        const service = this.getForumService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      hasSupabaseStorageConfigured(){
+        const service = this.getStorageService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      hasSupabaseSupportConfigured(){
+        const service = this.getSupportService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      normalizeForumId(value){
+        return String(value || '').trim();
+      },
+      currentForumAuthorAliases(){
+        const email = this.normalizeEmail(this.sessionEmail);
+        const nickname = String(this.profile.nickname || '').trim().toLowerCase();
+        const sessionNickname = String(this.sessionNickname || '').trim().toLowerCase();
+        const aliases = [
+          nickname,
+          sessionNickname,
+          email,
+          email ? email.split('@')[0] : ''
+        ].filter(Boolean);
+        return Array.from(new Set(aliases));
+      },
+      isCurrentForumOwnedPost(post){
+        if(!post) return false;
+        const ownerEmail = this.normalizeEmail(post.ownerEmail);
+        const sessionEmail = this.normalizeEmail(this.sessionEmail);
+        const author = String((post.author || '')).trim().toLowerCase();
+        const aliases = this.currentForumAuthorAliases();
+        if(ownerEmail && sessionEmail && ownerEmail === sessionEmail){
+          if(!author) return true;
+          if(aliases.includes(author)) return true;
+          return post.source !== 'supabase';
+        }
+        return !!author && aliases.includes(author);
+      },
+      forumPostSortValue(post){
+        if(!post) return 0;
+        return Number(post.createdTs || 0) || this.parseTimeText(post.createdAt || post.time) || Number(post.id) || 0;
+      },
+      normalizeForumCommentTree(nodes){
+        return (Array.isArray(nodes) ? nodes : []).map(node => {
+          const item = Object.assign({}, node || {});
+          item.id = this.normalizeForumId(item.id) || String(Date.now() + Math.random());
+          item.createdTs = Number(item.createdTs || 0) || this.parseTimeText(item.createdAt || item.time) || Number(item.id) || 0;
+          item.replies = this.normalizeForumCommentTree(item.replies);
+          return item;
+        });
+      },
+      normalizeForumPostRecord(post){
+        const item = Object.assign({}, post || {});
+        item.id = this.normalizeForumId(item.id) || String(Date.now() + Math.random());
+        item.imageUrls = Array.isArray(item.imageUrls) ? item.imageUrls.slice() : [];
+        item.comments = this.normalizeForumCommentTree(item.comments);
+        item.createdTs = Number(item.createdTs || 0) || this.parseTimeText(item.createdAt || item.time) || Number(item.id) || 0;
+        return item;
+      },
+      loadLocalMyPosts(){
+        try{
+          const all = JSON.parse(localStorage.getItem('spjs_forum_posts_v1') || '[]');
+          return (Array.isArray(all) ? all : [])
+            .filter(p => String((p && p.ownerEmail) || '').trim() === String(this.sessionEmail || '').trim())
+            .filter(p => this.isCurrentForumOwnedPost(p))
+            .map(p => this.normalizeForumPostRecord(p));
+        }catch(e){
+          return [];
+        }
+      },
+      mergeMyForumPosts(primary, fallback){
+        const merged = [];
+        const seen = {};
+        const push = (item) => {
+          const post = this.normalizeForumPostRecord(item);
+          if(!this.isCurrentForumOwnedPost(post)) return;
+          const key = this.normalizeForumId(post.id);
+          if(!key || seen[key]) return;
+          seen[key] = true;
+          merged.push(post);
+        };
+        (Array.isArray(primary) ? primary : []).forEach(push);
+        (Array.isArray(fallback) ? fallback : []).forEach(push);
+        return merged;
+      },
+      removeTeachingBookingLocalCache(id){
+        let all = [];
+        try { all = JSON.parse(localStorage.getItem('mfms_teaching_bookings_v1') || '[]'); } catch(e){}
+        all = (Array.isArray(all) ? all : []).filter(item => String(item && item.id) !== String(id));
+        localStorage.setItem('mfms_teaching_bookings_v1', JSON.stringify(all));
+      },
+      removeFavoriteLocalCache(courseId){
+        let all = [];
+        try { all = JSON.parse(localStorage.getItem('mfms_fav_courses_v1') || '[]'); } catch(e){}
+        all = (Array.isArray(all) ? all : []).filter(item => !(String(item && item.ownerEmail || '') === String(this.sessionEmail || '') && String(item && item.courseId) === String(courseId)));
+        localStorage.setItem('mfms_fav_courses_v1', JSON.stringify(all));
+
+        const favKey = 'mfms_favs_v1:' + (this.sessionEmail || 'guest');
+        let ids = [];
+        try { ids = JSON.parse(localStorage.getItem(favKey) || '[]'); } catch(e){}
+        ids = (Array.isArray(ids) ? ids : []).filter(item => String(item) !== String(courseId));
+        localStorage.setItem(favKey, JSON.stringify(ids));
+      },
+      loadLocalTeachingBookings(){
+        try {
+          const all = JSON.parse(localStorage.getItem('mfms_teaching_bookings_v1') || '[]');
+          return all.filter(t => t.ownerEmail === this.sessionEmail);
+        } catch(e){
+          return [];
+        }
+      },
+      mergeTeachingBookings(primary, fallback){
+        const map = {};
+        const merged = [];
+        const push = (item) => {
+          if(!item) return;
+          const key = String(item.id || '') || [item.courseId || '', item.time || '', item.ownerEmail || ''].join('|');
+          if(map[key]) return;
+          map[key] = true;
+          merged.push(item);
+        };
+        (Array.isArray(primary) ? primary : []).forEach(push);
+        (Array.isArray(fallback) ? fallback : []).forEach(push);
+        return merged;
+      },
+      loadLocalFavoriteCourses(){
+        try {
+          const all = JSON.parse(localStorage.getItem('mfms_fav_courses_v1') || '[]');
+          return all.filter(f => f.ownerEmail === this.sessionEmail);
+        } catch(e){
+          return [];
+        }
+      },
+      mergeFavoriteCourses(primary, fallback){
+        const map = {};
+        const merged = [];
+        const push = (item) => {
+          if(!item) return;
+          const key = [item.courseId || item.id || '', item.ownerEmail || ''].join('|');
+          if(map[key]) return;
+          map[key] = true;
+          merged.push(item);
+        };
+        (Array.isArray(primary) ? primary : []).forEach(push);
+        (Array.isArray(fallback) ? fallback : []).forEach(push);
+        return merged;
+      },
+      buildJoinRedirectUrl(){
+        try{
+          return location.origin + location.pathname;
+        }catch(e){
+          return 'join.html';
+        }
+      },
+      isClubManagerRole(role){
+        const value = String(role || '').trim().toLowerCase();
+        return value === 'club_manager' || value === 'admin';
+      },
+      buildCompatSession(user, target){
+        const role = String((user && user.role) || (user && user.isClubManager ? 'club_manager' : 'member')).trim() || 'member';
+        return {
+          userId: String((user && user.id) || ''),
+          email: this.normalizeEmail(user && user.email),
+          nickname: String((user && user.nickname) || '').trim(),
+          isClubManager: this.isClubManagerRole(role),
+          role,
+          entrySystem: target === 'club' ? 'club' : 'user'
+        };
+      },
+      toResolvedUserFromLegacy(user, fallbackSession){
+        const fallback = fallbackSession || {};
+        const email = this.normalizeEmail((user && user.email) || fallback.email);
+        if(!email) return null;
+        const role = String(
+          (user && user.role)
+          || (fallback && fallback.role)
+          || ((user && user.isClubManager) || (fallback && fallback.isClubManager) ? 'club_manager' : 'member')
+        ).trim() || 'member';
+        return {
+          id: String((user && (user.userId || user.id)) || (fallback && fallback.userId) || ''),
+          email,
+          nickname: String((user && user.nickname) || (fallback && fallback.nickname) || email.split('@')[0] || 'User').trim(),
+          role,
+          isClubManager: this.isClubManagerRole(role),
+          avatar: String((user && user.avatar) || '').trim(),
+          forumCoverUrl: String((user && user.forumCoverUrl) || '').trim(),
+          bio: String((user && user.bio) || '').trim(),
+          gender: String((user && user.gender) || '').trim(),
+          phone: String((user && user.phone) || '').trim(),
+          birthday: String((user && user.birthday) || '').trim(),
+          location: String((user && user.location) || '').trim(),
+          hobbies: String((user && user.hobbies) || '').trim(),
+          createdAt: (user && user.createdAt) || ''
+        };
+      },
+      findLegacyUserByEmail(email){
+        const normalized = this.normalizeEmail(email);
+        if(!normalized) return null;
+        return this.loadAuth().find(item => this.normalizeEmail(item && item.email) === normalized) || null;
+      },
+      seedLegacyUserRecord(user){
+        const resolved = this.toResolvedUserFromLegacy(user, null);
+        if(!resolved) return null;
+        const users = this.loadAuth();
+        const email = this.normalizeEmail(resolved.email);
+        const idx = users.findIndex(item => this.normalizeEmail(item && item.email) === email);
+        const base = idx > -1 ? users[idx] : {};
+        const nextUser = Object.assign({}, base, {
+          userId: resolved.id || String(base.userId || base.id || ''),
+          email,
+          nickname: resolved.nickname,
+          isClubManager: !!resolved.isClubManager,
+          role: resolved.role || (resolved.isClubManager ? 'club_manager' : 'member'),
+          avatar: resolved.avatar || '',
+          forumCoverUrl: resolved.forumCoverUrl || '',
+          bio: resolved.bio || '',
+          gender: resolved.gender || '',
+          phone: resolved.phone || '',
+          birthday: resolved.birthday || '',
+          location: resolved.location || '',
+          hobbies: resolved.hobbies || '',
+          createdAt: base.createdAt || new Date().toLocaleString(),
+          passwordUpdatedAt: base.passwordUpdatedAt || '',
+          password: typeof base.password === 'string' ? base.password : ''
+        });
+        if(idx > -1){
+          users.splice(idx, 1, nextUser);
+        }else{
+          users.push(nextUser);
+        }
+        localStorage.setItem('club_users', JSON.stringify(users));
+        return nextUser;
+      },
+      applyResolvedUser(user){
+        if(!user){
+          this.sessionUserId = '';
+          this.sessionEmail = '';
+          this.hasClubManagement = false;
+          this.profile.nickname = '';
+          this.profile.email = '';
+          this.profile.bio = '';
+          this.profile.gender = '';
+          this.profile.phone = '';
+          this.profile.birthday = '';
+          this.profile.location = '';
+          this.profile.hobbies = '';
+          this.profile.avatar = '';
+          this.profile.forumCoverUrl = '';
+          return;
+        }
+        this.sessionUserId = String(user.id || '');
+        this.sessionEmail = this.normalizeEmail(user.email);
+        this.hasClubManagement = !!user.isClubManager;
+        this.profile.nickname = String(user.nickname || '').trim();
+        this.profile.email = this.sessionEmail;
+        this.profile.bio = String(user.bio || '').trim();
+        this.profile.gender = String(user.gender || '').trim();
+        this.profile.phone = String(user.phone || '').trim();
+        this.profile.birthday = String(user.birthday || '').trim();
+        this.profile.location = String(user.location || '').trim();
+        this.profile.hobbies = String(user.hobbies || '').trim();
+        this.profile.avatar = String(user.avatar || '').trim();
+        this.profile.forumCoverUrl = String(user.forumCoverUrl || '').trim();
+      },
+      loadAuthedData(){
+        if(!this.isAuthed) return;
+        this.loadMyBookings();
+        this.loadMyTeachingBookings();
+        this.loadMyPosts();
+        this.loadMyFavs();
+        this.loadMyMessageBoard();
+        this.loadConsultMessages();
+      },
+      async fetchSupabaseProfile(userId){
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase || !userId) return null;
+        try{
+            const { data, error } = await supabase
+              .from('profiles')
+            .select('id, email, nickname, role, avatar_url, forum_cover_url, bio, gender, phone, birthday, location, hobbies')
+            .eq('id', userId)
+            .maybeSingle();
+          if(error) return null;
+          return data || null;
+        }catch(e){
+          return null;
+        }
+      },
+      async resolveSupabaseUser(authUser){
+        if(!authUser) return null;
+        const email = this.normalizeEmail(authUser.email);
+        const profile = await this.fetchSupabaseProfile(authUser.id);
+        const legacy = this.findLegacyUserByEmail(email);
+        const role = String(
+          (profile && profile.role)
+          || (authUser.user_metadata && authUser.user_metadata.role)
+          || (legacy && legacy.role)
+          || ((legacy && legacy.isClubManager) ? 'club_manager' : 'member')
+        ).trim() || 'member';
+        return {
+          id: String(authUser.id || ''),
+          email,
+          nickname: String(
+            (profile && profile.nickname)
+            || (authUser.user_metadata && authUser.user_metadata.nickname)
+            || (legacy && legacy.nickname)
+            || (email.split('@')[0] || 'User')
+          ).trim(),
+          role,
+          isClubManager: this.isClubManagerRole(role),
+          avatar: String((profile && profile.avatar_url) || (legacy && legacy.avatar) || '').trim(),
+          forumCoverUrl: String((profile && profile.forum_cover_url) || (legacy && legacy.forumCoverUrl) || '').trim(),
+          bio: String((profile && profile.bio) || (legacy && legacy.bio) || '').trim(),
+          gender: String((profile && profile.gender) || (legacy && legacy.gender) || '').trim(),
+          phone: String((profile && profile.phone) || (legacy && legacy.phone) || '').trim(),
+          birthday: String((profile && profile.birthday) || (legacy && legacy.birthday) || '').trim(),
+          location: String((profile && profile.location) || (legacy && legacy.location) || '').trim(),
+          hobbies: String((profile && profile.hobbies) || (legacy && legacy.hobbies) || '').trim()
+        };
+      },
+      async syncSessionFromSupabase(preferredTarget){
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase) return null;
+        try{
+          const { data, error } = await supabase.auth.getSession();
+          if(error || !data || !data.session || !data.session.user) return null;
+          const resolved = await this.resolveSupabaseUser(data.session.user);
+          if(!resolved) return null;
+          this.seedLegacyUserRecord(resolved);
+          const target = preferredTarget || ((this.readCompatSession() || {}).entrySystem) || 'user';
+          this.persistCompatSession(this.buildCompatSession(resolved, target));
+          return resolved;
+        }catch(e){
+          return null;
+        }
+      },
+      async bootstrapAuthState(){
+        const supabaseUser = await this.syncSessionFromSupabase();
+        if(supabaseUser){
+          this.applyResolvedUser(supabaseUser);
+          return;
+        }
+        const compat = this.readCompatSession();
+        if(!compat){
+          this.applyResolvedUser(null);
+          return;
+        }
+        const legacy = this.findLegacyUserByEmail(compat.email);
+        const resolved = this.toResolvedUserFromLegacy(legacy, compat);
+        this.applyResolvedUser(resolved);
+      },
+      bindSupabaseAuthListener(){
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChange !== 'function') return;
+        const result = supabase.auth.onAuthStateChange((event, session) => {
+          if(event === 'SIGNED_OUT' || !session || !session.user){
+            this.clearCompatSession();
+            this.applyResolvedUser(null);
+            return;
+          }
+          const target = ((this.readCompatSession() || {}).entrySystem) || 'user';
+          Promise.resolve(this.syncSessionFromSupabase(target)).then((resolved) => {
+            if(!resolved) return;
+            this.applyResolvedUser(resolved);
+            this.loadAuthedData();
+          });
+        });
+        this.authStateSubscription = result && result.data ? result.data.subscription : null;
+      },
+      checkRecoveryEntry(){
+        const hash = String(location.hash || '').toLowerCase();
+        if(hash.indexOf('type=recovery') === -1) return;
+        this.showRecoveryModal = true;
+        this.recoveryStatus = '';
+      },
+      resolveLoginEmailInput(input){
+        const value = String(input || '').trim();
+        if(!value) return '';
+        if(this.isValidEmail(value)) return this.normalizeEmail(value);
+        const users = this.loadAuth();
+        const found = users.find(item => String((item && item.nickname) || '').trim().toLowerCase() === value.toLowerCase());
+        return found ? this.normalizeEmail(found.email) : '';
+      },
+      mapAuthErrorMessage(error, fallback){
+        const text = String((error && error.message) || '').trim();
+        const lower = text.toLowerCase();
+        if(lower.includes('invalid login credentials')) return 'Incorrect email or password.';
+        if(lower.includes('email not confirmed')) return 'Please confirm your email before logging in.';
+        if(lower.includes('user already registered')) return 'This email address is already registered.';
+        if(lower.includes('password should be at least')) return 'Password must be at least 6 characters.';
+        if(lower.includes('unable to validate email address')) return 'Enter a valid email address.';
+        if(lower.includes('email rate limit exceeded')) return 'Too many email attempts. Please try again later.';
+        return text || fallback || 'Something went wrong. Please try again.';
+      },
+      openProfileFromHeader(tab){
+        this.dashboardTab = tab;
+        this.myOpen = true;
+        this.headerProfileOpen = false;
+        this.closeForumMenus();
+      },
+      normalizeEmail(value){
+        return (value || '').trim().toLowerCase();
+      },
+      isValidEmail(value){
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
+      },
+      coverKey(){
+        return 'spjs_forum_profile_covers_v1';
+      },
+        messageBoardKey(){
+          return 'user_message_board_v1';
+        },
+        securitySettingsKey(){
+          return 'user_security_settings_v1';
+        },
+        loadMessageBoardEntries(){
+        try{
+          const raw = localStorage.getItem(this.messageBoardKey());
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        }catch(e){
+          return [];
+        }
+      },
+      normalizeMessageBoardItem(item){
+        const row = Object.assign({}, item || {});
+        row.id = String(row.id || '') || ('msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8));
+        row.targetUserId = String(row.targetUserId || '').trim();
+        row.targetEmail = this.normalizeEmail(row.targetEmail);
+        row.targetName = String(row.targetName || '').trim();
+        row.fromUserId = String(row.fromUserId || '').trim();
+        row.fromEmail = this.normalizeEmail(row.fromEmail);
+        row.fromName = String(row.fromName || '').trim();
+        row.text = String(row.text || '').trim();
+        row.source = String(row.source || 'forum-profile').trim() || 'forum-profile';
+        row.createdAt = String(row.createdAt || '').trim();
+        row.createdTs = Number(row.createdTs || 0) || this.parseTimeText(row.createdAt) || 0;
+        return row;
+      },
+      mergeMessageBoardItems(primary, fallback){
+        const seen = {};
+        const merged = [];
+        const push = (item) => {
+          const row = this.normalizeMessageBoardItem(item);
+          const key = String(row.id || '').trim();
+          if(!key || seen[key]) return;
+          seen[key] = true;
+          merged.push(row);
+        };
+        (Array.isArray(primary) ? primary : []).forEach(push);
+        (Array.isArray(fallback) ? fallback : []).forEach(push);
+        return merged;
+      },
+      currentMessageBoardAliases(){
+        const email = String(this.sessionEmail || '').trim();
+        const nickname = String(this.profile.nickname || '').trim();
+        const sessionNickname = String(this.sessionNickname || '').trim();
+        const aliases = [
+          nickname,
+          sessionNickname,
+          email,
+          email ? email.split('@')[0] : ''
+        ].map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
+        return Array.from(new Set(aliases));
+      },
+      loadMyMessageBoard(){
+        if(!this.isAuthed){
+          this.messageBoardItems = [];
+          return;
+        }
+        const email = this.normalizeEmail(this.sessionEmail);
+        const userId = String(this.sessionUserId || '').trim();
+        const aliases = this.currentMessageBoardAliases();
+        const fallback = this.loadMessageBoardEntries()
+          .filter(item => {
+            const targetUserId = String((item && item.targetUserId) || '').trim();
+            const targetEmail = this.normalizeEmail(item && item.targetEmail);
+            const targetName = String((item && item.targetName) || '').trim().toLowerCase();
+            const fromUserId = String((item && item.fromUserId) || '').trim();
+            const fromEmail = this.normalizeEmail(item && item.fromEmail);
+            const fromName = String((item && item.fromName) || '').trim().toLowerCase();
+            const isReceived = (userId && targetUserId && userId === targetUserId)
+              || (email && targetEmail && email === targetEmail)
+              || (!!targetName && aliases.includes(targetName));
+            const isSent = (userId && fromUserId && userId === fromUserId)
+              || (email && fromEmail && email === fromEmail)
+              || (!!fromName && aliases.includes(fromName));
+            return isReceived || isSent;
+          });
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          service.fetchMyMessageBoard(this.sessionUserId)
+            .then((rows) => {
+              this.messageBoardItems = this.mergeMessageBoardItems(rows, fallback)
+                .sort((a, b) => (Number(b && b.createdTs) || 0) - (Number(a && a.createdTs) || 0));
+            })
+            .catch(() => {
+              this.messageBoardItems = this.mergeMessageBoardItems([], fallback)
+                .sort((a, b) => (Number(b && b.createdTs) || 0) - (Number(a && a.createdTs) || 0));
+            });
+          return;
+        }
+        this.messageBoardItems = this.mergeMessageBoardItems([], fallback)
+          .sort((a, b) => (Number(b && b.createdTs) || 0) - (Number(a && a.createdTs) || 0));
+      },
+      isOutgoingMessageBoardItem(item){
+        const row = item || {};
+        const sessionUserId = String(this.sessionUserId || '').trim();
+        const fromUserId = String(row.fromUserId || '').trim();
+        if(sessionUserId && fromUserId) return sessionUserId === fromUserId;
+        const sessionEmail = this.normalizeEmail(this.sessionEmail);
+        const fromEmail = this.normalizeEmail(row.fromEmail);
+        if(sessionEmail && fromEmail) return sessionEmail === fromEmail;
+        const aliases = this.currentMessageBoardAliases();
+        const fromName = String(row.fromName || '').trim().toLowerCase();
+        return !!fromName && aliases.includes(fromName);
+      },
+      messageBoardDirectionText(item){
+        return this.isOutgoingMessageBoardItem(item) ? 'Sent' : 'Received';
+      },
+      messageBoardSenderText(item){
+        const row = item || {};
+        if(this.isOutgoingMessageBoardItem(row)){
+          const targetName = String(row.targetName || '').trim();
+          if(targetName) return targetName;
+          const targetEmail = String(row.targetEmail || '').trim();
+          if(targetEmail) return targetEmail;
+          return 'Unknown Recipient';
+        }
+        const fromName = String(row.fromName || '').trim();
+        if(fromName) return fromName;
+        const fromEmail = String(row.fromEmail || '').trim();
+        if(fromEmail) return fromEmail;
+        return 'Anonymous User';
+      },
+      messageBoardSourceText(item){
+        const source = String((item && item.source) || '').trim();
+        if(source === 'forum-profile') return 'Club Forum Profile';
+        return 'Internal Message';
+      },
+        loadAuth(){
+          try{ return JSON.parse(localStorage.getItem('club_users') || '[]'); }catch(e){ return []; }
+        },
+        loadSecuritySettingsMap(){
+          try{
+            const raw = localStorage.getItem(this.securitySettingsKey());
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+          }catch(e){
+            return {};
+          }
+        },
+        getUserSecurityPrefs(email){
+          const key = this.normalizeEmail(email);
+          if(!key) return null;
+          return this.loadSecuritySettingsMap()[key] || null;
+        },
+        loginHistoryKey(){
+          return 'user_login_history_v1';
+        },
+        loadLoginHistory(){
+          try{
+            const raw = localStorage.getItem(this.loginHistoryKey());
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+          }catch(e){
+            return [];
+          }
+        },
+        detectLoginDeviceLabel(){
+          const ua = String((navigator && navigator.userAgent) || '').toLowerCase();
+          const system = ua.includes('iphone') ? 'iPhone'
+            : ua.includes('ipad') ? 'iPad'
+            : ua.includes('android') ? 'Android'
+            : ua.includes('mac os') ? 'macOS'
+            : ua.includes('windows') ? 'Windows'
+            : ua.includes('linux') ? 'Linux'
+            : 'Current Device';
+          const browser = ua.includes('edg/') ? 'Edge'
+            : ua.includes('chrome/') ? 'Chrome'
+            : ua.includes('safari/') && !ua.includes('chrome/') ? 'Safari'
+            : ua.includes('firefox/') ? 'Firefox'
+            : 'Browser';
+          return system + ' · ' + browser;
+        },
+        recordLoginActivity(user, target){
+          const email = this.normalizeEmail(user && user.email);
+          if(!email) return;
+          const list = this.loadLoginHistory();
+          list.unshift({
+            id: 'login-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+            email,
+            nickname: String((user && user.nickname) || '').trim(),
+            entrySystem: target === 'club' ? 'My Club Dashboard' : 'User Dashboard',
+            device: this.detectLoginDeviceLabel(),
+            source: 'Account Password Login',
+            loginAt: new Date().toISOString(),
+            loginText: new Date().toLocaleString()
+          });
+          const userCount = {};
+          const next = [];
+          list.forEach(item => {
+            const key = this.normalizeEmail(item && item.email);
+            userCount[key] = (userCount[key] || 0) + 1;
+            if(userCount[key] <= 8){
+              next.push(item);
+            }
+          });
+          localStorage.setItem(this.loginHistoryKey(), JSON.stringify(next.slice(0, 80)));
+        },
+        myForumCoverStorageKey(){
+          const email = String(this.sessionEmail || '').trim().toLowerCase();
+          if(email) return 'email:' + email;
+        const name = String(this.forumProfileName || '').trim().toLowerCase();
+        return name ? ('name:' + name) : '';
+      },
+      loadProfileCoverState(){
+        try{
+          const raw = localStorage.getItem(this.coverKey());
+          const parsed = raw ? JSON.parse(raw) : {};
+          this.profileCoverMap = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        }catch(e){
+          this.profileCoverMap = {};
+        }
+      },
+      saveProfileCoverState(){
+        try{
+          localStorage.setItem(this.coverKey(), JSON.stringify(this.profileCoverMap || {}));
+          return true;
+        }catch(e){
+          alert('Local storage is full. Compress the cover image and try again.');
+          return false;
+        }
+      },
+      readFileAsDataUrl(file){
+        return new Promise((resolve, reject)=>{
+          const reader = new FileReader();
+          reader.onload = ()=> resolve(reader.result || '');
+          reader.onerror = ()=> reject(new Error('read_failed'));
+          reader.readAsDataURL(file);
+        });
+      },
+      forumCoverPlaceholderSrc(){
+        const title = String(this.forumProfileName || 'Profile Cover').trim() || 'Profile Cover';
+        const svg = '\n          <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">\n            <defs>\n              <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">\n                <stop offset="0%" stop-color="#6d89a8"/>\n                <stop offset="100%" stop-color="#d0d8e5"/>\n              </linearGradient>\n              <radialGradient id="glow" cx="78%" cy="16%" r="36%">\n                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>\n                <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>\n              </radialGradient>\n            </defs>\n            <rect width="1600" height="900" fill="url(#bg)"/>\n            <circle cx="1220" cy="120" r="240" fill="url(#glow)"/>\n            <circle cx="320" cy="220" r="160" fill="#ffffff" fill-opacity="0.14"/>\n            <text x="110" y="640" fill="#ffffff" fill-opacity="0.94" font-size="86" font-family="Arial, sans-serif" font-weight="700">' + title + '</text>\n            <text x="112" y="720" fill="#ffffff" fill-opacity="0.9" font-size="38" font-family="Arial, sans-serif">Open the full image to change the cover</text>\n          </svg>\n        ';
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      },
+      async readForumCoverFile(event){
+        const file = (event && event.target && event.target.files && event.target.files[0]) ? event.target.files[0] : null;
+        if(event && event.target) event.target.value = '';
+        if(!file) return null;
+        if(!String(file.type || '').startsWith('image/')){
+          alert('Please select an image file.');
+          return null;
+        }
+        if(file.size > 3 * 1024 * 1024){
+          alert('Cover images should be no larger than 3MB.');
+          return null;
+        }
+        return file;
+      },
+      openForumCoverViewer(){
+        const src = String(this.myForumCoverViewerSrc || '').trim();
+        if(!src) return;
+        this.imageViewerSrc = src;
+        this.imageViewerAlt = this.forumProfileName ? (this.forumProfileName + ' cover') : 'Profile Cover';
+        this.imageViewerContext = 'forum-cover';
+        this.showImageViewer = true;
+      },
+      openImageViewer(src, alt=''){
+        const imageSrc = String(src || '').trim();
+        if(!imageSrc) return;
+        this.imageViewerSrc = imageSrc;
+        this.imageViewerAlt = String(alt || '').trim();
+        this.imageViewerContext = '';
+        this.showImageViewer = true;
+      },
+      closeImageViewer(){
+        this.showImageViewer = false;
+        this.imageViewerSrc = '';
+        this.imageViewerAlt = '';
+        this.imageViewerContext = '';
+      },
+      async handleForumCoverUpload(event){
+        const key = this.myForumCoverStorageKey();
+        if(!key){
+          if(event && event.target) event.target.value = '';
+          return;
+        }
+        const file = await this.readForumCoverFile(event);
+        if(!file) return;
+        const storage = this.getStorageService();
+        if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+          try{
+            const uploaded = await storage.uploadForumCoverImage(file, this.sessionUserId);
+            const publicUrl = String(uploaded && uploaded.publicUrl || '').trim();
+            if(!publicUrl) throw new Error('storage_public_url_failed');
+            this.profile.forumCoverUrl = publicUrl;
+            this.profileCoverMap = Object.assign({}, this.profileCoverMap || {}, { [key]: publicUrl });
+            await this.saveProfile({ silent: true });
+            if(this.imageViewerContext === 'forum-cover' && this.showImageViewer){
+              this.imageViewerSrc = publicUrl;
+              this.imageViewerAlt = this.forumProfileName ? (this.forumProfileName + ' cover') : 'Profile Cover';
+            }
+            return;
+          }catch(err){
+            alert(storage.mapStorageError(err));
+            return;
+          }
+        }
+        let dataUrl = '';
+        try{
+          dataUrl = String(await this.readFileAsDataUrl(file) || '');
+        }catch(e){
+          alert('Failed to read the cover image. Please try again.');
+          return;
+        }
+        if(!dataUrl) return;
+        const previous = Object.assign({}, this.profileCoverMap || {});
+        this.profileCoverMap = Object.assign({}, previous, { [key]: dataUrl });
+        if(!this.saveProfileCoverState()){
+          this.profileCoverMap = previous;
+          return;
+        }
+        if(this.imageViewerContext === 'forum-cover' && this.showImageViewer){
+          this.imageViewerSrc = dataUrl;
+          this.imageViewerAlt = this.forumProfileName ? (this.forumProfileName + ' cover') : 'Profile Cover';
+        }
+      },
+      async handlePostImageUpload(event){
+        const files = Array.from((event && event.target && event.target.files) ? event.target.files : []);
+        if(event && event.target) event.target.value = '';
+        if(files.length === 0) return;
+
+        const current = Array.isArray(this.newPost.imageUrls) ? this.newPost.imageUrls.slice() : [];
+        const remain = 3 - current.length;
+        if(remain <= 0){
+          alert('You can upload up to 3 images.');
+          return;
+        }
+
+        const accepted = files.slice(0, remain);
+        const storage = this.getStorageService();
+        for(const file of accepted){
+          if(!file || !String(file.type || '').startsWith('image/')){
+            alert('Please select an image file.');
+            continue;
+          }
+          if(file.size > 1.5 * 1024 * 1024){
+            alert('Each image should be no larger than 1.5MB.');
+            continue;
+          }
+          try{
+            if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+              const uploaded = await storage.uploadForumPostImage(file, this.sessionUserId);
+              if(uploaded && uploaded.publicUrl){
+                current.push(String(uploaded.publicUrl));
+                continue;
+              }
+            }
+            const dataUrl = await this.readFileAsDataUrl(file);
+            if(dataUrl){
+              current.push(String(dataUrl));
+            }
+          }catch(e){
+            alert(this.hasSupabaseStorageConfigured() && storage ? storage.mapStorageError(e) : 'Failed to read the image. Please try again.');
+          }
+        }
+        this.newPost.imageUrls = current;
+      },
+      removePostImage(index){
+        if(!Array.isArray(this.newPost.imageUrls)) return;
+        this.newPost.imageUrls.splice(index, 1);
+      },
+      async handlePostVideoUpload(event){
+        const file = (event && event.target && event.target.files && event.target.files[0]) ? event.target.files[0] : null;
+        if(event && event.target) event.target.value = '';
+        if(!file) return;
+        if(!String(file.type || '').startsWith('video/')){
+          alert('Please select a video file.');
+          return;
+        }
+        if(file.size > 12 * 1024 * 1024){
+          alert('Please keep forum videos under 12MB.');
+          return;
+        }
+        try{
+          const storage = this.getStorageService();
+          if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+            const uploaded = await storage.uploadForumVideo(file, this.sessionUserId);
+            this.newPost.videoUploadUrl = String(uploaded && uploaded.publicUrl || '');
+            this.newPost.videoUploadName = String(file.name || 'Forum Video');
+            return;
+          }
+          const dataUrl = await this.readFileAsDataUrl(file);
+          this.newPost.videoUploadUrl = String(dataUrl || '');
+          this.newPost.videoUploadName = String(file.name || 'Local Video');
+        }catch(e){
+          const storage = this.getStorageService();
+          alert(this.hasSupabaseStorageConfigured() && storage ? storage.mapStorageError(e) : 'Failed to read the video. Please try again.');
+        }
+      },
+      removePostVideo(){
+        this.newPost.videoUploadUrl = '';
+        this.newPost.videoUploadName = '';
+      },
+      defaultForumPostClub(){
+        const currentClub = String(this.myForumMainClub || '').trim();
+        if(currentClub && currentClub !== 'Platform General') return currentClub;
+        const bookingClub = String(this.profilePrimaryClub || '').trim();
+        if(bookingClub && bookingClub !== 'Default Club') return bookingClub;
+        return 'Platform General';
+      },
+      buildForumPostTitle(content, imageUrls, videoUrl){
+        const text = String(content || '').replace(/\s+/g, ' ').trim();
+        if(text) return text.length > 24 ? (text.slice(0, 24) + '...') : text;
+        if(String(videoUrl || '').trim()) return 'Video Update';
+        if(Array.isArray(imageUrls) && imageUrls.length) return 'Image Update';
+        return 'Forum Update';
+      },
+      resetForumPostComposer(){
+        this.newPost = {
+          title: '',
+          type: 'Experience Sharing',
+          club: this.defaultForumPostClub(),
+          content: '',
+          imageUrls: [],
+          videoUploadUrl: '',
+          videoUploadName: ''
+        };
+      },
+      loadConsultMessages(){
+        const fallback = (() => {
+          try{
+            const raw = localStorage.getItem('chat_messages_v1');
+            const list = raw ? JSON.parse(raw) : [];
+            return Array.isArray(list) ? list : [];
+          }catch(e){
+            return [];
+          }
+        })();
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          service.fetchMySupportMessages(this.sessionUserId, this.sessionEmail)
+            .then((rows) => {
+              this.consultMessages = rows;
+            })
+            .catch(() => {
+              this.consultMessages = fallback;
+            });
+          return;
+        }
+        this.consultMessages = fallback;
+      },
+      formatConsultRole(role){
+        if(role === 'admin') return 'Support';
+        if(role === 'bot') return 'Bot';
+        return 'User';
+      },
+      clearMyConsults(){
+        const email = this.sessionEmail;
+        if(!email) return;
+        if(!confirm('Clear the support history for this account?')) return;
+        const service = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
+          service.clearMySupportThreads(this.sessionUserId)
+            .then(() => {
+              this.consultMessages = [];
+              localStorage.setItem('chat_messages_v1', JSON.stringify([]));
+            })
+            .catch((error) => {
+              alert(service.mapSupportError(error));
+            });
+          return;
+        }
+        const uid = 'user:' + email;
+        const next = this.consultMessages.filter(m => !(m.userEmail === email || m.userId === uid));
+        this.consultMessages = next;
+        localStorage.setItem('chat_messages_v1', JSON.stringify(next));
+      },
+      
+      // Auth
+      async doLogin(){
+        if(this.hasSupabaseConfigured()){
+          return this.doLoginWithSupabase();
+        }
+        return this.doLoginLegacy();
+      },
+      async doLoginWithSupabase(){
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+        if(!this.login.email || !this.login.password){
+          this.loginStatus = 'Enter your email address and password.'; return;
+        }
+        const loginEmail = this.resolveLoginEmailInput(this.login.email);
+        if(!loginEmail){
+          this.loginStatus = 'Please use your email address. Nickname login only works after a local profile cache already exists on this device.'; return;
+        }
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase){
+          this.loginStatus = 'Supabase is not configured yet. Add js/supabase-config.js first.'; return;
+        }
+        try{
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email: loginEmail,
+            password: this.login.password
+          });
+          if(error){
+            this.loginStatus = this.mapAuthErrorMessage(error, 'Unable to log in right now.');
+            return;
+          }
+          const resolved = await this.resolveSupabaseUser((data && data.user) || (data && data.session && data.session.user));
+          if(!resolved){
+            this.loginStatus = 'Logged in, but the profile could not be loaded.'; return;
+          }
+          this.seedLegacyUserRecord(resolved);
+          this.loginStatus = '';
+          if(resolved.isClubManager){
+            const prefs = this.getUserSecurityPrefs(resolved.email) || {};
+            const alwaysAskSystem = prefs.alwaysAskSystem !== false;
+            const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
+            if(alwaysAskSystem){
+              this.loginCandidate = resolved;
+              this.showSystemPicker = true;
+            }else{
+              this.enterSelectedSystem(preferredEntrySystem, resolved);
+            }
+          }else{
+            this.enterSelectedSystem('user', resolved);
+          }
+        }catch(e){
+          this.loginStatus = 'Unable to log in right now.';
+        }
+      },
+      doLoginLegacy(){
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+        if(!this.login.email || !this.login.password){
+          this.loginStatus = 'Enter your account and password.'; return;
+        }
+        const input = this.login.email.trim();
+        const normalizedEmail = input.includes('@') ? this.normalizeEmail(input) : input;
+          const users = this.loadAuth();
+          const found = users.find(u => (u.email===normalizedEmail || u.nickname===input) && u.password===this.login.password);
+          if(found){
+            this.loginStatus = '';
+            if(found.isClubManager){
+              const prefs = this.getUserSecurityPrefs(found.email) || {};
+              const alwaysAskSystem = prefs.alwaysAskSystem !== false;
+              const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
+              if(alwaysAskSystem){
+                this.loginCandidate = found;
+                this.showSystemPicker = true;
+              }else{
+                this.enterSelectedSystem(preferredEntrySystem, found);
+              }
+            }else{
+              this.enterSelectedSystem('user', found);
+            }
+        }else{
+          this.loginStatus = 'Incorrect account or password.';
+        }
+      },
+      closeSystemPicker(){
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+      },
+        enterSelectedSystem(target, user){
+          const found = user || this.loginCandidate;
+          if(!found) return;
+          this.seedLegacyUserRecord(found);
+          this.recordLoginActivity(found, target);
+          const sessionData = this.buildCompatSession(found, target);
+        this.persistCompatSession(sessionData);
+        this.applyResolvedUser(Object.assign({}, found, {
+          email: sessionData.email,
+          nickname: sessionData.nickname,
+          role: sessionData.role,
+          isClubManager: !!sessionData.isClubManager
+        }));
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+
+        if(target === 'club'){
+          location.href = 'club_management_dashboard.html';
+          return;
+        }
+        location.href = 'join.html?tab=home';
+      },
+      async logout(){
+        const supabase = this.getSupabaseClientSafe();
+        if(supabase && supabase.auth && typeof supabase.auth.signOut === 'function'){
+          try{
+            await supabase.auth.signOut();
+          }catch(e){}
+        }
+        this.applyResolvedUser(null);
+        this.clearCompatSession();
+        this.clearSupabaseBrowserSession();
+        location.reload();
+      },
+      openSignup(){ this.authView = 'signup'; this.loginStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
+      openLogin(){ this.authView = 'login'; this.signupStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
+      sendSignupCode(){
+        const email = this.normalizeEmail(this.signup.email);
+        if(!email){
+          this.signupStatus = 'Enter your email address.'; return;
+        }
+        if(!this.isValidEmail(email)){
+          this.signupStatus = 'Enter a valid email address.'; return;
+        }
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        this.signup.emailCode = code;
+        this.signupStatus = this.hasSupabaseConfigured()
+          ? ('Verification code sent for this browser session: ' + code + '. Account confirmation will still use your Supabase email settings.')
+          : ('Verification code sent for this browser: ' + code);
+      },
+      async doSignup(){
+        if(this.hasSupabaseConfigured()){
+          return this.doSignupWithSupabase();
+        }
+        return this.doSignupLegacy();
+      },
+      async doSignupWithSupabase(){
+        const email = this.normalizeEmail(this.signup.email);
+        if(!email || !this.signup.password){
+          this.signupStatus = 'Please complete all required fields.'; return;
+        }
+        if(!this.isValidEmail(email)){
+          this.signupStatus = 'Enter a valid email address.'; return;
+        }
+        if(!this.signup.emailCode || this.signup.emailCodeInput !== this.signup.emailCode){
+          this.signupStatus = 'Enter the correct email verification code'; return;
+        }
+        if(this.signup.password.length < 6){
+          this.signupStatus = 'Password must be at least 6 characters.'; return;
+        }
+        if(this.signup.password !== this.signup.password2){
+          this.signupStatus = 'The two passwords do not match.'; return;
+        }
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase){
+          this.signupStatus = 'Supabase is not configured yet. Add js/supabase-config.js first.'; return;
+        }
+        try{
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password: this.signup.password,
+            options: {
+              emailRedirectTo: this.buildJoinRedirectUrl(),
+              data: {
+                nickname: String(this.signup.nickname || '').trim(),
+                role: this.signup.withClubManagement ? 'club_manager' : 'member'
+              }
+            }
+          });
+          if(error){
+            this.signupStatus = this.mapAuthErrorMessage(error, 'Unable to create the account right now.');
+            return;
+          }
+          const resolved = await this.resolveSupabaseUser((data && data.user) || null) || {
+            id: String((data && data.user && data.user.id) || ''),
+            email,
+            nickname: String(this.signup.nickname || '').trim() || email.split('@')[0],
+            role: this.signup.withClubManagement ? 'club_manager' : 'member',
+            isClubManager: !!this.signup.withClubManagement,
+            avatar: '',
+            bio: '',
+            gender: '',
+            phone: '',
+            birthday: '',
+            location: '',
+            hobbies: ''
+          };
+          this.seedLegacyUserRecord(resolved);
+          this.authView = 'login';
+          this.login.email = email;
+          if(data && data.session){
+            this.signupStatus = 'Sign-up successful. You are now signed in.';
+            if(resolved.isClubManager){
+              this.loginCandidate = resolved;
+              this.showSystemPicker = true;
+            }else{
+              this.enterSelectedSystem('user', resolved);
+            }
+            return;
+          }
+          this.signupStatus = 'Account created successfully. Check your email to confirm the account before logging in.';
+        }catch(e){
+          this.signupStatus = 'Unable to create the account right now.';
+        }
+      },
+      doSignupLegacy(){
+        const email = this.normalizeEmail(this.signup.email);
+        if(!email || !this.signup.password){
+          this.signupStatus = 'Please complete all required fields.'; return;
+        }
+        if(!this.isValidEmail(email)){
+          this.signupStatus = 'Enter a valid email address.'; return;
+        }
+        if(!this.signup.emailCode || this.signup.emailCodeInput !== this.signup.emailCode){
+          this.signupStatus = 'Enter the correct email verification code'; return;
+        }
+        if(this.signup.password.length < 6){
+          this.signupStatus = 'Password must be at least 6 characters.'; return;
+        }
+        if(this.signup.password !== this.signup.password2){
+          this.signupStatus = 'The two passwords do not match.'; return;
+        }
+        const users = this.loadAuth();
+        if(users.find(u=>u.email === email)){
+          this.signupStatus = 'This email address is already registered.'; return;
+        }
+          users.push({
+            email: email,
+            nickname: this.signup.nickname,
+            password: this.signup.password,
+            isClubManager: !!this.signup.withClubManagement,
+            createdAt: new Date().toLocaleString(),
+            passwordUpdatedAt: new Date().toISOString()
+          });
+        localStorage.setItem('club_users', JSON.stringify(users));
+        this.signupStatus = this.signup.withClubManagement
+          ? 'Sign-up successful! My Club Dashboard has been enabled. You can choose a dashboard after logging in.'
+          : 'Sign-up successful! Please log in.';
+        this.authView = 'login';
+        this.login.email = email;
+        // Auto-login after signup? User usually expects to login.
+        // For consistency, user will login manually.
+      },
+      forgotPassword(){
+        this.forgotForm = { email:'', captcha:false };
+        this.forgotStatus = '';
+        this.showForgotModal = true;
+      },
+      closeForgotModal(){
+        this.showForgotModal = false;
+      },
+      async submitForgot(){
+        if(this.hasSupabaseConfigured()){
+          return this.submitForgotWithSupabase();
+        }
+        return this.submitForgotLegacy();
+      },
+      async submitForgotWithSupabase(){
+        const email = this.normalizeEmail(this.forgotForm.email);
+        if(!this.isValidEmail(email)){
+          this.forgotStatus = 'Use a valid email address, such as user@example.com.'; return;
+        }
+        if(!this.forgotForm.captcha){
+          this.forgotStatus = 'Complete the human verification first.'; return;
+        }
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase){
+          this.forgotStatus = 'Supabase is not configured yet. Add js/supabase-config.js first.'; return;
+        }
+        try{
+          const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: this.buildJoinRedirectUrl()
+          });
+          if(error){
+            this.forgotStatus = this.mapAuthErrorMessage(error, 'Unable to send the recovery email right now.');
+            return;
+          }
+          this.forgotStatus = 'Recovery email sent. Open the link in your email to set a new password on this page.';
+        }catch(e){
+          this.forgotStatus = 'Unable to send the recovery email right now.';
+        }
+      },
+      submitForgotLegacy(){
+        const email = this.normalizeEmail(this.forgotForm.email);
+        if(!this.isValidEmail(email)){
+          this.forgotStatus = 'Use a valid email address, such as user@example.com.'; return;
+        }
+        if(!this.forgotForm.captcha){
+          this.forgotStatus = 'Complete the human verification first.'; return;
+        }
+        const users = this.loadAuth();
+        if(!users.find(u => u.email === email)){
+          this.forgotStatus = 'This email address is not registered.'; return;
+        }
+        this.forgotStatus = 'A reset link has been prepared for this browser. You can continue the reset flow here.';
+      },
+      closeRecoveryModal(){
+        this.showRecoveryModal = false;
+        this.recoveryStatus = '';
+        this.recoveryForm = { password:'', password2:'' };
+        if(String(location.hash || '').toLowerCase().indexOf('type=recovery') > -1 && history && typeof history.replaceState === 'function'){
+          history.replaceState(null, '', location.pathname + location.search);
+        }
+      },
+      async submitRecoveryPassword(){
+        if(!this.recoveryForm.password || !this.recoveryForm.password2){
+          this.recoveryStatus = 'Please complete both password fields.'; return;
+        }
+        if(this.recoveryForm.password.length < 6){
+          this.recoveryStatus = 'Password must be at least 6 characters.'; return;
+        }
+        if(this.recoveryForm.password !== this.recoveryForm.password2){
+          this.recoveryStatus = 'The two passwords do not match.'; return;
+        }
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase){
+          this.recoveryStatus = 'Supabase is not configured yet. Add js/supabase-config.js first.'; return;
+        }
+        try{
+          const { error } = await supabase.auth.updateUser({
+            password: this.recoveryForm.password
+          });
+          if(error){
+            this.recoveryStatus = this.mapAuthErrorMessage(error, 'Unable to update the password right now.');
+            return;
+          }
+          this.recoveryStatus = 'Password updated successfully.';
+          this.forgotStatus = '';
+          this.showForgotModal = false;
+          const resolved = await this.syncSessionFromSupabase();
+          if(resolved){
+            this.applyResolvedUser(resolved);
+          }
+          window.setTimeout(() => {
+            this.showRecoveryModal = false;
+            this.recoveryStatus = '';
+            this.recoveryForm = { password:'', password2:'' };
+          }, 900);
+        }catch(e){
+          this.recoveryStatus = 'Unable to update the password right now.';
+        }
+      },
+      resetSignup(){
+        this.signup = { nickname:'', favoriteClub:'', email:'', emailCode:'', emailCodeInput:'', password:'', password2:'', withClubManagement:false };
+        this.signupStatus = '';
+      },
+      async onProfileAvatarChange(e){
+        const file = (e && e.target && e.target.files && e.target.files[0]) ? e.target.files[0] : null;
+        if(e && e.target) e.target.value = '';
+        if(!file) return;
+        if(file.size > 2*1024*1024){ alert('Image is too large.'); return; }
+        if(!String(file.type || '').startsWith('image/')){
+          alert('Please select an image file.');
+          return;
+        }
+        const storage = this.getStorageService();
+        if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+          try{
+            const uploaded = await storage.uploadProfileAvatar(file, this.sessionUserId);
+            this.profile.avatar = String(uploaded && uploaded.publicUrl || '').trim();
+            await this.saveProfile({ silent: true });
+            alert('Avatar updated successfully.');
+            return;
+          }catch(err){
+            alert(storage.mapStorageError(err));
+            return;
+          }
+        }
+        const reader = new FileReader();
+        reader.onload = () => { this.profile.avatar = reader.result; };
+        reader.readAsDataURL(file);
+      },
+      async saveProfile(options){
+        const opts = options && typeof options === 'object' ? options : {};
+        const email = this.normalizeEmail(this.sessionEmail);
+        if(!email) return;
+        const role = this.hasClubManagement ? 'club_manager' : 'member';
+        if(this.hasSupabaseConfigured() && this.sessionUserId){
+          const supabase = this.getSupabaseClientSafe();
+          if(supabase){
+            const { error } = await supabase
+              .from('profiles')
+              .upsert({
+                id: this.sessionUserId,
+                email,
+                nickname: String(this.profile.nickname || '').trim() || email.split('@')[0],
+                role,
+                avatar_url: String(this.profile.avatar || '').trim() || null,
+                forum_cover_url: String(this.profile.forumCoverUrl || '').trim() || null,
+                bio: String(this.profile.bio || '').trim() || null,
+                gender: String(this.profile.gender || '').trim() || null,
+                phone: String(this.profile.phone || '').trim() || null,
+                birthday: String(this.profile.birthday || '').trim() || null,
+                location: String(this.profile.location || '').trim() || null,
+                hobbies: String(this.profile.hobbies || '').trim() || null
+              }, { onConflict: 'id' });
+            if(error){
+              alert('Failed to save your profile to Supabase. Please check the profiles table and RLS settings.');
+              return;
+            }
+          }
+        }
+        const legacyUser = this.seedLegacyUserRecord({
+          id: this.sessionUserId,
+          email,
+          nickname: String(this.profile.nickname || '').trim() || email.split('@')[0],
+          role,
+          isClubManager: this.hasClubManagement,
+          avatar: String(this.profile.avatar || '').trim(),
+          forumCoverUrl: String(this.profile.forumCoverUrl || '').trim(),
+          bio: String(this.profile.bio || '').trim(),
+          gender: String(this.profile.gender || '').trim(),
+          phone: String(this.profile.phone || '').trim(),
+          birthday: String(this.profile.birthday || '').trim(),
+          location: String(this.profile.location || '').trim(),
+          hobbies: String(this.profile.hobbies || '').trim()
+        });
+        this.persistCompatSession(this.buildCompatSession(legacyUser || {
+          id: this.sessionUserId,
+          email,
+          nickname: this.profile.nickname,
+          role,
+          isClubManager: this.hasClubManagement
+        }, ((this.readCompatSession() || {}).entrySystem) || 'user'));
+        if(!opts.silent){
+          alert('Saved successfully.');
+        }
+      },
+      
+      sortMyBookingLists(mine){
+        const active = [];
+        const history = [];
+
+        (Array.isArray(mine) ? mine : []).forEach((booking) => {
+          if(this.bookingHasExpired(booking)){
+            history.push(Object.assign({}, booking, {
+              historyStatus: this.bookingHistoryStatusText(booking)
+            }));
+          }else{
+            active.push(booking);
+          }
+        });
+
+        active.sort((a, b) => {
+          const ta = this.getBookingTimestamp(a.dayIso, a.dayLabel, a.slotTime) || 0;
+          const tb = this.getBookingTimestamp(b.dayIso, b.dayLabel, b.slotTime) || 0;
+          return ta - tb;
+        });
+
+        history.sort((a, b) => {
+          const ta = this.getBookingEndTimestamp(a.dayIso, a.dayLabel, a.slotTime) || this.getBookingTimestamp(a.dayIso, a.dayLabel, a.slotTime) || 0;
+          const tb = this.getBookingEndTimestamp(b.dayIso, b.dayLabel, b.slotTime) || this.getBookingTimestamp(b.dayIso, b.dayLabel, b.slotTime) || 0;
+          return tb - ta;
+        });
+
+        this.myBookings = active;
+        this.myBookingHistory = history;
+      },
+      loadMyBookings(){
+        if(this.hasSupabaseConfigured() && this.sessionUserId && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
+          window.clubBookingSupabase.fetchMyBookings(this.sessionUserId, this.sessionEmail)
+            .then((mine) => {
+              this.sortMyBookingLists(mine);
+            })
+            .catch(() => {
+              try {
+                const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
+                const mine = all.filter(b => this.normalizeEmail(b && b.userEmail) === this.normalizeEmail(this.sessionEmail)).slice();
+                this.sortMyBookingLists(mine);
+              } catch(e) {
+                this.myBookings = [];
+                this.myBookingHistory = [];
+              }
+            });
+          return;
+        }
+        try {
+          const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
+          const mine = all
+            .filter(b => this.normalizeEmail(b && b.userEmail) === this.normalizeEmail(this.sessionEmail))
+            .slice();
+          this.sortMyBookingLists(mine);
+        } catch(e) {
+          this.myBookings = [];
+          this.myBookingHistory = [];
+        }
+      },
+      cancelBooking(b){
+        const bookingTime = new Date(b.dayIso + ' ' + b.slotTime.split('-')[0]);
+        const now = new Date();
+        const diffHours = (bookingTime - now) / (1000 * 60 * 60);
+        
+        if(diffHours < 2){
+          alert('Cancellation rule violated: bookings must be cancelled at least 2 hours in advance.');
+          return;
+        }
+
+        if(confirm('Cancel this booking?')){
+          if(this.hasSupabaseConfigured() && b && b.id && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
+            window.clubBookingSupabase.cancelBooking(b.id)
+              .then((updated) => {
+                let all = [];
+                try { all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]'); } catch(e){}
+                const next = Object.assign({}, updated || {}, {
+                  userEmail: this.sessionEmail
+                });
+                const index = all.findIndex(item => String(item && item.id || '') === String(next.id || ''));
+                if(index > -1){
+                  all.splice(index, 1, next);
+                }else{
+                  all.unshift(next);
+                }
+                localStorage.setItem('specialty_bookings_v1', JSON.stringify(all));
+                this.loadMyBookings();
+              })
+              .catch(() => {
+                alert('Unable to cancel this booking in Supabase right now. Please try again.');
+              });
+            return;
+          }
+          let all = [];
+          try { all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]'); } catch(e){}
+          all = all.map(item => {
+            if(item.id !== b.id) return item;
+            return Object.assign({}, item, {
+              status: 'Cancelled',
+              cancelledAt: new Date().toLocaleString()
+            });
+          });
+          localStorage.setItem('specialty_bookings_v1', JSON.stringify(all));
+          this.loadMyBookings();
+        }
+      },
+      
+      loadMyTeachingBookings(){
+        const service = this.getCourseService();
+        if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
+          service.fetchMyTeachingBookings(this.sessionUserId, this.sessionEmail)
+            .then((rows) => {
+              this.myTeachingBookings = this.mergeTeachingBookings(rows, this.loadLocalTeachingBookings());
+            })
+            .catch(() => {
+              this.myTeachingBookings = this.loadLocalTeachingBookings();
+            });
+          return;
+        }
+        this.myTeachingBookings = this.loadLocalTeachingBookings();
+      },
+      cancelTeachingBooking(id){
+         if(confirm('Cancel this course booking?')){
+           const service = this.getCourseService();
+           if(this.hasSupabaseCoursesConfigured() && service){
+             service.cancelCourseBooking(id)
+               .then(() => {
+                 this.removeTeachingBookingLocalCache(id);
+                 this.loadMyTeachingBookings();
+               })
+               .catch(() => {
+                 alert('Unable to cancel this course booking in Supabase right now. Please try again.');
+               });
+             return;
+           }
+           let all = JSON.parse(localStorage.getItem('mfms_teaching_bookings_v1') || '[]');
+           all = all.filter(t => String(t.id) !== String(id));
+           localStorage.setItem('mfms_teaching_bookings_v1', JSON.stringify(all));
+           this.loadMyTeachingBookings();
+         }
+      },
+      setForumTab(tab){
+        this.forumTab = tab;
+        this.closeForumMenus();
+      },
+      closeForumMenus(){
+        this.forumFollowMenuOpen = false;
+        this.forumMoreMenuOpen = false;
+        this.activeForumPostMenuId = null;
+      },
+      openForumPostModal(){
+        this.closeForumMenus();
+        this.showPostModal = true;
+      },
+      refreshMyForumPosts(){
+        this.closeForumMenus();
+        this.loadMyPosts();
+      },
+      handleForumFollowClick(){
+        this.forumMoreMenuOpen = false;
+        if(!this.isFollowingMyForumProfile){
+          this.forumSelfFollowed = true;
+          return;
+        }
+        this.forumFollowMenuOpen = !this.forumFollowMenuOpen;
+      },
+      notifyForumFollowAction(text){
+        this.forumFollowMenuOpen = false;
+        alert(text);
+      },
+      unfollowMyForumProfile(){
+        this.forumSelfFollowed = false;
+        this.forumFollowMenuOpen = false;
+      },
+      toggleForumMoreMenu(){
+        this.forumFollowMenuOpen = false;
+        this.activeForumPostMenuId = null;
+        this.forumMoreMenuOpen = !this.forumMoreMenuOpen;
+      },
+      toggleForumPostMenu(id){
+        const postId = this.normalizeForumId(id);
+        if(!postId) return;
+        this.forumFollowMenuOpen = false;
+        this.forumMoreMenuOpen = false;
+        this.activeForumPostMenuId = this.activeForumPostMenuId === postId ? null : postId;
+      },
+      openForumHome(){
+        this.closeForumMenus();
+        window.location.href = 'spjs.html';
+      },
+      shareMyForumHome(){
+        const url = location.href.split('#')[0];
+        this.closeForumMenus();
+        if(navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+          navigator.clipboard.writeText(url).then(() => {
+            alert('Profile link copied.');
+          }).catch(() => {
+            alert('Please copy the current page link manually.');
+          });
+          return;
+        }
+        alert('Please copy the current page link manually.');
+      },
+      isForumVideoPost(post){
+        const channel = String((post && post.channel) || '').trim();
+        return channel === 'Videos' || channel === 'Video' || !!String((post && post.videoUrl) || '').trim();
+      },
+      sortForumPosts(list, compareFn){
+        return (Array.isArray(list) ? list.slice() : []).sort((a, b) => {
+          const pinDiff = Number(!!(b && b.pinned)) - Number(!!(a && a.pinned));
+          if(pinDiff !== 0) return pinDiff;
+          if(typeof compareFn === 'function') return compareFn(a, b);
+          const ta = this.forumPostSortValue(a);
+          const tb = this.forumPostSortValue(b);
+          return tb - ta;
+        });
+      },
+      forumCommentTreeCount(nodes){
+        if(!Array.isArray(nodes)) return 0;
+        return nodes.reduce((sum, node) => {
+          if(!node) return sum;
+          return sum + 1 + this.forumCommentTreeCount(node.replies);
+        }, 0);
+      },
+      forumCommentCount(post){
+        return this.forumCommentTreeCount(post && post.comments);
+      },
+      forumFlattenCommentTree(nodes, depth){
+        const list = [];
+        const level = Number(depth) || 0;
+        if(!Array.isArray(nodes)) return list;
+        nodes.forEach(node => {
+          if(!node) return;
+          list.push({ node: node, depth: level });
+          list.push(...this.forumFlattenCommentTree(node.replies, level + 1));
+        });
+        return list;
+      },
+      forumCommentRows(post){
+        return this.forumFlattenCommentTree(post && post.comments ? post.comments : [], 0);
+      },
+      forumCommentIndentStyle(depth){
+        if(!(Number(depth) > 0)) return null;
+        return {
+          marginLeft: (Number(depth) * 18) + 'px'
+        };
+      },
+      forumCommentAuthorName(comment){
+        return String((comment && comment.author) || '').trim() || 'Anonymous User';
+      },
+      forumPostPreviewText(post, limit){
+        const max = Number(limit) || 18;
+        const source = String((post && (post.title || post.content)) || '').replace(/\s+/g, ' ').trim();
+        if(!source) return 'No content';
+        return source.length > max ? (source.slice(0, max) + '...') : source;
+      },
+      forumPostAuthorName(post){
+        const author = String((post && post.author) || '').trim();
+        return author || this.forumProfileName;
+      },
+      forumPostAvatarSrc(post){
+        const avatar = String((post && post.avatarUrl) || '').trim();
+        if(avatar) return avatar;
+        return this.isCurrentForumOwnedPost(post) ? this.forumAvatarSrc : '';
+      },
+      forumPostVisibilityText(post){
+        const visibility = String((post && post.visibility) || 'public').trim() || 'public';
+        if(visibility === 'followers') return 'Followers Only';
+        if(visibility === 'friends') return 'Friends Only';
+        if(visibility === 'private') return 'Private';
+        return 'Public';
+      },
+      shareMyForumPost(post){
+        const text = this.forumPostPreviewText(post, 40);
+        const lines = [this.forumPostAuthorName(post), text, String((post && post.time) || '')].filter(Boolean);
+        const payload = lines.join('\n');
+        const fallback = () => {
+          alert('Prepared content for sharing:\n' + payload);
+        };
+        this.closeForumMenus();
+        if(navigator && navigator.clipboard && typeof navigator.clipboard.writeText === 'function'){
+          navigator.clipboard.writeText(payload).then(() => {
+            alert('Shared content copied');
+          }).catch(() => {
+            fallback();
+          });
+          return;
+        }
+        fallback();
+      },
+      updateForumPost(postId, updater){
+        const targetId = this.normalizeForumId(postId);
+        if(!targetId || typeof updater !== 'function') return;
+        let all = [];
+        try{
+          all = JSON.parse(localStorage.getItem('spjs_forum_posts_v1') || '[]');
+        }catch(e){
+          all = [];
+        }
+        const next = all.map(item => {
+          if(this.normalizeForumId(item && item.id) !== targetId) return item;
+          const cloned = Object.assign({}, item);
+          updater(cloned);
+          return cloned;
+        });
+        localStorage.setItem('spjs_forum_posts_v1', JSON.stringify(next));
+        this.loadMyPosts();
+      },
+      async likeForumPost(post){
+        if(!post) return;
+        const service = this.getForumService();
+        if(post.source === 'supabase' && this.hasSupabaseForumConfigured() && service){
+          try{
+            post.likes = await service.likePost(post.id);
+            return;
+          }catch(e){
+            alert(service.mapForumActionError(e));
+            return;
+          }
+        }
+        this.updateForumPost(post.id, item => {
+          item.likes = (Number(item.likes) || 0) + 1;
+        });
+      },
+      openForumMessageComposer(){
+        if(!this.myForumLatestPost) return;
+        this.openForumCommentComposer(this.myForumLatestPost);
+      },
+      async openForumCommentComposer(post){
+        if(!post) return;
+        const text = prompt('Enter your message');
+        const content = String(text || '').trim();
+        if(!content) return;
+        const service = this.getForumService();
+        if(post.source === 'supabase' && this.hasSupabaseForumConfigured() && this.sessionUserId && service){
+          try{
+            const created = await service.createComment(post.id, null, content, '', this.sessionUserId, this.sessionEmail);
+            post.comments = Array.isArray(post.comments) ? post.comments : [];
+            post.comments.unshift(created);
+            return;
+          }catch(e){
+            alert(service.mapForumActionError(e));
+            return;
+          }
+        }
+        this.updateForumPost(post.id, item => {
+          item.comments = Array.isArray(item.comments) ? item.comments.slice() : [];
+          item.comments.unshift({
+            id: String(Date.now()),
+            author: this.forumProfileName || 'User',
+            ownerEmail: this.sessionEmail || '',
+            text: content,
+            time: new Date().toLocaleString(),
+            createdTs: Date.now(),
+            likes: 0,
+            replies: []
+          });
+        });
+      },
+
+      loadMyPosts(){
+         const service = this.getForumService();
+         if(this.hasSupabaseForumConfigured() && this.sessionUserId && service){
+           service.fetchMyPosts(this.sessionUserId, this.sessionEmail)
+             .then((rows) => {
+               this.myPosts = this.mergeMyForumPosts(rows, []);
+               this.closeForumMenus();
+             })
+             .catch(() => {
+               this.myPosts = this.loadLocalMyPosts();
+               this.closeForumMenus();
+             });
+           return;
+         }
+         this.myPosts = this.loadLocalMyPosts();
+         this.closeForumMenus();
+      },
+      async createPost(){
+         const content = String(this.newPost.content || '').trim();
+         const imageUrls = Array.isArray(this.newPost.imageUrls) ? this.newPost.imageUrls.slice() : [];
+         const videoUrl = String(this.newPost.videoUploadUrl || '').trim();
+         if(!content && imageUrls.length === 0 && !videoUrl){
+           alert('Enter content or upload an image or video.'); return;
+         }
+         const title = this.buildForumPostTitle(content, imageUrls, videoUrl);
+         const club = String(this.newPost.club || '').trim() || this.defaultForumPostClub();
+         const type = String(this.newPost.type || '').trim() || 'Tips & Experience';
+         const post = {
+           id: String(Date.now()),
+           title,
+           type,
+           club,
+           content,
+           author: this.forumProfileName || 'User',
+           ownerEmail: this.sessionEmail,
+           time: new Date().toLocaleString(),
+           createdTs: Date.now(),
+           channel: videoUrl ? 'Videos' : 'Community',
+           visibility: 'public',
+           pinned: false,
+           avatarUrl: this.profile.avatar || '',
+           imageUrls,
+           videoUrl,
+           videoName: String(this.newPost.videoUploadName || '').trim(),
+           likes: 0,
+           comments: []
+         };
+         const service = this.getForumService();
+         if(this.hasSupabaseForumConfigured() && this.sessionUserId && service){
+           try{
+             await service.createPost(post, this.sessionUserId, this.sessionEmail);
+           }catch(e){
+             alert(service.mapForumActionError(e));
+             return;
+           }
+         }else{
+           const all = JSON.parse(localStorage.getItem('spjs_forum_posts_v1') || '[]');
+           all.unshift(post);
+           localStorage.setItem('spjs_forum_posts_v1', JSON.stringify(all));
+         }
+         this.showPostModal = false;
+         this.resetForumPostComposer();
+         this.forumTab = 'Posts';
+         this.loadMyPosts();
+         alert('Published successfully.');
+      },
+      async deletePost(id){
+         const postId = this.normalizeForumId(id);
+         if(!postId) return;
+         if(confirm('Delete this post?')){
+           const target = (this.myPosts || []).find(p => this.normalizeForumId(p && p.id) === postId) || null;
+           const service = this.getForumService();
+           if(target && target.source === 'supabase' && this.hasSupabaseForumConfigured() && service){
+             try{
+               await service.deletePost(postId);
+             }catch(e){
+               alert(service.mapForumActionError(e));
+               return;
+             }
+           }else{
+             let all = JSON.parse(localStorage.getItem('spjs_forum_posts_v1') || '[]');
+             all = all.filter(p => this.normalizeForumId(p && p.id) !== postId);
+             localStorage.setItem('spjs_forum_posts_v1', JSON.stringify(all));
+           }
+           this.loadMyPosts();
+         }
+      },
+
+      loadMyFavs(){
+         const service = this.getCourseService();
+         if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
+           service.fetchMyFavorites(this.sessionUserId, this.sessionEmail)
+             .then((rows) => {
+               this.myFavs = this.mergeFavoriteCourses(rows, this.loadLocalFavoriteCourses());
+             })
+             .catch(() => {
+               this.myFavs = this.loadLocalFavoriteCourses();
+             });
+           return;
+         }
+         this.myFavs = this.loadLocalFavoriteCourses();
+      },
+      removeFav(courseId){
+         if(confirm('Remove this favorite?')){
+           const service = this.getCourseService();
+           if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
+             service.removeFavorite(this.sessionUserId, courseId)
+               .then(() => {
+                 this.removeFavoriteLocalCache(courseId);
+                 this.loadMyFavs();
+               })
+               .catch(() => {
+                 alert('Unable to remove this favorite in Supabase right now. Please try again.');
+               });
+             return;
+           }
+           let all = JSON.parse(localStorage.getItem('mfms_fav_courses_v1') || '[]');
+           all = all.filter(f => !(f.ownerEmail === this.sessionEmail && String(f.courseId) === String(courseId)));
+           localStorage.setItem('mfms_fav_courses_v1', JSON.stringify(all));
+           
+           const favKey = 'mfms_favs_v1:' + (this.sessionEmail || 'guest');
+           let ids = JSON.parse(localStorage.getItem(favKey) || '[]');
+           ids = ids.filter(x => String(x) !== String(courseId));
+           localStorage.setItem(favKey, JSON.stringify(ids));
+           
+           this.loadMyFavs();
+         }
+      },
+      formatTime(t){ return t ? t.split('T')[0] : ''; },
+      parseTimeText(text){
+        const ts = Date.parse(text || '');
+        return Number.isNaN(ts) ? 0 : ts;
+      }
+    }
+  })
+</script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

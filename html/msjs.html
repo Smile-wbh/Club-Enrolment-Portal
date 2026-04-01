@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Preview - Club Enrollment Portal</title>
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <link rel="stylesheet" href="../css/msjs.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+</head>
+<body>
+<div id="app">
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a class="active" href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="preview-hero">
+    <div class="container">
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Club Preview Hub</p>
+          <h1>Browse clubs and find the community that matches your interests</h1>
+          <p class="hero-sub">
+            Filter clubs quickly by category, format, and keyword, then jump straight to location, typical times, remaining seats, and the booking entry.
+          </p>
+
+          <div class="hero-actions">
+            <a class="hero-btn primary" href="#club-filters">Start Filtering</a>
+            <a class="hero-btn secondary" href="specialty.html">View Bookings</a>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <strong>{{ openClubCount }}</strong>
+            <span>Open Clubs</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ hotClubCount }}</strong>
+            <span>Popular This Week</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ totalSeats }}</strong>
+            <span>Seats Left This Week</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ todayCourseCount }}</strong>
+            <span>Today's Open Sessions</span>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="filter-section">
+    <div class="container">
+      <div class="filter-card" id="club-filters">
+        <div class="filter-head">
+          <div class="filter-copy">
+            <h2>Filter Clubs</h2>
+            <p>Enter a keyword or choose a category, format, and sort order to update the results instantly.</p>
+          </div>
+
+          <div class="count-badge">Results: {{ filteredClubs.length }}</div>
+        </div>
+
+        <div class="keyword-search">
+          <div class="keyword-search-row">
+            <div class="keyword-history-box">
+              <label class="keyword-input-wrap" for="club-keyword">
+                <span class="keyword-search-icon" aria-hidden="true"></span>
+                <input id="club-keyword" type="text" placeholder="Search clubs, activities, or courses..." v-model.trim="q" autocomplete="off" aria-label="Keyword search" aria-expanded="false" aria-controls="club-search-history" />
+              </label>
+
+              <div class="keyword-history" id="club-search-history" hidden>
+                <div class="keyword-history-head">
+                  <span>Recent Searches</span>
+                  <button class="keyword-history-clear" id="club-search-history-clear" type="button">Clear</button>
+                </div>
+
+                <div class="keyword-history-list" id="club-search-history-list"></div>
+              </div>
+            </div>
+
+            <button class="toolbar-btn primary keyword-search-btn" id="club-keyword-submit" type="button">Search</button>
+          </div>
+        </div>
+
+        <div class="filters-grid">
+          <label class="filter-field">
+            <span>Club Category</span>
+            <select v-model="category">
+              <option value="">All Categories</option>
+              <option value="Sports">Sports</option>
+              <option value="Academic">Academic</option>
+              <option value="Arts">Arts</option>
+              <option value="Social">Social</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Participation Format</span>
+            <select v-model="mode">
+              <option value="">All Formats</option>
+              <option value="In-person">In-person</option>
+              <option value="Online">Online</option>
+              <option value="Hybrid">Hybrid</option>
+            </select>
+          </label>
+
+          <label class="filter-field">
+            <span>Sort By</span>
+            <select v-model="sortBy">
+              <option value="name">Sort by Name</option>
+              <option value="seats">Sort by Remaining Seats</option>
+            </select>
+          </label>
+
+          <div class="filter-actions">
+            <button class="toolbar-btn primary" type="button" @click="scrollToGrid">View Results</button>
+            <button class="toolbar-btn ghost" type="button" @click="resetFilters">Reset Filters</button>
+          </div>
+        </div>
+
+        <div class="quick-pills" aria-label="Quick Categories">
+          <button type="button" class="quick-pill" :class="{ active: category === '' }" @click="category = ''">All</button>
+          <button type="button" class="quick-pill sports" :class="{ active: category === 'Sports' }" @click="category = 'Sports'">Sports</button>
+          <button type="button" class="quick-pill academic" :class="{ active: category === 'Academic' }" @click="category = 'Academic'">Academic</button>
+          <button type="button" class="quick-pill arts" :class="{ active: category === 'Arts' }" @click="category = 'Arts'">Arts</button>
+          <button type="button" class="quick-pill social" :class="{ active: category === 'Social' }" @click="category = 'Social'">Social</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <main class="results-section">
+    <div class="container">
+      <div class="section-head">
+        <div>
+          <h2>Club List</h2>
+          <p>Open the detail page for the full club introduction, or go straight to booking to choose a time slot.</p>
+        </div>
+
+        <a class="section-link" href="specialty.html">Open Booking Center</a>
+      </div>
+
+      <div class="club-grid" id="club-grid" v-if="filteredClubs.length">
+        <article class="club-card" v-for="c in filteredClubs" :key="c.id">
+          <div class="club-cover">
+            <img :src="c.cover" :alt="c.name" />
+            <div class="club-tag">{{ c.category }}</div>
+          </div>
+
+          <div class="club-body">
+            <h3 class="club-name">
+              <span>{{ c.name }}</span>
+              <span class="club-mode">{{ c.mode }}</span>
+            </h3>
+
+            <p class="club-desc">{{ c.desc }}</p>
+
+            <div class="club-tags" v-if="c.tags && c.tags.length">
+              <span class="club-tag-pill" v-for="(t, i) in c.tags.slice(0, 4)" :key="i">{{ t }}</span>
+            </div>
+
+            <div class="club-meta">
+              <div>Location: <span>{{ c.location }}</span></div>
+              <div>Typical Time: <span>{{ c.time }}</span></div>
+              <div>Remaining Seats: <span>{{ c.seats }}</span></div>
+              <div>Fee: <span>{{ c.fee }}</span></div>
+              <div class="meta-links" v-if="c.mapLink || c.onlineLink">
+                <a v-if="c.mapLink" class="meta-link" :href="c.mapLink" target="_blank" rel="noopener">Open Map</a>
+                <a v-if="c.onlineLink" class="meta-link" :href="c.onlineLink" target="_blank" rel="noopener">Open Room</a>
+              </div>
+            </div>
+          </div>
+
+          <div class="club-actions">
+            <a class="action-btn secondary" :href="detailHref(c)">View Details</a>
+            <a class="action-btn primary" :href="'specialty.html?club=' + encodeURIComponent(c.slug)">Book Now</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="empty-state" v-else>
+        <h3>No clubs matched your filters</h3>
+        <p>Try clearing the keyword, switching the category, or restoring all filters to browse again.</p>
+        <button class="toolbar-btn primary" type="button" @click="resetFilters">Restore All Clubs</button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const previewApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        q: '',
+        category: '',
+        mode: '',
+        sortBy: 'name',
+        detailPageSlugs: [
+          'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
+          'basketball', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
+        ],
+        clubs: [
+          {
+            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly training and friendly matches for a range of skill levels, with pitch booking and event sign-up support.',
+            location: 'Stadium A (In-person)',
+            time: 'Tue/Thu 18:00-20:00',
+            seats: 12,
+            fee: '£0 (Free)',
+            cover: '../zp/zq.webp',
+            tags: ['Event Sign-up', 'Training Camp', 'Teamwork']
+          },
+          {
+            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
+            desc: 'Multiple bookable slots with live seat updates, suitable for regular training and campus competitions.',
+            location: 'Indoor Hall B (In-person)',
+            time: 'Mon/Wed 19:00-21:00',
+            seats: 8,
+            fee: '£3/session (Optional)',
+            cover: '../zp/ymq.webp',
+            tags: ['Campus Matches', 'Live Seats', 'Hot Club']
+          },
+          {
+            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
+            desc: 'Stroke and endurance training for beginners through advanced swimmers, with lane-based session booking.',
+            location: 'Aquatics Center (In-person)',
+            time: 'Sat 10:00-12:00',
+            seats: 16,
+            fee: '£2/session',
+            cover: '../zp/yy1.webp',
+            tags: ['Level-based Training', 'Lane Booking', 'Beginner Friendly']
+          },
+          {
+            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
+            desc: 'City rides and weekend long-distance sessions with meet-up details and route plans shared ahead of time.',
+            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
+            time: 'Sun 08:30-11:30',
+            seats: 20,
+            fee: '£0',
+            cover: '../zp/qx.webp',
+            tags: ['Weekend Rides', 'Route Sharing', 'Outdoor Community']
+          },
+          {
+            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
+            desc: 'Learn Web, Python, and AI fundamentals while sharing projects in a beginner-to-advanced online space.',
+            location: 'Online meeting link (Virtual)',
+            time: 'Fri 20:00-21:30',
+            seats: 40,
+            fee: '£0',
+            cover: '../zp/bc.webp',
+            tags: ['Web Development', 'Python', 'Project Practice']
+          },
+          {
+            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
+            desc: 'Doubles training and weekend activities with bookable sessions for members at different levels.',
+            location: 'Tennis Court C (In-person)',
+            time: 'Sat 14:00-16:00',
+            seats: 10,
+            fee: '£2/session',
+            cover: '../zp/wq.webp',
+            tags: ['Doubles Training', 'Weekend Activities', 'Session Booking']
+          },
+          {
+            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
+            desc: 'Instrument exchange, ensemble rehearsals, and performance sign-up with shared sheet music and rehearsal plans online.',
+            location: 'Arts Building 2F / online sharing',
+            time: 'Wed 17:00-18:30',
+            seats: 18,
+            fee: '£0',
+            cover: '../zp/yy.webp',
+            tags: ['Instrument Exchange', 'Ensemble Rehearsal', 'Performance Sign-up']
+          },
+          {
+            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly group runs and campus running events with activity sign-up and training plans.',
+            location: 'Track meeting point (In-person)',
+            time: 'Tue/Fri 07:00-08:00',
+            seats: 30,
+            fee: '£0',
+            cover: '../zp/pb.webp',
+            tags: ['Morning Run Check-in', 'Road Running', 'Training Plan']
+          },
+          {
+            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly practices and campus league sign-up with basic tactical coaching and scrimmages.',
+            location: 'Basketball Court D (In-person)',
+            time: 'Wed/Sat 18:00-20:00',
+            seats: 18,
+            fee: '£0 (Free)',
+            cover: '../zp/hb1.webp',
+            tags: ['League Sign-up', 'Tactical Training', 'Scrimmages']
+          },
+          {
+            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
+            desc: 'Core passing and contact training with support for inter-school competition sign-up and tactical drills.',
+            location: 'Stadium F (In-person)',
+            time: 'Tue/Thu 16:30-18:00',
+            seats: 22,
+            fee: '£0',
+            cover: '../zp/hb3.webp',
+            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training']
+          },
+          {
+            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Team coordination sessions and small-court games with grouped practice and event sign-up.',
+            location: 'Sports Hall G (In-person)',
+            time: 'Mon 18:30-20:00',
+            seats: 16,
+            fee: '£0',
+            cover: '../zp/hb2.webp',
+            tags: ['Team Coordination', 'Grouped Practice', 'Event Sign-up']
+          },
+          {
+            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
+            desc: 'Foundational flexibility and strength training with movement demos and grouped practice for beginner to advanced members.',
+            location: 'Gym Hall H (In-person)',
+            time: 'Fri 17:00-18:30',
+            seats: 14,
+            fee: '£0',
+            cover: '../zp/hb1.webp',
+            tags: ['Flexibility Training', 'Strength Growth', 'Movement Demonstration']
+          }
+        ]
+      };
+    },
+    mounted() {
+      this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
+      this.applyQueryFromUrl();
+      this.refreshRegistryState();
+      window.addEventListener('storage', this.onStorageChange);
+      window.addEventListener('pageshow', this.refreshRegistryState);
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    },
+    beforeDestroy() {
+      window.removeEventListener('storage', this.onStorageChange);
+      window.removeEventListener('pageshow', this.refreshRegistryState);
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    },
+    computed: {
+      filteredClubs() {
+        const q = this.q.toLowerCase();
+        let arr = this.clubs.filter((c) => {
+          const searchText = [
+            c.name,
+            c.desc,
+            c.category,
+            c.mode,
+            c.location,
+            c.time,
+            c.fee,
+            Array.isArray(c.tags) ? c.tags.join(' ') : ''
+          ].join(' ').toLowerCase();
+          const matchQ = !q || searchText.includes(q);
+          const matchCat = !this.category || c.category === this.category;
+          const matchMode = !this.mode || c.mode === this.mode;
+          return matchQ && matchCat && matchMode;
+        });
+
+        if (this.sortBy === 'seats') {
+          arr = arr.slice().sort((a, b) => b.seats - a.seats);
+        } else {
+          arr = arr.slice().sort((a, b) => a.name.localeCompare(b.name, 'en'));
+        }
+        return arr;
+      },
+      totalSeats() {
+        return this.filteredClubs.reduce((sum, club) => sum + (Number(club.seats) || 0), 0);
+      },
+      openClubCount() {
+        return this.filteredClubs.length;
+      },
+      hotClubCount() {
+        const hotClubSlugs = new Set(['badminton', 'programming', 'football', 'tennis']);
+        return this.filteredClubs.filter((club) => {
+          const tags = Array.isArray(club.tags) ? club.tags : [];
+          return hotClubSlugs.has(club.slug) || tags.some((tag) => /hot|featured/i.test(tag));
+        }).length;
+      },
+      todayCourseCount() {
+        const todayLabelsByDay = [
+          ['Sun'],
+          ['Mon'],
+          ['Tue'],
+          ['Wed'],
+          ['Thu'],
+          ['Fri'],
+          ['Sat']
+        ];
+        const todayLabels = todayLabelsByDay[new Date().getDay()] || [];
+
+        return this.filteredClubs.filter((club) => {
+          const timeText = club && club.time ? club.time : '';
+          return todayLabels.some((label) => timeText.includes(label));
+        }).length;
+      },
+      categoryCount() {
+        return new Set(this.clubs.map((club) => club.category)).size;
+      }
+    },
+    methods: {
+      keyRegistry() {
+        return 'club_registry_v1';
+      },
+
+      applyQueryFromUrl() {
+        const params = new URLSearchParams(window.location.search);
+        const q = params.get('q');
+
+        if (q) {
+          this.q = q;
+        }
+      },
+
+      resetFilters() {
+        this.q = '';
+        this.category = '';
+        this.mode = '';
+        this.sortBy = 'name';
+      },
+
+      scrollToGrid() {
+        const grid = document.getElementById('club-grid');
+        if (grid) {
+          grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      },
+
+      hasDetailPage(c) {
+        return !!c && this.detailPageSlugs.includes(c.slug);
+      },
+
+      detailHref(c) {
+        if (this.hasDetailPage(c)) return 'club/' + c.slug + '.html';
+        return 'club_detail.html?club=' + encodeURIComponent(c.slug);
+      },
+
+      loadRegistry() {
+        try {
+          const raw = localStorage.getItem(this.keyRegistry());
+          return raw ? JSON.parse(raw) : [];
+        } catch (e) {
+          return [];
+        }
+      },
+
+      mapRegistryClub(c) {
+        const slots = Array.isArray(c && c.slots) ? c.slots : [];
+        const seats = typeof c.seats === 'number'
+          ? c.seats
+          : slots.reduce((sum, s) => sum + (Number(s && s.capacity) || 0), 0);
+        const time = c && c.time
+          ? c.time
+          : slots.map((s) => s && s.time).filter(Boolean).slice(0, 2).join(' / ') || '—';
+        const cover = c && c.cover ? c.cover : '../zp/zq.webp';
+
+        return {
+          id: 'r-' + (c && c.id ? c.id : Date.now()),
+          slug: c && c.slug ? c.slug : '',
+          name: c && c.name ? c.name : 'Unnamed Club',
+          category: c && c.category ? c.category : 'Sports',
+          mode: c && c.mode ? c.mode : 'In-person',
+          desc: c && c.desc ? c.desc : '',
+          location: c && c.location ? c.location : '—',
+          time,
+          seats,
+          fee: c && c.fee ? c.fee : '£0',
+          cover,
+          heroSub: c && c.heroSub,
+          mapLink: c && c.mapLink,
+          onlineLink: c && c.onlineLink,
+          venueInfo: c && c.venueInfo,
+          whatWeDo: c && c.whatWeDo,
+          audience: c && c.audience,
+          trainingPlan: c && c.trainingPlan,
+          notes: c && c.notes,
+          tags: c && c.tags
+        };
+      },
+
+      refreshRegistryState() {
+        const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []));
+        const reg = this.loadRegistry();
+        const mapped = reg
+          .map((c) => this.mapRegistryClub(c))
+          .filter((c) => c.slug);
+        const seen = new Set();
+        const next = [];
+
+        mapped.concat(base).forEach((club) => {
+          if (!club || !club.slug || seen.has(club.slug)) return;
+          seen.add(club.slug);
+          next.push(club);
+        });
+
+        this.clubs = next;
+      },
+
+      onStorageChange(e) {
+        if (!e || e.key !== this.keyRegistry()) return;
+        this.refreshRegistryState();
+      },
+
+      onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          this.refreshRegistryState();
+        }
+      }
+    }
+  });
+
+  initPreviewSearch(previewApp);
+
+  function initPreviewSearch(app) {
+    const historyBox = document.querySelector('.keyword-history-box');
+    const searchInput = document.getElementById('club-keyword');
+    const searchSubmit = document.getElementById('club-keyword-submit');
+    const searchHistory = document.getElementById('club-search-history');
+    const searchHistoryList = document.getElementById('club-search-history-list');
+    const searchHistoryClear = document.getElementById('club-search-history-clear');
+
+    if (!historyBox || !searchInput || !searchSubmit || !searchHistory || !searchHistoryList) return;
+
+    const SEARCH_HISTORY_KEY = 'club_portal_search_history';
+    const searchRoutes = [
+      { url: 'club/badminton.html', keywords: ['badminton', 'badminton club', 'ymq'] },
+      { url: 'club/tennis.html', keywords: ['tennis', 'tennis club'] },
+      { url: 'club/programming.html', keywords: ['programming', 'programming club', 'web development', 'artificial intelligence', 'coding'] },
+      { url: 'club/swimming.html', keywords: ['swimming', 'swimming club'] },
+      { url: 'club/football.html', keywords: ['football', 'football club'] },
+      { url: 'club/basketball.html', keywords: ['basketball', 'basketball club'] },
+      { url: 'club/volleyball.html', keywords: ['volleyball', 'volleyball club'] },
+      { url: 'club/running.html', keywords: ['running', 'night run', 'running club'] },
+      { url: 'club/cycling.html', keywords: ['cycling', 'cycling club'] },
+      { url: 'club/baseball.html', keywords: ['baseball', 'baseball club'] },
+      { url: 'club/pingpong.html', keywords: ['table tennis', 'ping pong', 'pingpong'] },
+      { url: 'club/music.html', keywords: ['music', 'music club', 'music society'] },
+      { url: 'club/gymnastics.html', keywords: ['gymnastics', 'gymnastics club'] },
+      { url: 'club/pickleball.html', keywords: ['pickleball'] },
+      { url: 'club/rugby.html', keywords: ['rugby', 'rugby club'] },
+      { url: 'club/handball.html', keywords: ['handball', 'handball club'] },
+      { url: 'specialty.html', keywords: ['booking', 'time slot', 'schedule', 'registration', 'session', 'book'] },
+      { url: 'mfms.html', keywords: ['courses', 'teaching', 'tutorials', 'learning', 'course content'] },
+      { url: 'spjs.html', keywords: ['forum', 'community', 'posts', 'discussion'] },
+      { url: 'tzgg.html', keywords: ['support', 'announcements', 'notices', 'reminders', 'messages'] },
+      { url: 'join.html', keywords: ['login', 'sign up', 'user', 'account'] },
+      { url: 'msjs.html', keywords: ['club preview', 'browse clubs', 'club', 'preview'] }
+    ];
+
+    function normalizeText(text) {
+      return (text || '')
+        .toLowerCase()
+        .replace(/\s+/g, '')
+        .replace(/[.,!?;:'"()\-_/\\[\]{}|]/g, '')
+        .replace(/[\uFF0C\u3002\uFF01\uFF1F\u3001\uFF1B\uFF1A\u201C\u201D\u2018\u2019\uFF08\uFF09]/g, '');
+    }
+
+    function getStoredHistory() {
+      try {
+        const rawHistory = localStorage.getItem(SEARCH_HISTORY_KEY);
+        const history = rawHistory ? JSON.parse(rawHistory) : [];
+        return Array.isArray(history) ? history : [];
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function saveStoredHistory(history) {
+      try {
+        localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(history));
+      } catch (error) {
+        return;
+      }
+    }
+
+    function openHistory() {
+      searchHistory.hidden = false;
+      searchInput.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeHistory() {
+      searchHistory.hidden = true;
+      searchInput.setAttribute('aria-expanded', 'false');
+    }
+
+    function resolveSearchTarget(query) {
+      const normalizedQuery = normalizeText(query);
+      let matchedRoute = null;
+
+      searchRoutes.some(function (route) {
+        return route.keywords.some(function (keyword) {
+          const normalizedKeyword = normalizeText(keyword);
+
+          if (normalizedQuery === normalizedKeyword) {
+            matchedRoute = route;
+            return true;
+          }
+
+          return false;
+        });
+      });
+
+      if (!matchedRoute) {
+        searchRoutes.some(function (route) {
+          return route.keywords.some(function (keyword) {
+            const normalizedKeyword = normalizeText(keyword);
+
+            if (normalizedQuery.includes(normalizedKeyword) || normalizedKeyword.includes(normalizedQuery)) {
+              matchedRoute = route;
+              return true;
+            }
+
+            return false;
+          });
+        });
+      }
+
+      return matchedRoute ? matchedRoute.url : 'msjs.html?q=' + encodeURIComponent(query.trim());
+    }
+
+    function pushSearchHistory(query, url) {
+      const normalizedQuery = normalizeText(query);
+      const nextHistory = getStoredHistory().filter(function (item) {
+        return normalizeText(item.query) !== normalizedQuery;
+      });
+
+      nextHistory.unshift({
+        query: query.trim(),
+        url: url
+      });
+
+      saveStoredHistory(nextHistory.slice(0, 8));
+    }
+
+    function renderSearchHistory(filterText) {
+      const normalizedFilter = normalizeText(filterText);
+      const history = getStoredHistory().filter(function (item) {
+        if (!normalizedFilter) return true;
+        return normalizeText(item.query).includes(normalizedFilter);
+      });
+
+      searchHistoryList.innerHTML = '';
+
+      if (!history.length) {
+        const emptyState = document.createElement('div');
+        emptyState.className = 'keyword-history-empty';
+        emptyState.textContent = 'No recent searches';
+        searchHistoryList.appendChild(emptyState);
+        return;
+      }
+
+      history.forEach(function (item) {
+        const historyButton = document.createElement('button');
+        historyButton.type = 'button';
+        historyButton.className = 'keyword-history-item';
+
+        const icon = document.createElement('span');
+        icon.className = 'keyword-history-item-icon';
+        icon.setAttribute('aria-hidden', 'true');
+
+        const text = document.createElement('span');
+        text.className = 'keyword-history-item-text';
+        text.textContent = item.query;
+
+        historyButton.appendChild(icon);
+        historyButton.appendChild(text);
+        historyButton.addEventListener('click', function () {
+          pushSearchHistory(item.query, item.url);
+
+          if (item.url.indexOf('msjs.html') === 0) {
+            const samePageUrl = item.query ? 'msjs.html?q=' + encodeURIComponent(item.query) : 'msjs.html';
+            window.history.replaceState({}, '', samePageUrl);
+            app.q = item.query;
+            closeHistory();
+            app.$nextTick(function () {
+              app.scrollToGrid();
+            });
+            return;
+          }
+
+          window.location.href = item.url;
+        });
+
+        searchHistoryList.appendChild(historyButton);
+      });
+    }
+
+    function runSearch(query) {
+      const trimmedQuery = query.trim();
+
+      if (!trimmedQuery) {
+        renderSearchHistory('');
+        openHistory();
+        searchInput.focus();
+        return;
+      }
+
+      const targetUrl = resolveSearchTarget(trimmedQuery);
+      pushSearchHistory(trimmedQuery, targetUrl);
+
+      if (targetUrl.indexOf('msjs.html') === 0) {
+        const samePageUrl = 'msjs.html?q=' + encodeURIComponent(trimmedQuery);
+        window.history.replaceState({}, '', samePageUrl);
+        app.q = trimmedQuery;
+        closeHistory();
+        app.$nextTick(function () {
+          app.scrollToGrid();
+        });
+        return;
+      }
+
+      window.location.href = targetUrl;
+    }
+
+    searchInput.addEventListener('focus', function () {
+      renderSearchHistory(searchInput.value);
+      openHistory();
+    });
+
+    searchInput.addEventListener('click', function () {
+      renderSearchHistory(searchInput.value);
+      openHistory();
+    });
+
+    searchInput.addEventListener('input', function () {
+      renderSearchHistory(searchInput.value);
+      openHistory();
+    });
+
+    searchInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        runSearch(searchInput.value);
+      }
+
+      if (event.key === 'Escape') {
+        closeHistory();
+      }
+    });
+
+    searchSubmit.addEventListener('click', function () {
+      runSearch(searchInput.value);
+    });
+
+    if (searchHistoryClear) {
+      searchHistoryClear.addEventListener('click', function () {
+        saveStoredHistory([]);
+        renderSearchHistory('');
+        openHistory();
+      });
+    }
+
+    document.addEventListener('click', function (event) {
+      if (!historyBox.contains(event.target) && event.target !== searchSubmit) {
+        closeHistory();
+      }
+    });
+  }
+</script>
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

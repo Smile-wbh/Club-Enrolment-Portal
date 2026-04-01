@@ -1,0 +1,3425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Forum - Club Enrollment Portal</title>
+
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-storage.js?v=20260401-2"></script>
+  <script src="../js/supabase-forum.js"></script>
+  <script src="../js/supabase-support.js"></script>
+  <link rel="stylesheet" href="../css/spjs.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+
+</head>
+
+<body>
+<div id="app" v-cloak>
+
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a class="active" href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="forum-hero">
+    <div class="container">
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Club Forum</p>
+          <h1>Share updates, ask questions, and stay active around courses and events</h1>
+          <p class="hero-sub">
+            Share training tips, recruit for events, upload video posts, and browse trending threads, recent comments, and your posting history here.
+          </p>
+
+          <div class="hero-actions">
+            <a class="hero-btn primary" href="#forum-main">Enter Forum</a>
+            <a class="hero-btn secondary" href="join.html?tab=forum">Open My Forum</a>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <strong>{{ posts.length }}</strong>
+            <span>Total Posts</span>
+          </article>
+          <article class="stat-card">
+            <strong>{{ videoPostCount }}</strong>
+            <span>Video Posts</span>
+          </article>
+          <article class="stat-card">
+            <strong>{{ activeClubCount }}</strong>
+            <span>Active Clubs</span>
+          </article>
+          <article class="stat-card">
+            <strong>{{ totalCommentCount }}</strong>
+            <span>Total Comments</span>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page-head">
+    <div class="container">
+      <div class="forum-layout" id="forum-main">
+        <div class="forum-side">
+          <div class="card forum-sticky-card forum-nav-card">
+            <div class="card-head">
+              <h3>Forum Menu</h3>
+            </div>
+            <div class="card-body">
+              <ul class="side-nav">
+                <li class="active"><a href="spjs.html">All</a></li>
+                <li><a href="spjs.html">Latest Posts</a></li>
+                <li><a href="spjs.html">Following</a></li>
+                <li><a href="spjs.html">Friend Circle</a></li>
+              </ul>
+              <div class="group-head">
+                <div>Custom Groups</div>
+                <button class="group-manage-btn" @click="openGroupManage">Manage</button>
+              </div>
+              <ul class="side-nav" style="margin-top:8px;">
+                <li v-for="g in customGroups" :key="g"><a href="spjs.html">{{ g }}</a></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="forum-main">
+          <template v-if="!isProfileView">
+            <div class="card post-editor">
+              <div class="card-head">
+                <h3>New Post</h3>
+                <span class="pill">Log in required to post</span>
+              </div>
+              <div class="card-body">
+                <div v-if="isAuthed">
+                  <div class="field">
+                    <label>Content</label>
+                    <textarea v-model.trim="newPost.content" placeholder="Share something..."></textarea>
+                  </div>
+                  <div class="upload-grid">
+                    <div class="field media-upload-field image-upload-field">
+                      <label>Image Upload</label>
+                      <label class="upload-dropzone image" for="post-image-upload">
+                        <input id="post-image-upload" class="upload-input" type="file" accept="image/*" multiple @change="handleImageUpload">
+                        <strong>Click to upload images</strong>
+                        <span>Supports JPG / PNG / WebP, up to 3 images, with 1.5 MB recommended per file.</span>
+                      </label>
+                      <div class="upload-tip">Images upload to Supabase Storage when cloud sync is available; otherwise they stay in this browser.</div>
+                      <div class="upload-preview-grid" v-if="(newPost.imageUrls || []).length">
+                        <div class="upload-preview-card" v-for="(img, idx) in newPost.imageUrls" :key="'new-img-' + idx" @click="openImageViewer(img, 'Uploaded image ' + (idx + 1))">
+                          <span class="upload-preview-badge">Image {{ idx + 1 }}</span>
+                          <img :src="img" :alt="'Uploaded image ' + (idx + 1)">
+                          <button class="upload-remove-btn" type="button" @click.stop="removeImage(idx)">Remove</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="field media-upload-field video-upload-field">
+                      <label>Video Upload</label>
+                      <label class="upload-dropzone video" for="post-video-upload">
+                        <input id="post-video-upload" class="upload-input" type="file" accept="video/*" @change="handleVideoUpload">
+                        <strong>Click to upload a video</strong>
+                        <span>Supports MP4 / WebM / Ogg, recommended under 2.5 MB.</span>
+                      </label>
+                      <div class="upload-video-preview" v-if="newPost.videoUploadUrl">
+                        <div class="video-frame-shell social-video-frame">
+                          <video
+                            class="video-frame-media"
+                            playsinline
+                            preload="auto"
+                            :src="newPost.videoUploadUrl"
+                            @loadedmetadata="hydrateMediaFrame($event)"
+                            @loadeddata="hydrateMediaFrame($event)"
+                            @play="syncMediaFrameState($event, true)"
+                            @pause="syncMediaFrameState($event, false)"
+                            @ended="handleMediaFrameEnded($event)"
+                          ></video>
+                          <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                            <span class="video-frame-play">
+                              <span class="video-frame-play-icon" aria-hidden="true"></span>
+                            </span>
+                            <span class="video-frame-copy">Play Video</span>
+                          </button>
+                          <div class="video-frame-meta">
+                            <span class="video-frame-duration">00:00</span>
+                          </div>
+                        </div>
+                        <div class="upload-video-meta">
+                          <span>Your local video is ready and will appear in the post details after publishing.</span>
+                          <button class="upload-inline-btn" type="button" @click="removeVideo">Remove Video</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="form-actions">
+                    <button class="btn primary" @click="publishPost">Publish</button>
+                    <button class="btn ghost" @click="resetPost">Clear</button>
+                  </div>
+                </div>
+                <div v-else class="hint" style="margin-top:0;">
+                  Log in to publish posts.
+                  <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+                    <button class="btn primary" @click="goLogin">Go to Login</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <div>
+                  <h3>Recent Posts</h3>
+                </div>
+                <div class="count-badge">Posts: {{ filteredPosts.length }}</div>
+              </div>
+              <div class="card-body">
+                <div class="post-filters">
+                  <div class="channel-tabs">
+                    <button class="channel-tab" :class="{ active: channelTab === 'All' }" @click="setChannel('All')">All</button>
+                    <button class="channel-tab" :class="{ active: channelTab === 'Video' }" @click="setChannel('Video')">Video</button>
+                    <button class="channel-tab" :class="{ active: channelTab === 'Community' }" @click="setChannel('Community')">Community</button>
+                  </div>
+                  <div class="post-actions">
+                    <button class="btn ghost small" @click="toggleAdvanced">{{ advOpen ? 'Hide Advanced Search' : 'Advanced Search' }}</button>
+                  </div>
+                </div>
+
+                <div class="advanced-search" v-if="advOpen">
+                  <div class="advanced-grid">
+                    <select v-model="type">
+                      <option value="">All Categories</option>
+                      <option value="Question">Question</option>
+                      <option value="Tips & Experience">Tips & Experience</option>
+                      <option value="Event Sign-Up">Event Sign-Up</option>
+                      <option value="Competition Updates">Competition Updates</option>
+                    </select>
+
+                    <select v-model="club">
+                      <option value="">All Clubs</option>
+                      <option value="Badminton">Badminton</option>
+                      <option value="Football">Football</option>
+                      <option value="Swimming">Swimming</option>
+                      <option value="Tennis">Tennis</option>
+                      <option value="Cycling">Cycling</option>
+                      <option value="Programming">Programming</option>
+                      <option value="General">General</option>
+                    </select>
+
+                    <select v-model="sortBy">
+                      <option value="new">Sort: Newest</option>
+                      <option value="hot">Sort: Hottest</option>
+                    </select>
+
+                    <input type="text" v-model.trim="adv.keyword" placeholder="Keywords (title/content)">
+                    <input type="text" v-model.trim="adv.author" placeholder="Author/Nickname">
+                    <input type="date" v-model="adv.startDate">
+                    <input type="date" v-model="adv.endDate">
+                    <input type="number" min="0" v-model.number="adv.minLikes" placeholder="Minimum Likes">
+                    <input type="number" min="0" v-model.number="adv.minComments" placeholder="Minimum Comments">
+                  </div>
+                  <div class="advanced-actions">
+                    <label class="check-inline">
+                      <input type="checkbox" v-model="adv.onlyWithComments">
+                      Only show posts with comments
+                    </label>
+                    <button class="btn ghost" @click="resetAdvanced">Reset</button>
+                  </div>
+                </div>
+
+                <ul class="post-list">
+                  <li class="post-item" v-for="p in filteredPosts" :key="p.id" :id="'post-' + p.id">
+                    <div class="post-card">
+                      <button class="post-avatar" type="button" @click.stop="openUserProfile(displayNameForEntity(p))" :aria-label="'View posts by ' + displayNameForEntity(p)">
+                        <div class="avatar-circle" :class="{ 'has-image': !!avatarSrcFor(p) }">
+                          <img v-if="avatarSrcFor(p)" :src="avatarSrcFor(p)" :alt="displayNameForEntity(p) + '\'s avatar'">
+                          <span v-else>{{ avatarText(displayNameForEntity(p)) }}</span>
+                        </div>
+                      </button>
+                      <div class="post-body">
+                        <div class="post-header">
+                          <div class="post-header-main">
+                            <div class="post-header-top">
+                              <div class="post-user">
+                                <span class="post-name">{{ displayNameForEntity(p) }}</span>
+                              </div>
+                              <div class="post-topbar-actions">
+                                <div v-if="!isMyPost(p)" class="post-follow-wrap" :class="{ 'menu-open': activePostFollowMenuId === p.id }" @mouseleave="closePostFollowMenu">
+                                  <button class="post-follow-trigger" :class="{ followed: isAuthorFollowed(p) }" type="button" @click.stop="handlePostFollowClick(p)" @mouseenter="openPostFollowMenu(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                  <div class="post-follow-menu" v-if="isAuthorFollowed(p)">
+                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Added to close friends')">Add to Close Friends</button>
+                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Group settings opened.')">Group Settings</button>
+                                    <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Note settings opened.')">Note Settings</button>
+                                    <button class="post-follow-menu-item danger" type="button" @click.stop="unfollowAuthorFromPost(p)">Unfollow</button>
+                                  </div>
+                                </div>
+                                <div class="post-menu-wrap" :class="{ open: activePostMenuId === p.id }" @click.stop>
+                                  <button class="post-menu-trigger" type="button" @click.stop="togglePostMenu(p.id)" :aria-expanded="activePostMenuId === p.id ? 'true' : 'false'" aria-label="More post actions">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                      <path d="m7 10 5 5 5-5"></path>
+                                    </svg>
+                                  </button>
+                                  <div class="post-menu-dropdown" v-if="activePostMenuId === p.id">
+                                    <template v-if="isMyPost(p)">
+                                      <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
+                                      <button class="post-menu-item" :class="{ active: !!p.pinned }" type="button" @click.stop="togglePinPost(p)">{{ p.pinned ? 'Unpin' : 'Pin' }}</button>
+                                      <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'followers' }" type="button" @click.stop="setPostVisibility(p, 'followers')">Followers Only</button>
+                                      <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'friends' }" type="button" @click.stop="setPostVisibility(p, 'friends')">Friends Only</button>
+                                      <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'private' }" type="button" @click.stop="setPostVisibility(p, 'private')">Private</button>
+                                      <button class="post-menu-item danger" type="button" @click.stop="deletePost(p)">Delete</button>
+                                    </template>
+                                    <template v-else>
+                                      <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
+                                      <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                      <button class="post-menu-item" type="button" @click.stop="hideAuthorForToday(p)">Hide This User Today</button>
+                                      <button class="post-menu-item" type="button" @click.stop="blockAuthorFromPost(p)">Block This User</button>
+                                      <button class="post-menu-item danger" type="button" @click.stop="reportAuthorFromPost(p)">Report</button>
+                                    </template>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            <div class="post-header-meta">
+                              <div class="post-time">{{ p.time }}</div>
+                              <div class="post-topbar-info" v-if="isMyPost(p) && (((p.visibility || 'public') !== 'public') || p.pinned)">
+                                <span class="post-visibility-chip" v-if="(p.visibility || 'public') !== 'public'">{{ postVisibilityText(p) }}</span>
+                                <span class="post-visibility-chip secondary" v-if="p.pinned">Pinned</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="post-content">
+                          <div class="post-snippet">{{ snippet(p.content) }}</div>
+                          <div class="post-media-strip" v-if="(p.imageUrls || []).length || p.videoUrl">
+                            <div class="post-media-thumb" v-for="(img, idx) in (p.imageUrls || []).slice(0, 3)" :key="'post-' + p.id + '-img-' + idx" @click.stop="openImageViewer(img, displayNameForEntity(p) + '\'s image ' + (idx + 1))">
+                              <img :src="img" :alt="displayNameForEntity(p) + '\'s image preview'">
+                            </div>
+                            <div class="post-media-more" v-if="(p.imageUrls || []).length > 3">+{{ (p.imageUrls || []).length - 3 }}</div>
+                            <div class="post-video-preview" v-if="p.videoUrl" @click.stop>
+                              <div class="video-frame-shell social-video-frame">
+                                <video
+                                  class="video-frame-media"
+                                  playsinline
+                                  preload="auto"
+                                  :src="p.videoUrl"
+                                  @loadedmetadata="hydrateMediaFrame($event)"
+                                  @loadeddata="hydrateMediaFrame($event)"
+                                  @play="syncMediaFrameState($event, true)"
+                                  @pause="syncMediaFrameState($event, false)"
+                                  @ended="handleMediaFrameEnded($event)"
+                                ></video>
+                                <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                                  <span class="video-frame-play">
+                                    <span class="video-frame-play-icon" aria-hidden="true"></span>
+                                  </span>
+                                  <span class="video-frame-copy">Play Video</span>
+                                </button>
+                                <div class="video-frame-meta">
+                                  <span class="video-frame-duration">00:00</span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="post-footer">
+                      <button class="post-action" @click.stop="sharePost(p)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M14 3h7v7"></path>
+                            <path d="M10 14L21 3"></path>
+                            <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                          </svg>
+                        </span>
+                        <span>Share</span>
+                      </button>
+                      <button class="post-action" :class="{ active: activeCommentPostId === p.id }" @click.stop="toggleInlineComments(p.id)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M5 6.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4.5 3v-3H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"></path>
+                          </svg>
+                        </span>
+                        <span>Comments {{ commentCount(p) }}</span>
+                      </button>
+                      <button class="post-action" @click.stop="likePost(p)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M14 9V5.5A2.5 2.5 0 0 0 11.5 3L8 11v9h9.4a2 2 0 0 0 2-1.6l1.2-6.5A2 2 0 0 0 18.7 9H14Z"></path>
+                            <path d="M3 11h5v9H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z"></path>
+                          </svg>
+                        </span>
+                        <span>Likes {{ p.likes }}</span>
+                      </button>
+                    </div>
+                    <div class="inline-comment-panel" v-if="activeCommentPostId === p.id">
+                      <div class="inline-comment-compose" v-if="isAuthed">
+                        <div class="avatar-circle inline-comment-avatar" :class="{ 'has-image': !!sessionAvatarSrc }">
+                          <img v-if="sessionAvatarSrc" :src="sessionAvatarSrc" :alt="sessionDisplayName + '\'s avatar'">
+                          <span v-else>{{ avatarText(sessionDisplayName) }}</span>
+                        </div>
+                        <div class="inline-comment-editor">
+                          <textarea ref="inlineCommentField" class="inline-comment-textarea" v-model.trim="inlineCommentText" placeholder="Write your comment" @input="autoResizeInlineComment"></textarea>
+                          <div class="comment-compose-media" v-if="inlineCommentImageUrl">
+                            <button class="comment-compose-media-card" type="button" @click="openImageViewer(inlineCommentImageUrl, 'Comment image preview')">
+                              <img :src="inlineCommentImageUrl" alt="Comment image preview">
+                            </button>
+                            <button class="comment-compose-media-remove" type="button" @click="removeInlineCommentImage">Remove Image</button>
+                          </div>
+                          <div class="inline-comment-toolbar">
+                            <div class="inline-comment-tools">
+                              <button class="inline-comment-tool" type="button" aria-label="Emoji">
+                                <svg viewBox="0 0 24 24">
+                                  <circle cx="12" cy="12" r="8.5"></circle>
+                                  <path d="M8.5 14.2c.9 1.1 2 1.7 3.5 1.7s2.6-.6 3.5-1.7"></path>
+                                  <path d="M9 10h.01"></path>
+                                  <path d="M15 10h.01"></path>
+                                </svg>
+                              </button>
+                              <label class="inline-comment-tool inline-comment-tool-file" aria-label="Upload image">
+                                <input class="comment-image-input" type="file" accept="image/*" @change="handleInlineCommentImageUpload">
+                                <svg viewBox="0 0 24 24">
+                                  <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                                  <circle cx="9" cy="10" r="1.5"></circle>
+                                  <path d="M20 15l-4.2-4.2a1 1 0 0 0-1.4 0L7 18"></path>
+                                </svg>
+                              </label>
+                              <label class="inline-comment-sync">
+                                <input type="checkbox" v-model="inlineCommentSync">
+                                <span>Share as well</span>
+                              </label>
+                            </div>
+                            <button class="inline-comment-submit" type="button" @click="submitInlineComment">Comment</button>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="inline-comment-login" v-else>
+                        <span>Log in to comment and join the conversation.</span>
+                        <button class="btn primary small" type="button" @click="goLogin">Go to Login</button>
+                      </div>
+                      <div class="inline-comment-sort">
+                        <button class="inline-comment-sort-btn" :class="{ active: inlineCommentSort === 'hot' }" type="button" @click="inlineCommentSort = 'hot'">By Popularity</button>
+                        <button class="inline-comment-sort-btn" :class="{ active: inlineCommentSort === 'time' }" type="button" @click="inlineCommentSort = 'time'">By Time</button>
+                      </div>
+                      <div class="inline-comment-list" v-if="inlineCommentRows(p).length">
+                        <article class="inline-comment-item" v-for="row in inlineCommentRows(p)" :key="'inline-comment-' + p.id + '-' + row.node.id" :class="{ reply: row.depth > 0 }" :style="commentIndentStyle(row.depth)">
+                          <div v-if="row.depth === 0" class="avatar-circle inline-comment-item-avatar" :class="{ 'has-image': !!avatarSrcFor(row.node) }">
+                            <img v-if="avatarSrcFor(row.node)" :src="avatarSrcFor(row.node)" :alt="displayNameForEntity(row.node) + '\'s avatar'">
+                            <span v-else>{{ avatarText(displayNameForEntity(row.node)) }}</span>
+                          </div>
+                          <div v-else class="inline-comment-thread-mark">
+                            <span></span>
+                          </div>
+                          <div class="inline-comment-item-main">
+                            <div class="inline-comment-item-author">{{ displayNameForEntity(row.node) }}</div>
+                            <div class="inline-comment-item-meta">
+                              <span v-if="row.depth > 0 && row.parentAuthor" class="inline-comment-item-parent">Reply to @{{ row.parentAuthor }}</span>
+                              <span>{{ row.node.time || 'Just now' }} · via Club Forum</span>
+                            </div>
+                            <div class="inline-comment-item-text" v-if="row.node.text">{{ row.node.text }}</div>
+                            <button v-if="row.node.imageUrl" class="comment-render-image" type="button" @click.stop="openImageViewer(row.node.imageUrl, displayNameForEntity(row.node) + '\'s comment image')">
+                              <img :src="row.node.imageUrl" :alt="displayNameForEntity(row.node) + '\'s comment image'">
+                            </button>
+                          </div>
+                          <div class="inline-comment-item-actions" :class="{ compact: row.depth > 0 }">
+                            <button v-if="row.depth === 0" class="inline-comment-action" type="button" @click.stop="shareInlineComment(p, row.node)" aria-label="Share comment">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M14 3h7v7"></path>
+                                <path d="M10 14L21 3"></path>
+                                <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                              </svg>
+                            </button>
+                            <button class="inline-comment-action" :class="{ compact: row.depth > 0 }" type="button" @click.stop="openReplyModal(p, row.node)" :aria-label="'Reply to ' + displayNameForEntity(row.node)">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M5 6.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4.5 3v-3H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"></path>
+                              </svg>
+                            </button>
+                            <button class="inline-comment-action" :class="{ compact: row.depth > 0 }" type="button" @click.stop="likeInlineComment(row.node)" :aria-label="'Like comment by ' + displayNameForEntity(row.node)">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M14 9V5.5A2.5 2.5 0 0 0 11.5 3L8 11v9h9.4a2 2 0 0 0 2-1.6l1.2-6.5A2 2 0 0 0 18.7 9H14Z"></path>
+                                <path d="M3 11h5v9H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z"></path>
+                              </svg>
+                              <span>{{ row.node.likes || 0 }}</span>
+                            </button>
+                            <button v-if="canDeleteComment(row.node)" class="inline-comment-action delete" :class="{ compact: row.depth > 0 }" type="button" @click.stop="deleteComment(p, row.node)" aria-label="Delete comment">
+                              <svg viewBox="0 0 24 24">
+                                <path d="M9 5.5h6"></path>
+                                <path d="M4.5 6.5h15"></path>
+                                <path d="M8.5 3.5h7a1 1 0 0 1 1 1v2h-9v-2a1 1 0 0 1 1-1Z"></path>
+                                <path d="M6.8 6.5l.7 11.2a2 2 0 0 0 2 1.8h5a2 2 0 0 0 2-1.8l.7-11.2"></path>
+                                <path d="M10 10v5.5"></path>
+                                <path d="M14 10v5.5"></path>
+                              </svg>
+                            </button>
+                          </div>
+                        </article>
+                      </div>
+                      <div class="hint inline-comment-empty" v-else>No comments yet. Be the first to reply.</div>
+                    </div>
+                  </li>
+                </ul>
+
+                <div v-if="filteredPosts.length === 0" class="hint">
+                  No matching posts yet. Publish the first one.
+                </div>
+
+              </div>
+            </div>
+          </template>
+
+          <template v-else>
+            <div class="card profile-center-card">
+              <div
+                class="profile-hero-banner"
+                :class="{ 'has-cover-image': !!profileCoverSrc, clickable: canEditProfileCover || !!profileCoverSrc, 'is-loading': profileCoverLoading }"
+                :style="profileHeroBannerStyle"
+                :tabindex="(canEditProfileCover || !!profileCoverSrc) ? 0 : -1"
+                :role="(canEditProfileCover || !!profileCoverSrc) ? 'button' : null"
+                @click="openProfileCoverViewer"
+                @keydown.enter.prevent="openProfileCoverViewer"
+                @keydown.space.prevent="openProfileCoverViewer"
+              >
+                <div class="profile-hero-banner-loader" v-if="profileCoverLoading" aria-hidden="true"></div>
+                <div class="profile-hero-banner-head" @click.stop>
+                  <button class="btn ghost small profile-hero-back" type="button" @click="closeUserProfile">Back</button>
+                  <div class="profile-hero-visit">Forum Profile</div>
+                </div>
+              </div>
+              <div class="profile-hero-main">
+                <div class="profile-hero-avatar" :class="{ 'has-image': !!avatarSrcFor(profileUserName) }">
+                  <img v-if="avatarSrcFor(profileUserName)" :src="avatarSrcFor(profileUserName)" :alt="profileUserName + '\'s avatar'">
+                  <span v-else>{{ avatarText(profileUserName) }}</span>
+                </div>
+                <div class="profile-hero-content">
+                  <div class="profile-hero-top">
+                    <div class="profile-hero-copy">
+                      <h3>{{ profileUserName }}</h3>
+                      <div class="profile-center-sub">Active in Club Forum · Most active club {{ profileMainClub }}</div>
+                    </div>
+                    <div class="profile-hero-actions">
+                      <div class="profile-follow-wrap" :class="{ 'menu-open': followMenuOpen }" @mouseleave="followMenuOpen = false">
+                        <button class="profile-hero-action" :class="{ primary: !isFollowingProfile, followed: isFollowingProfile }" type="button" @click="handleFollowClick">
+                          {{ isFollowingProfile ? 'Following' : '+Follow' }}
+                        </button>
+                        <div class="profile-follow-menu" v-if="isFollowingProfile">
+                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Added to close friends')">Add to Close Friends</button>
+                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Group settings opened.')">Group Settings</button>
+                          <button class="profile-follow-menu-item" type="button" @click="notifyFollowAction('Note settings opened.')">Note Settings</button>
+                          <button class="profile-follow-menu-item danger" type="button" @click="unfollowProfile">Unfollow</button>
+                        </div>
+                      </div>
+                      <button class="profile-hero-action" type="button" @click="openProfileMessage">Send Message</button>
+                      <div class="profile-more-wrap" :class="{ 'menu-open': moreMenuOpen }" @mouseleave="moreMenuOpen = false">
+                        <button class="profile-hero-more" type="button" @click="toggleMoreMenu">...</button>
+                        <div class="profile-more-menu">
+                          <button class="profile-more-menu-item" type="button" @click="shareCurrentProfile">Share Profile</button>
+                          <button class="profile-more-menu-item" type="button" @click="notifyMoreAction('Added to blocklist.')">Add to Blocklist</button>
+                          <button class="profile-more-menu-item danger" type="button" @click="notifyMoreAction('Report submitted.')">Report User</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="profile-hero-stats">
+                    <div class="profile-hero-stat"><strong>{{ profilePosts.length }}</strong><span>Posts</span></div>
+                    <div class="profile-hero-stat"><strong>{{ profileVideos.length }}</strong><span>Videos</span></div>
+                    <div class="profile-hero-stat"><strong>{{ profileTotalLikes }}</strong><span>Likes</span></div>
+                    <div class="profile-hero-stat"><strong>{{ profileTotalComments }}</strong><span>Comments</span></div>
+                  </div>
+
+                  <div class="profile-hero-tags">
+                    <span class="profile-highlight-pill" v-if="profileTopPost">Top liked {{ postPreviewText(profileTopPost, 18) }}</span>
+                    <span class="profile-highlight-pill" v-if="profileLatestTime">Latest post {{ profileLatestTime }}</span>
+                  </div>
+
+                  <div class="profile-hero-note">
+                    Latest post: {{ profileLatestPost ? postPreviewText(profileLatestPost, 26) : 'No posts yet' }}
+                  </div>
+                </div>
+              </div>
+              <div class="profile-hero-tabs">
+                <button class="profile-hero-tab" :class="{ active: profileTab === 'Featured' }" type="button" @click="setProfileTab('Featured')">Featured</button>
+                <button class="profile-hero-tab" :class="{ active: profileTab === 'Posts' }" type="button" @click="setProfileTab('Posts')">Posts</button>
+                <button class="profile-hero-tab" :class="{ active: profileTab === 'Video' }" type="button" @click="setProfileTab('Video')">Video</button>
+                <button class="profile-hero-tab" :class="{ active: profileTab === 'Engagement' }" type="button" @click="setProfileTab('Engagement')">Engagement</button>
+                <button class="profile-hero-tab" :class="{ active: profileTab === 'Most Liked' }" type="button" @click="setProfileTab('Most Liked')">Most Liked</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h3>{{ profileSectionTitle }}</h3>
+                <span class="pill">{{ visibleProfilePosts.length }} items</span>
+              </div>
+              <div class="card-body">
+                <div v-if="visibleProfilePosts.length === 0" class="hint profile-center-empty">
+                  No content matches the current filter. Tap Back or switch the tabs above to keep browsing.
+                </div>
+
+                <div v-else class="profile-center-post-list">
+                  <article class="profile-center-post" v-for="p in visibleProfilePosts" :key="p.id">
+                    <div class="profile-center-post-head">
+                      <div class="profile-center-post-user">
+                        <div class="avatar-circle profile-center-mini-avatar" :class="{ 'has-image': !!avatarSrcFor(p) }">
+                          <img v-if="avatarSrcFor(p)" :src="avatarSrcFor(p)" :alt="displayNameForEntity(p) + '\'s avatar'">
+                          <span v-else>{{ avatarText(displayNameForEntity(p)) }}</span>
+                        </div>
+                        <div class="profile-center-post-main">
+                          <div class="profile-center-post-top">
+                            <div class="profile-center-post-author">{{ displayNameForEntity(p) }}</div>
+                            <div class="post-topbar-actions">
+                              <div v-if="!isMyPost(p)" class="post-follow-wrap" :class="{ 'menu-open': activePostFollowMenuId === p.id }" @mouseleave="closePostFollowMenu">
+                                <button class="post-follow-trigger" :class="{ followed: isAuthorFollowed(p) }" type="button" @click.stop="handlePostFollowClick(p)" @mouseenter="openPostFollowMenu(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                <div class="post-follow-menu" v-if="isAuthorFollowed(p)">
+                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Added to close friends')">Add to Close Friends</button>
+                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Group settings opened.')">Group Settings</button>
+                                  <button class="post-follow-menu-item" type="button" @click.stop="notifyPostFollowAction('Note settings opened.')">Note Settings</button>
+                                  <button class="post-follow-menu-item danger" type="button" @click.stop="unfollowAuthorFromPost(p)">Unfollow</button>
+                                </div>
+                              </div>
+                              <div class="post-menu-wrap" :class="{ open: activePostMenuId === p.id }" @click.stop>
+                                <button class="post-menu-trigger" type="button" @click.stop="togglePostMenu(p.id)" :aria-expanded="activePostMenuId === p.id ? 'true' : 'false'" aria-label="More post actions">
+                                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="m7 10 5 5 5-5"></path>
+                                  </svg>
+                                </button>
+                                <div class="post-menu-dropdown" v-if="activePostMenuId === p.id">
+                                  <template v-if="isMyPost(p)">
+                                    <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
+                                    <button class="post-menu-item" :class="{ active: !!p.pinned }" type="button" @click.stop="togglePinPost(p)">{{ p.pinned ? 'Unpin' : 'Pin' }}</button>
+                                    <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'followers' }" type="button" @click.stop="setPostVisibility(p, 'followers')">Followers Only</button>
+                                    <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'friends' }" type="button" @click.stop="setPostVisibility(p, 'friends')">Friends Only</button>
+                                    <button class="post-menu-item" :class="{ active: (p.visibility || 'public') === 'private' }" type="button" @click.stop="setPostVisibility(p, 'private')">Private</button>
+                                    <button class="post-menu-item danger" type="button" @click.stop="deletePost(p)">Delete</button>
+                                  </template>
+                                  <template v-else>
+                                    <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
+                                    <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                    <button class="post-menu-item" type="button" @click.stop="hideAuthorForToday(p)">Hide This User Today</button>
+                                    <button class="post-menu-item" type="button" @click.stop="blockAuthorFromPost(p)">Block This User</button>
+                                    <button class="post-menu-item danger" type="button" @click.stop="reportAuthorFromPost(p)">Report</button>
+                                  </template>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                          <div class="profile-center-post-meta">
+                            <div class="post-time">{{ p.time }}</div>
+                            <div class="post-topbar-info" v-if="isMyPost(p) && (((p.visibility || 'public') !== 'public') || p.pinned)">
+                              <span class="post-visibility-chip" v-if="(p.visibility || 'public') !== 'public'">{{ postVisibilityText(p) }}</span>
+                              <span class="post-visibility-chip secondary" v-if="p.pinned">Pinned</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="profile-center-post-content">{{ p.content }}</div>
+
+                    <div class="detail-gallery" v-if="(p.imageUrls || []).length">
+                      <div class="detail-gallery-item" v-for="(img, idx) in p.imageUrls" :key="'profile-img-' + p.id + '-' + idx" @click="openImageViewer(img, displayNameForEntity(p) + '\'s image ' + (idx + 1))">
+                        <img :src="img" :alt="displayNameForEntity(p) + '\'s image ' + (idx + 1)">
+                      </div>
+                    </div>
+                    <div class="detail-video" v-if="p.channel === 'Video' && p.videoUrl">
+                      <div class="video-frame-shell social-video-frame">
+                        <video
+                          class="video-frame-media"
+                          playsinline
+                          preload="auto"
+                          :src="p.videoUrl"
+                          @loadedmetadata="hydrateMediaFrame($event)"
+                          @loadeddata="hydrateMediaFrame($event)"
+                          @play="syncMediaFrameState($event, true)"
+                          @pause="syncMediaFrameState($event, false)"
+                          @ended="handleMediaFrameEnded($event)"
+                        ></video>
+                        <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                          <span class="video-frame-play">
+                            <span class="video-frame-play-icon" aria-hidden="true"></span>
+                          </span>
+                          <span class="video-frame-copy">Play Video</span>
+                        </button>
+                        <div class="video-frame-meta">
+                          <span class="video-frame-duration">00:00</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="profile-center-post-actions post-footer">
+                      <button class="post-action" @click="sharePost(p)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M14 3h7v7"></path>
+                            <path d="M10 14L21 3"></path>
+                            <path d="M21 14v4a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3h4"></path>
+                          </svg>
+                        </span>
+                        <span>Share</span>
+                      </button>
+                      <button class="post-action" @click="scrollToProfileComments(p.id)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M5 6.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H11l-4.5 3v-3H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z"></path>
+                          </svg>
+                        </span>
+                        <span>Comments {{ commentCount(p) }}</span>
+                      </button>
+                      <button class="post-action" @click="likePost(p)">
+                        <span class="post-action-icon" aria-hidden="true">
+                          <svg viewBox="0 0 24 24">
+                            <path d="M14 9V5.5A2.5 2.5 0 0 0 11.5 3L8 11v9h9.4a2 2 0 0 0 2-1.6l1.2-6.5A2 2 0 0 0 18.7 9H14Z"></path>
+                            <path d="M3 11h5v9H5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z"></path>
+                          </svg>
+                        </span>
+                        <span>Likes {{ p.likes }}</span>
+                      </button>
+                    </div>
+
+                    <div class="profile-center-comment-section" :id="'profile-comments-' + p.id">
+                      <div class="profile-center-comment-title">Comments {{ commentCount(p) }}</div>
+                      <div v-if="commentCount(p) === 0" class="hint profile-center-empty">
+                        No comments yet.
+                      </div>
+                      <div class="comment-item" v-for="row in commentRows(p)" :key="'profile-comment-row-' + p.id + '-' + row.node.id" :class="{ reply: row.depth > 0 }" :style="commentIndentStyle(row.depth)">
+                        <div class="comment-content">
+                          <div class="comment-text" v-if="row.node.text"><strong v-if="row.depth > 0">{{ displayNameForEntity(row.node) }}</strong><span v-if="row.depth > 0">:</span>{{ row.node.text }}</div>
+                          <button v-if="row.node.imageUrl" class="comment-render-image" type="button" @click="openImageViewer(row.node.imageUrl, displayNameForEntity(row.node) + '\'s comment image')">
+                            <img :src="row.node.imageUrl" :alt="displayNameForEntity(row.node) + '\'s comment image'">
+                          </button>
+                        </div>
+                        <div class="comment-meta">
+                          <div>{{ row.depth > 0 ? 'Replier' : 'Commenter' }}: {{ displayNameForEntity(row.node) }}</div>
+                          <div>{{ row.node.time }}</div>
+                          <button v-if="canDeleteComment(row.node)" class="comment-delete-btn" type="button" @click="deleteComment(p, row.node)">Delete</button>
+                        </div>
+                      </div>
+                    </div>
+                  </article>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+
+        <div class="forum-right">
+          <div class="card forum-sticky-card forum-aside-card">
+            <div class="card-head">
+              <h3>Trending Posts</h3>
+              <span class="pill">By Likes</span>
+            </div>
+            <div class="card-body">
+              <div v-if="hotPosts.length === 0" class="hint" style="margin-top:0;">No trending posts yet.</div>
+              <ol class="hot-list" v-else>
+                <li class="hot-item" v-for="(p, idx) in visibleHotPosts" :key="p.id" @click="openPost(p.id)">
+                  <span class="hot-rank" :class="idx < 3 ? 'top' : ''">{{ idx + 1 }}</span>
+                  <div class="hot-info">
+                    <div class="hot-title">{{ postPreviewText(p, 24) }}</div>
+                    <div class="hot-meta">👍 {{ p.likes }} · Comments {{ commentCount(p) }}</div>
+                  </div>
+                </li>
+              </ol>
+              <div class="hot-actions" v-if="hotPosts.length > 10">
+                <button class="btn ghost" @click="toggleHotList">{{ showAllHot ? 'Collapse Ranking' : 'View Full Ranking' }}</button>
+              </div>
+              <div class="aside-section-divider"></div>
+              <div class="aside-subhead">
+                <h4>Recent Comments</h4>
+                <span class="pill gray">Latest 8</span>
+              </div>
+              <div v-if="recentComments.length === 0" class="hint" style="margin-top:0;">No recent comments.</div>
+              <ul class="recent-comment-list" v-else>
+                <li class="recent-comment-item" v-for="c in recentComments" :key="c.id" @click="openPost(c.postId)">
+                  <div class="recent-comment-text">{{ snippet(c.text, 60) }}</div>
+                  <div class="recent-comment-meta">
+                    <span>{{ c.author }}</span>
+                    <span>{{ c.postPreview }}</span>
+                  </div>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  
+  <div class="modal-mask" v-if="showModal" @click.self="closeModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Post Details</h3>
+        <div class="close-x" @click="closeModal">Close</div>
+      </div>
+
+      <div class="modal-body" v-if="current">
+        
+        <div class="detail-box">
+          <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+            <span class="pill gray">Author: {{ displayNameForEntity(current) }}</span>
+            <span class="pill gray">{{ current.time }}</span>
+          </div>
+
+          <div class="detail-gallery" v-if="(current.imageUrls || []).length">
+            <div class="detail-gallery-item" v-for="(img, idx) in current.imageUrls" :key="'detail-img-' + current.id + '-' + idx" @click="openImageViewer(img, displayNameForEntity(current) + '\'s image ' + (idx + 1))">
+              <img :src="img" :alt="displayNameForEntity(current) + '\'s image ' + (idx + 1)">
+            </div>
+          </div>
+          <div class="detail-video" v-if="current.channel === 'Video' && current.videoUrl">
+            <div class="video-frame-shell social-video-frame">
+              <video
+                class="video-frame-media"
+                playsinline
+                preload="auto"
+                :src="current.videoUrl"
+                @loadedmetadata="hydrateMediaFrame($event)"
+                @loadeddata="hydrateMediaFrame($event)"
+                @play="syncMediaFrameState($event, true)"
+                @pause="syncMediaFrameState($event, false)"
+                @ended="handleMediaFrameEnded($event)"
+              ></video>
+              <button class="video-frame-overlay" type="button" @click.stop="playMediaFrame($event)" aria-label="Play video">
+                <span class="video-frame-play">
+                  <span class="video-frame-play-icon" aria-hidden="true"></span>
+                </span>
+                <span class="video-frame-copy">Play Video</span>
+              </button>
+              <div class="video-frame-meta">
+                <span class="video-frame-duration">00:00</span>
+              </div>
+            </div>
+          </div>
+          <p class="detail-text">{{ current.content }}</p>
+
+          <div class="detail-actions">
+            <button class="btn primary small" @click="likeCurrent">👍 Like ({{ current.likes }})</button>
+            <button v-if="canDeletePost(current)" class="btn ghost small" @click="deleteCurrent">Delete Post</button>
+          </div>
+
+        </div>
+
+        
+        <div class="comment-box">
+          <h4>Comments ({{ commentCount(current) }})</h4>
+
+          <div v-if="commentCount(current) === 0" class="hint" style="margin-top:0;">
+            No comments yet. You can post the first one below.
+          </div>
+
+          <div class="comment-item" v-for="row in commentRows(current)" :key="'detail-comment-row-' + current.id + '-' + row.node.id" :class="{ reply: row.depth > 0 }" :style="commentIndentStyle(row.depth)">
+            <div class="comment-content">
+              <div class="comment-text" v-if="row.node.text"><strong v-if="row.depth > 0">{{ displayNameForEntity(row.node) }}</strong><span v-if="row.depth > 0">:</span>{{ row.node.text }}</div>
+              <button v-if="row.node.imageUrl" class="comment-render-image" type="button" @click="openImageViewer(row.node.imageUrl, displayNameForEntity(row.node) + '\'s comment image')">
+                <img :src="row.node.imageUrl" :alt="displayNameForEntity(row.node) + '\'s comment image'">
+              </button>
+            </div>
+            <div class="comment-meta">
+              <div>{{ row.depth > 0 ? 'Replier' : 'Commenter' }}: {{ displayNameForEntity(row.node) }}</div>
+              <div>{{ row.node.time }}</div>
+              <button v-if="canDeleteComment(row.node)" class="comment-delete-btn" type="button" @click="deleteComment(current, row.node)">Delete</button>
+            </div>
+          </div>
+
+          <div class="comment-form" v-if="isAuthed">
+            <input type="text" v-model.trim="comment.author" placeholder="Display name (optional)">
+            <textarea v-model.trim="comment.text" placeholder="Write your comment..."></textarea>
+            <button class="btn success" @click="addComment">Post Comment</button>
+          </div>
+          <div v-else class="hint" style="margin-top:10px;">
+            You need to log in before posting comments.
+            <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+              <button class="btn primary" @click="goLogin">Go to Login</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="modal-body" v-else>
+        <div class="hint">Post data not found.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask group-modal" v-if="showGroupManage" @click.self="closeGroupManage">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Manage Custom Groups</h3>
+        <div class="close-x" @click="closeGroupManage">Close</div>
+      </div>
+      <div class="modal-body">
+        <div class="group-modal-desc">Click a group to edit its name, remove it, or add a new one.</div>
+        <div class="group-chip-list">
+          <div class="group-chip" v-for="(g, idx) in customGroups" :key="g + '_' + idx">
+            <input class="group-chip-input" type="text" v-model.trim="customGroups[idx]">
+            <button class="group-chip-close" @click="removeGroup(idx)">×</button>
+          </div>
+          <div class="group-chip add">
+            <input class="group-chip-input" type="text" v-model.trim="newGroupName" placeholder="New Group">
+            <button class="group-chip-add" @click="addGroup">＋</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask image-viewer-mask" v-if="showImageViewer" @click.self="closeImageViewer">
+    <div class="image-viewer-shell">
+      <button class="image-viewer-close" type="button" @click="closeImageViewer">Close</button>
+      <img :src="imageViewerSrc" :alt="imageViewerAlt">
+      <div class="image-viewer-footer" :class="{ 'with-action': imageViewerContext === 'profile-cover' && canEditProfileCover }">
+        <div class="image-viewer-caption" v-if="imageViewerAlt">{{ imageViewerAlt }}</div>
+        <label class="image-viewer-action" v-if="imageViewerContext === 'profile-cover' && canEditProfileCover">
+          <input class="comment-image-input" type="file" accept="image/*" @change="handleProfileCoverUpload">
+          <span>Change Cover</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask reply-modal-mask" v-if="showReplyModal" @click.self="closeReplyModal">
+    <div class="reply-modal-card">
+      <div class="reply-modal-head">
+        <h3>Reply to @{{ replyTargetAuthor }}</h3>
+        <button class="reply-modal-close" type="button" @click="closeReplyModal" aria-label="Close reply modal">×</button>
+      </div>
+      <div class="reply-modal-body">
+        <textarea ref="replyModalField" class="reply-modal-textarea" v-model.trim="replyModalText" placeholder="Write your reply" @input="autoResizeReplyModal"></textarea>
+        <div class="comment-compose-media" v-if="replyModalImageUrl">
+          <button class="comment-compose-media-card" type="button" @click="openImageViewer(replyModalImageUrl, 'Reply image preview')">
+            <img :src="replyModalImageUrl" alt="Reply image preview">
+          </button>
+          <button class="comment-compose-media-remove" type="button" @click="removeReplyModalImage">Remove Image</button>
+        </div>
+        <div class="reply-modal-toolbar">
+          <div class="reply-modal-tools">
+            <button class="reply-modal-tool" type="button" aria-label="Emoji">
+              <svg viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="8.5"></circle>
+                <path d="M8.5 14.2c.9 1.1 2 1.7 3.5 1.7s2.6-.6 3.5-1.7"></path>
+                <path d="M9 10h.01"></path>
+                <path d="M15 10h.01"></path>
+              </svg>
+            </button>
+            <label class="reply-modal-tool reply-modal-tool-file" aria-label="Upload image">
+              <input class="comment-image-input" type="file" accept="image/*" @change="handleReplyModalImageUpload">
+              <svg viewBox="0 0 24 24">
+                <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                <circle cx="9" cy="10" r="1.5"></circle>
+                <path d="M20 15l-4.2-4.2a1 1 0 0 0-1.4 0L7 18"></path>
+              </svg>
+            </label>
+            <label class="reply-modal-sync">
+              <input type="checkbox" v-model="replyModalSync">
+              <span>Share as well</span>
+            </label>
+          </div>
+          <button class="reply-modal-submit" type="button" @click="submitReplyModal">Reply</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-mask comment-delete-mask" v-if="showDeleteCommentModal" @click.self="closeDeleteCommentModal">
+    <div class="comment-delete-dialog">
+      <div class="comment-delete-title">Delete this comment?</div>
+      <div class="comment-delete-actions">
+        <button class="comment-delete-btn-secondary" type="button" @click="closeDeleteCommentModal">Cancel</button>
+        <button class="comment-delete-btn-primary" type="button" @click="confirmDeleteComment">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+
+</div>
+
+<script>
+  new Vue({
+    el:'#app',
+    data(){
+      return{
+        q:'',
+        type:'',
+        club:'',
+        sortBy:'new',
+        channelTab:'All',
+        showModal:false,
+        showGroupManage:false,
+        profileUserName:'',
+        profileTab:'Posts',
+        followMenuOpen:false,
+        activePostFollowMenuId:null,
+        moreMenuOpen:false,
+        activePostMenuId:null,
+        currentId:null,
+        showImageViewer:false,
+        imageViewerSrc:'',
+        imageViewerAlt:'',
+        imageViewerContext:'',
+        showReplyModal:false,
+        replyTargetPostId:null,
+        replyTargetCommentId:null,
+        replyTargetAuthor:'',
+        replyModalText:'',
+        replyModalImageUrl:'',
+        replyModalSync:false,
+        showDeleteCommentModal:false,
+        deleteTargetPostId:null,
+        deleteTargetCommentId:null,
+        activeCommentPostId:null,
+        inlineCommentText:'',
+        inlineCommentImageUrl:'',
+        inlineCommentSync:false,
+        inlineCommentSort:'hot',
+        comment:{ author:'', text:'' },
+        newPost:{ channel:'Community', type:'Question', club:'General', content:'', videoUploadUrl:'', videoUploadName:'', imageUrls:[] },
+        showAllHot:false,
+        advOpen:false,
+        adv:{
+          keyword:'',
+          author:'',
+          startDate:'',
+          endDate:'',
+          minLikes:'',
+          minComments:'',
+          onlyWithComments:false
+        },
+
+        sessionEmail:'',
+        sessionUserId:'',
+        sessionTime:'',
+        sessionNickname:'',
+        sessionAvatar:'',
+        useSupabaseForum:false,
+        forumSyncError:'',
+        userProfiles:[],
+        profileCoverMap:{},
+        profileRemoteCoverUrl:'',
+        profileRemoteCoverFor:'',
+        profileCoverLoading:false,
+        profileSummaryRequestId:0,
+        customGroups:['Colleagues','Classmates'],
+        newGroupName:'',
+        followedAuthors:[],
+        hiddenTodayAuthors:[],
+        blockedAuthors:[],
+        posts:[]
+      }
+    },
+    computed:{
+      isAuthed(){
+        return !!this.sessionEmail;
+      },
+      isProfileView(){
+        return !!String(this.profileUserName || '').trim();
+      },
+      canEditProfileCover(){
+        if(!this.isAuthed || !this.isProfileView) return false;
+        const profileName = String(this.profileUserName || '').trim().toLowerCase();
+        if(!profileName) return false;
+        const aliases = [
+          this.sessionDisplayName,
+          this.sessionEmail
+        ];
+        const me = this.findUserByEmail(this.sessionEmail);
+        if(me){
+          aliases.push(me.nickname, me.email);
+        }
+        return aliases.map(value => String(value || '').trim().toLowerCase()).filter(Boolean).includes(profileName);
+      },
+      isFollowingProfile(){
+        const name = String(this.profileUserName || '').trim();
+        return !!name && this.followedAuthors.includes(name);
+      },
+      sessionDisplayName(){
+        const nickname = String(this.sessionNickname || '').trim();
+        if(nickname) return nickname;
+        const email = String(this.sessionEmail || '').trim();
+        if(!email) return 'Me';
+        return email.split('@')[0] || email;
+      },
+      sessionAvatarSrc(){
+        return this.avatarSrcFor({ ownerEmail: this.sessionEmail, author: this.sessionDisplayName, avatarUrl: this.sessionAvatar });
+      },
+      profileCoverSrc(){
+        const activeProfile = String(this.profileUserName || '').trim().toLowerCase();
+        const remoteProfile = String(this.profileRemoteCoverFor || '').trim().toLowerCase();
+        const remote = activeProfile && remoteProfile === activeProfile ? String(this.profileRemoteCoverUrl || '').trim() : '';
+        if(remote) return remote;
+        const fromUser = this.findUserByName(this.profileUserName);
+        if(fromUser && fromUser.forumCoverUrl) return String(fromUser.forumCoverUrl).trim();
+        const key = this.profileCoverStorageKey(this.profileUserName);
+        if(!key) return '';
+        return String((this.profileCoverMap && this.profileCoverMap[key]) || '').trim();
+      },
+      profileHeroBannerStyle(){
+        const src = String(this.profileCoverSrc || '').trim();
+        if(!src) return null;
+        return {
+          '--profile-cover-image': 'url("' + src.replace(/"/g, '\\"') + '")'
+        };
+      },
+      profileCoverViewerSrc(){
+        const src = String(this.profileCoverSrc || '').trim();
+        if(src) return src;
+        return this.canEditProfileCover ? this.profileCoverPlaceholderSrc() : '';
+      },
+      baseVisiblePosts(){
+        return (this.posts || []).filter(p=>this.canViewPost(p));
+      },
+      filteredPosts(){
+        const q = (this.q||'').toLowerCase();
+        const adv = this.adv || {};
+        const advKeyword = (adv.keyword || '').toLowerCase();
+        const advAuthor = (adv.author || '').toLowerCase();
+        const startTs = adv.startDate ? new Date(adv.startDate).setHours(0,0,0,0) : null;
+        const endTs = adv.endDate ? new Date(adv.endDate).setHours(23,59,59,999) : null;
+        const minLikes = Number.isFinite(Number(adv.minLikes)) && adv.minLikes !== '' ? Number(adv.minLikes) : null;
+        const minComments = Number.isFinite(Number(adv.minComments)) && adv.minComments !== '' ? Number(adv.minComments) : null;
+        let arr = this.baseVisiblePosts.filter(p=>{
+          const channel = p.channel || 'Community';
+          const searchableText = [p.content, p.club, p.type, this.displayNameForEntity(p)].filter(Boolean).join(' ').toLowerCase();
+          const matchQ = !q || searchableText.includes(q);
+          const matchType = !this.type || p.type === this.type;
+          const matchClub = !this.club || p.club === this.club;
+          const matchChannel = this.channelTab === 'All' || channel === this.channelTab;
+          const fullText = searchableText;
+          const matchAdvKeyword = !advKeyword || fullText.includes(advKeyword);
+          const matchAuthor = !advAuthor || this.displayNameForEntity(p).toLowerCase().includes(advAuthor);
+          const likesOk = minLikes === null || (Number(p.likes) || 0) >= minLikes;
+          const commentsCount = this.commentCount(p);
+          const commentsOk = minComments === null || commentsCount >= minComments;
+          const onlyWithCommentsOk = !adv.onlyWithComments || commentsCount > 0;
+          if(startTs || endTs){
+            const ts = this.parseTime(p.time);
+            if(startTs && (!ts || ts < startTs)) return false;
+            if(endTs && (!ts || ts > endTs)) return false;
+          }
+          return matchQ && matchType && matchClub && matchChannel && matchAdvKeyword && matchAuthor && likesOk && commentsOk && onlyWithCommentsOk;
+        });
+
+        if(this.sortBy === 'hot'){
+          arr = this.sortPostsByPriority(arr, (a,b)=> (b.likes + this.commentCount(b)) - (a.likes + this.commentCount(a)));
+        }else{
+          arr = this.sortPostsByPriority(arr, (a,b)=> this.postSortValue(b) - this.postSortValue(a));
+        }
+        return arr;
+      },
+      hotPosts(){
+        return this.baseVisiblePosts.slice().sort((a,b)=>{
+          const diff = (b.likes || 0) - (a.likes || 0);
+          return diff !== 0 ? diff : (this.postSortValue(b) - this.postSortValue(a));
+        });
+      },
+      visibleHotPosts(){
+        return this.showAllHot ? this.hotPosts : this.hotPosts.slice(0, 10);
+      },
+      videoPostCount(){
+        return this.baseVisiblePosts.filter(p => (p.channel || 'Community') === 'Video').length;
+      },
+      activeClubCount(){
+        return new Set(this.baseVisiblePosts.map(p => String(p.club || '').trim()).filter(Boolean)).size;
+      },
+      totalCommentCount(){
+        return this.baseVisiblePosts.reduce((sum, p) => sum + this.commentCount(p), 0);
+      },
+      recentComments(){
+        const list = [];
+        this.baseVisiblePosts.forEach(p=>{
+          this.collectPostComments(p).forEach(c=> list.push(c));
+        });
+        return list.sort((a,b)=> this.commentSortValue(b) - this.commentSortValue(a)).slice(0, 8);
+      },
+      profilePosts(){
+        const name = String(this.profileUserName || '').trim();
+        if(!name) return [];
+        return this.baseVisiblePosts.filter(p=>this.displayNameForEntity(p) === name).slice().sort((a,b)=> this.postSortValue(b) - this.postSortValue(a));
+      },
+      profileVideos(){
+        return this.profilePosts.filter(p=>p.channel === 'Video');
+      },
+      profileLatestPost(){
+        return this.profilePosts.length > 0 ? this.profilePosts[0] : null;
+      },
+      profileMessageTarget(){
+        const latestPost = this.profileLatestPost || null;
+        const ownerId = latestPost ? this.normalizeId(latestPost.ownerId) : '';
+        const ownerEmail = latestPost ? String(latestPost.ownerEmail || '').trim() : '';
+        const latestAuthor = latestPost ? String(latestPost.author || '').trim() : '';
+        const fromEmail = ownerEmail ? this.findUserByEmail(ownerEmail) : null;
+        if(fromEmail){
+          return {
+            userId: ownerId,
+            email: fromEmail.email || ownerEmail,
+            nickname: fromEmail.nickname || latestAuthor || String(this.profileUserName || '').trim()
+          };
+        }
+        const profileName = String(this.profileUserName || '').trim();
+        const fromName = profileName ? this.findUserByName(profileName) : null;
+        if(fromName){
+          return {
+            userId: ownerId,
+            email: fromName.email || ownerEmail,
+            nickname: fromName.nickname || profileName
+          };
+        }
+        return {
+          userId: ownerId,
+          email: ownerEmail,
+          nickname: profileName || latestAuthor
+        };
+      },
+      profileMessageTargetId(){
+        const target = this.profileMessageTarget || {};
+        return this.normalizeId(target.userId || '');
+      },
+      profileMessageTargetName(){
+        const target = this.profileMessageTarget || {};
+        return String(target.nickname || this.profileUserName || '').trim();
+      },
+      profileMessageTargetEmail(){
+        const target = this.profileMessageTarget || {};
+        return String(target.email || '').trim();
+      },
+        canLeaveProfileMessage(){
+          const targetId = this.normalizeId(this.profileMessageTargetId || '');
+          if(!this.isAuthed) return false;
+          const targetName = String(this.profileMessageTargetName || '').trim();
+          const targetEmail = String(this.profileMessageTargetEmail || '').trim().toLowerCase();
+          const sessionUserId = this.normalizeId(this.sessionUserId || '');
+          const sessionEmail = String(this.sessionEmail || '').trim().toLowerCase();
+          const sessionName = String(this.sessionDisplayName || '').trim().toLowerCase();
+          if(targetId && sessionUserId && targetId === sessionUserId) return false;
+          if(!targetName && !targetEmail) return false;
+          if(targetEmail && sessionEmail && targetEmail === sessionEmail) return false;
+          if(!targetEmail && targetName && sessionName && targetName.toLowerCase() === sessionName) return false;
+          if(!this.profileTargetAllowsMessages()) return false;
+          return true;
+        },
+      profileTotalLikes(){
+        return this.profilePosts.reduce((sum, p)=> sum + (Number(p.likes) || 0), 0);
+      },
+      profileTotalComments(){
+        return this.profilePosts.reduce((sum, p)=> sum + this.commentCount(p), 0);
+      },
+      profileLatestTime(){
+        return this.profilePosts.length > 0 ? String(this.profilePosts[0].time || '') : '';
+      },
+      profileMainClub(){
+        const counter = {};
+        this.profilePosts.forEach(p=>{
+          const club = String(p.club || 'General').trim() || 'General';
+          counter[club] = (counter[club] || 0) + 1;
+        });
+        const clubs = Object.keys(counter);
+        if(clubs.length === 0) return 'General';
+        return clubs.sort((a, b)=> counter[b] - counter[a])[0];
+      },
+      profileTopPost(){
+        if(this.profilePosts.length === 0) return null;
+        return this.profilePosts.slice().sort((a, b)=>{
+          const scoreA = (Number(a.likes) || 0) + this.commentCount(a);
+          const scoreB = (Number(b.likes) || 0) + this.commentCount(b);
+          return scoreB - scoreA;
+        })[0];
+      },
+      visibleProfilePosts(){
+        const posts = this.profilePosts.slice();
+        if(this.profileTab === 'Featured'){
+          return this.sortPostsByPriority(posts, (a, b)=>{
+            const scoreA = (Number(a.likes) || 0) + this.commentCount(a) * 2;
+            const scoreB = (Number(b.likes) || 0) + this.commentCount(b) * 2;
+            return scoreB - scoreA;
+          }).slice(0, 3);
+        }
+        if(this.profileTab === 'Video'){
+          return this.sortPostsByPriority(posts.filter(p=>p.channel === 'Video'));
+        }
+        if(this.profileTab === 'Engagement'){
+          return this.sortPostsByPriority(posts.filter(p=>this.commentCount(p) > 0));
+        }
+        if(this.profileTab === 'Most Liked'){
+          return this.sortPostsByPriority(posts, (a, b)=>(Number(b.likes) || 0) - (Number(a.likes) || 0));
+        }
+        return this.sortPostsByPriority(posts);
+      },
+      profileSectionTitle(){
+        if(this.profileTab === 'Featured') return 'Featured';
+        if(this.profileTab === 'Video') return 'Videos';
+        if(this.profileTab === 'Engagement') return 'Discussions';
+        if(this.profileTab === 'Most Liked') return 'Most Liked';
+        return 'All Posts';
+      },
+      current(){
+        const currentId = this.normalizeId(this.currentId);
+        return this.posts.find(p=>this.normalizeId(p && p.id) === currentId) || null;
+      }
+    },
+    async mounted(){
+      this.loadSession();
+      this.loadProfileCoverState();
+      await this.loadForumData();
+
+      this.loadFollowState();
+      this.loadHiddenTodayState();
+      this.loadBlockedAuthors();
+      this.syncProfileFromUrl();
+      await this.syncActiveProfileSummary();
+      window.addEventListener('popstate', this.handlePopState);
+      window.addEventListener('click', this.handleWindowClick);
+    },
+    beforeDestroy(){
+      window.removeEventListener('popstate', this.handlePopState);
+      window.removeEventListener('click', this.handleWindowClick);
+    },
+      methods:{
+        getForumService(){
+          return window.clubForumSupabase || null;
+        },
+        hasSupabaseForum(){
+          const service = this.getForumService();
+          return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+        },
+        getStorageService(){
+          return window.clubStorageSupabase || null;
+        },
+        hasSupabaseStorageConfigured(){
+          const service = this.getStorageService();
+          return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+        },
+        getSupportService(){
+          return window.clubSupportSupabase || null;
+        },
+        hasSupabaseSupportConfigured(){
+          const service = this.getSupportService();
+          return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+        },
+        normalizeId(value){
+          return String(value || '').trim();
+        },
+        setMediaFrameClass(target, className, enabled){
+          const shell = target && typeof target.closest === 'function'
+            ? target.closest('.video-frame-shell')
+            : null;
+          if(!shell) return;
+          shell.classList.toggle(className, !!enabled);
+        },
+        formatMediaDuration(value){
+          const totalSeconds = Math.max(0, Math.round(Number(value) || 0));
+          if(!totalSeconds) return '00:00';
+          const hours = Math.floor(totalSeconds / 3600);
+          const minutes = Math.floor((totalSeconds % 3600) / 60);
+          const seconds = totalSeconds % 60;
+          if(hours > 0){
+            return [hours, minutes, seconds].map(part => String(part).padStart(2, '0')).join(':');
+          }
+          return [minutes, seconds].map(part => String(part).padStart(2, '0')).join(':');
+        },
+        hydrateMediaFrame(event){
+          const video = event && event.target;
+          if(!video) return;
+          const shell = typeof video.closest === 'function' ? video.closest('.video-frame-shell') : null;
+          if(!shell) return;
+          const width = Number(video.videoWidth || 0);
+          const height = Number(video.videoHeight || 0);
+          const ratio = width > 0 && height > 0 ? (width / height) : (16 / 9);
+          const isPortrait = ratio < 0.95;
+          const isSquare = ratio >= 0.95 && ratio <= 1.05;
+          shell.classList.toggle('is-portrait', isPortrait);
+          shell.classList.toggle('is-square', isSquare);
+          shell.classList.toggle('is-landscape', !isPortrait && !isSquare);
+          shell.style.setProperty('--video-ratio', width > 0 && height > 0 ? (width + ' / ' + height) : '16 / 9');
+          const durationNode = shell.querySelector('.video-frame-duration');
+          if(durationNode){
+            durationNode.textContent = this.formatMediaDuration(video.duration);
+          }
+        },
+        playMediaFrame(event){
+          const trigger = event && event.currentTarget;
+          const shell = trigger && typeof trigger.closest === 'function'
+            ? trigger.closest('.video-frame-shell')
+            : null;
+          const video = shell ? shell.querySelector('video') : null;
+          if(!video) return;
+          shell.classList.add('has-started');
+          shell.classList.remove('is-ended');
+          video.controls = true;
+          try{
+            const result = video.play();
+            if(result && typeof result.catch === 'function'){
+              result.catch(()=>{});
+            }
+          }catch(e){}
+        },
+        syncMediaFrameState(event, isPlaying){
+          const target = event && event.target;
+          if(!target) return;
+          if(isPlaying){
+            this.setMediaFrameClass(target, 'has-started', true);
+            this.setMediaFrameClass(target, 'is-ended', false);
+          }
+          this.setMediaFrameClass(target, 'is-playing', isPlaying);
+        },
+        handleMediaFrameEnded(event){
+          const target = event && event.target;
+          if(!target) return;
+          this.setMediaFrameClass(target, 'is-playing', false);
+          this.setMediaFrameClass(target, 'is-ended', true);
+          target.controls = false;
+          try{
+            target.currentTime = 0;
+          }catch(e){}
+        },
+        postSortValue(post){
+          if(!post) return 0;
+          return Number(post.createdTs || 0) || this.parseTime(post.time) || Number(post.id) || 0;
+        },
+        commentSortValue(comment){
+          if(!comment) return 0;
+          return Number(comment.createdTs || 0) || this.parseTime(comment.time) || Number(comment.id) || 0;
+        },
+        syncLocalForumMirror(){
+          try{
+            localStorage.setItem(this.key(), JSON.stringify(this.posts || []));
+          }catch(e){}
+        },
+        loadLocalForumData(){
+          this.load();
+          this.useSupabaseForum = false;
+        },
+        async loadForumData(){
+          if(!this.hasSupabaseForum()){
+            this.loadLocalForumData();
+            return;
+          }
+          try{
+            const rows = await this.getForumService().fetchForumFeed(this.sessionUserId, this.sessionEmail);
+            if(Array.isArray(rows)){
+              this.posts = rows;
+              this.useSupabaseForum = true;
+              this.forumSyncError = '';
+              this.syncLocalForumMirror();
+              return;
+            }
+          }catch(e){
+            this.forumSyncError = String(e && e.message || '').trim();
+          }
+          this.loadLocalForumData();
+        },
+        key(){ return 'spjs_forum_posts_v1'; },
+        messageBoardKey(){ return 'user_message_board_v1'; },
+        securitySettingsKey(){ return 'user_security_settings_v1'; },
+        coverKey(){ return 'spjs_forum_profile_covers_v1'; },
+        followKey(){ return 'spjs_forum_follow_authors_v1'; },
+        hiddenTodayKey(){ return 'spjs_forum_hidden_today_v1'; },
+        blockedKey(){ return 'spjs_forum_blocked_authors_v1'; },
+        loadSecuritySettingsMap(){
+          try{
+            const raw = localStorage.getItem(this.securitySettingsKey());
+            const parsed = raw ? JSON.parse(raw) : {};
+            return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+          }catch(e){
+            return {};
+          }
+        },
+        profileTargetAllowsMessages(){
+          const targetEmail = String(this.profileMessageTargetEmail || '').trim().toLowerCase();
+          if(!targetEmail) return true;
+          const prefs = this.loadSecuritySettingsMap()[targetEmail];
+          return !(prefs && prefs.allowProfileMessages === false);
+        },
+        todayStamp(){
+          const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return year + '-' + month + '-' + day;
+      },
+      sortPostsByPriority(list, compareFn){
+        return (Array.isArray(list) ? list.slice() : []).sort((a, b)=>{
+          const pinDiff = Number(!!(b && b.pinned)) - Number(!!(a && a.pinned));
+          if(pinDiff !== 0) return pinDiff;
+          if(typeof compareFn === 'function') return compareFn(a, b);
+          return this.postSortValue(b) - this.postSortValue(a);
+        });
+      },
+      isMyPost(post){
+        if(!post) return false;
+        const ownerId = this.normalizeId(post.ownerId);
+        const sessionUserId = this.normalizeId(this.sessionUserId);
+        if(ownerId && sessionUserId && ownerId === sessionUserId) return true;
+        const ownerEmail = String(post.ownerEmail || '').trim();
+        const sessionEmail = String(this.sessionEmail || '').trim();
+        return !!ownerEmail && !!sessionEmail && ownerEmail === sessionEmail;
+      },
+      canDeletePost(post){
+        return this.isMyPost(post);
+      },
+      postVisibilityText(post){
+        const visibility = String((post && post.visibility) || 'public').trim() || 'public';
+        if(visibility === 'followers') return 'Followers Only';
+        if(visibility === 'friends') return 'Friends Only';
+        if(visibility === 'private') return 'Private';
+        return 'Public';
+      },
+      isAuthorFollowed(target){
+        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        return !!name && this.followedAuthors.includes(name);
+      },
+      isAuthorHiddenToday(target){
+        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        return !!name && this.hiddenTodayAuthors.includes(name);
+      },
+      isAuthorBlocked(target){
+        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        return !!name && this.blockedAuthors.includes(name);
+      },
+      canViewPost(post){
+        if(!post) return false;
+        if(this.isMyPost(post)) return true;
+        const author = this.displayNameForEntity(post);
+        if(this.isAuthorBlocked(author) || this.isAuthorHiddenToday(author)) return false;
+        const visibility = String(post.visibility || 'public').trim() || 'public';
+        if(visibility === 'private') return false;
+        if(visibility === 'followers') return this.isAuthorFollowed(author);
+        if(visibility === 'friends') return this.isAuthed && this.isAuthorFollowed(author);
+        return true;
+      },
+      togglePostMenu(postId){
+        const id = this.normalizeId(postId);
+        if(!id) return;
+        this.closePostFollowMenu();
+        this.activePostMenuId = this.activePostMenuId === id ? null : id;
+      },
+      closePostMenu(){
+        this.activePostMenuId = null;
+      },
+      openPostFollowMenu(post){
+        if(!post || !this.isAuthorFollowed(post)) return;
+        this.closePostMenu();
+        this.activePostFollowMenuId = this.normalizeId(post.id) || null;
+      },
+      closePostFollowMenu(){
+        this.activePostFollowMenuId = null;
+      },
+      handleWindowClick(){
+        this.closePostMenu();
+        this.closePostFollowMenu();
+      },
+      handlePostShare(post){
+        this.sharePost(post);
+        this.closePostMenu();
+      },
+      async togglePinPost(post){
+        if(!this.isMyPost(post)) return;
+        const nextPinned = !post.pinned;
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            await this.getForumService().updatePost(post.id, { pinned: nextPinned });
+            post.pinned = nextPinned;
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          post.pinned = nextPinned;
+          this.save();
+        }
+        this.closePostMenu();
+      },
+      async setPostVisibility(post, visibility){
+        if(!this.isMyPost(post)) return;
+        const current = String(post.visibility || 'public').trim() || 'public';
+        const nextVisibility = current === visibility ? 'public' : visibility;
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            await this.getForumService().updatePost(post.id, { visibility: nextVisibility });
+            post.visibility = nextVisibility;
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          post.visibility = nextVisibility;
+          this.save();
+        }
+        this.closePostMenu();
+      },
+      loadHiddenTodayState(){
+        try{
+          const raw = localStorage.getItem(this.hiddenTodayKey());
+          const parsed = raw ? JSON.parse(raw) : null;
+          const today = this.todayStamp();
+          if(parsed && parsed.date === today && Array.isArray(parsed.authors)){
+            this.hiddenTodayAuthors = parsed.authors.map(v => String(v || '').trim()).filter(Boolean);
+            return;
+          }
+        }catch(e){}
+        this.hiddenTodayAuthors = [];
+      },
+      saveHiddenTodayState(){
+        localStorage.setItem(this.hiddenTodayKey(), JSON.stringify({
+          date: this.todayStamp(),
+          authors: this.hiddenTodayAuthors
+        }));
+      },
+      loadBlockedAuthors(){
+        try{
+          const raw = localStorage.getItem(this.blockedKey());
+          const parsed = raw ? JSON.parse(raw) : [];
+          this.blockedAuthors = Array.isArray(parsed) ? parsed.map(v => String(v || '').trim()).filter(Boolean) : [];
+        }catch(e){
+          this.blockedAuthors = [];
+        }
+      },
+      saveBlockedAuthors(){
+        localStorage.setItem(this.blockedKey(), JSON.stringify(this.blockedAuthors));
+      },
+      handlePostFollowClick(post){
+        if(!post || this.isMyPost(post)) return;
+        if(!this.isAuthorFollowed(post)){
+          this.followAuthorFromPost(post);
+          return;
+        }
+        const id = this.normalizeId(post.id);
+        if(!id) return;
+        this.activePostFollowMenuId = this.activePostFollowMenuId === id ? null : id;
+      },
+      followAuthorFromPost(post){
+        const name = this.displayNameForEntity(post);
+        if(!name || this.isMyPost(post)) return;
+        this.closePostMenu();
+        if(!this.followedAuthors.includes(name)){
+          this.followedAuthors = this.followedAuthors.concat(name);
+          this.saveFollowState();
+        }
+        this.activePostFollowMenuId = this.normalizeId(post.id) || null;
+      },
+      unfollowAuthorFromPost(post){
+        const name = this.displayNameForEntity(post);
+        if(!name || this.isMyPost(post)) return;
+        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
+        this.saveFollowState();
+        this.closePostFollowMenu();
+      },
+      notifyPostFollowAction(text){
+        this.closePostFollowMenu();
+        alert(text);
+      },
+      hideAuthorForToday(post){
+        const name = this.displayNameForEntity(post);
+        if(!name || this.isMyPost(post)) return;
+        this.closePostFollowMenu();
+        if(!this.hiddenTodayAuthors.includes(name)){
+          this.hiddenTodayAuthors = this.hiddenTodayAuthors.concat(name);
+          this.saveHiddenTodayState();
+        }
+        if(this.current && this.displayNameForEntity(this.current) === name){
+          this.closeModal();
+        }
+        this.closePostMenu();
+      },
+      blockAuthorFromPost(post){
+        const name = this.displayNameForEntity(post);
+        if(!name || this.isMyPost(post)) return;
+        this.closePostFollowMenu();
+        if(!this.blockedAuthors.includes(name)){
+          this.blockedAuthors = this.blockedAuthors.concat(name);
+          this.saveBlockedAuthors();
+        }
+        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
+        this.saveFollowState();
+        if(this.current && this.displayNameForEntity(this.current) === name){
+          this.closeModal();
+        }
+        this.closePostMenu();
+      },
+      reportAuthorFromPost(post){
+        if(!post) return;
+        this.closePostMenu();
+        alert('Report submitted.');
+      },
+      async deletePost(post){
+        if(!post) return;
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        if(!this.canDeletePost(post)) return;
+        const postId = this.normalizeId(post.id);
+        if(!postId) return;
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            await this.getForumService().deletePost(postId);
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }
+        this.posts = (this.posts || []).filter(item => this.normalizeId(item && item.id) !== postId);
+        if(this.activeCommentPostId === postId){
+          this.activeCommentPostId = null;
+          this.inlineCommentText = '';
+          this.inlineCommentSync = false;
+          this.inlineCommentSort = 'hot';
+        }
+        if(this.replyTargetPostId === postId){
+          this.closeReplyModal();
+        }
+        if(this.normalizeId(this.currentId) === postId){
+          this.closeModal();
+        }
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          this.syncLocalForumMirror();
+        }else{
+          this.save();
+        }
+        this.closePostMenu();
+      },
+      buildProfileUrl(author=''){
+        const name = String(author || '').trim();
+        return name ? ('spjs.html?author=' + encodeURIComponent(name)) : 'spjs.html';
+      },
+      syncProfileFromUrl(){
+        try{
+          const params = new URLSearchParams(window.location.search);
+          const name = String(params.get('author') || '').trim();
+          if(name !== this.profileUserName){
+            this.profileTab = 'Posts';
+            this.followMenuOpen = false;
+            this.moreMenuOpen = false;
+          }
+          this.profileUserName = name;
+        }catch(e){
+          this.profileUserName = '';
+          this.profileTab = 'Posts';
+          this.followMenuOpen = false;
+          this.moreMenuOpen = false;
+        }
+      },
+      handlePopState(){
+        this.syncProfileFromUrl();
+        this.syncActiveProfileSummary();
+      },
+      getInlineCommentField(){
+        const field = this.$refs.inlineCommentField;
+        if(Array.isArray(field)) return field[0] || null;
+        return field || null;
+      },
+      getReplyModalField(){
+        const field = this.$refs.replyModalField;
+        if(Array.isArray(field)) return field[0] || null;
+        return field || null;
+      },
+      autoResizeInlineComment(){
+        this.$nextTick(()=>{
+          const field = this.getInlineCommentField();
+          if(!field) return;
+          field.style.height = 'auto';
+          field.style.height = Math.max(field.scrollHeight, 68) + 'px';
+        });
+      },
+      autoResizeReplyModal(){
+        this.$nextTick(()=>{
+          const field = this.getReplyModalField();
+          if(!field) return;
+          field.style.height = 'auto';
+          field.style.height = Math.max(field.scrollHeight, 88) + 'px';
+        });
+      },
+      focusInlineCommentField(){
+        this.$nextTick(()=>{
+          const field = this.getInlineCommentField();
+          if(!field) return;
+          this.autoResizeInlineComment();
+          field.focus();
+        });
+      },
+      focusReplyModalField(){
+        this.$nextTick(()=>{
+          const field = this.getReplyModalField();
+          if(!field) return;
+          this.autoResizeReplyModal();
+          field.focus();
+        });
+      },
+      flattenCommentTree(nodes, depth=0, parentAuthor='', parentId=null){
+        const list = [];
+        if(!Array.isArray(nodes)) return list;
+        nodes.forEach(node=>{
+          if(!node) return;
+          const authorName = this.displayNameForEntity(node);
+          list.push({ node, depth, parentAuthor, parentId });
+          list.push(...this.flattenCommentTree(node.replies, depth + 1, authorName, node.id || null));
+        });
+        return list;
+      },
+      collectPostComments(post){
+        if(!post) return [];
+        return this.flattenCommentTree(post.comments).map(row=>({
+          id: this.normalizeId(row.node && row.node.id),
+          postId: this.normalizeId(post.id),
+          postPreview: this.postPreviewText(post, 24),
+          author: this.displayNameForEntity(row.node),
+          text: this.commentSummaryText(row.node),
+          time: (row.node && row.node.time ? row.node.time : ''),
+          createdTs: this.commentSortValue(row.node),
+          likes: Number(row.node && row.node.likes ? row.node.likes : 0),
+          isReply: row.depth > 0,
+          parentCommentId: this.normalizeId(row.parentId) || null,
+          parentAuthor: row.parentAuthor || ''
+        }));
+      },
+      commentCount(post){
+        return this.collectPostComments(post).length;
+      },
+      commentRows(post){
+        return this.flattenCommentTree(post && post.comments ? post.comments : []);
+      },
+      inlineCommentRows(post){
+        const roots = (post && Array.isArray(post.comments) ? post.comments.slice() : []);
+        if(this.inlineCommentSort === 'hot'){
+          roots.sort((a, b)=>{
+            const scoreA = (Number(a && a.likes) || 0) + this.flattenCommentTree(a && a.replies ? a.replies : []).length;
+            const scoreB = (Number(b && b.likes) || 0) + this.flattenCommentTree(b && b.replies ? b.replies : []).length;
+            if(scoreB !== scoreA) return scoreB - scoreA;
+            return this.commentSortValue(b) - this.commentSortValue(a);
+          });
+        }else{
+          roots.sort((a, b)=> this.commentSortValue(b) - this.commentSortValue(a));
+        }
+        return roots.reduce((rows, root)=>{
+          rows.push(...this.flattenCommentTree([root]));
+          return rows;
+        }, []);
+      },
+      commentIndentStyle(depth){
+        if(!(Number(depth) > 0)) return null;
+        return {
+          marginLeft: (Number(depth) * 22) + 'px'
+        };
+      },
+      commentSummaryText(comment){
+        const text = String(comment && comment.text ? comment.text : '').replace(/\s+/g, ' ').trim();
+        if(text) return text;
+        return comment && comment.imageUrl ? 'Image comment' : '';
+      },
+      findCommentNodeById(nodes, targetId){
+        const id = this.normalizeId(targetId);
+        if(!id || !Array.isArray(nodes)) return null;
+        for(const node of nodes){
+          if(!node) continue;
+          if(this.normalizeId(node.id) === id) return node;
+          const found = this.findCommentNodeById(node.replies, id);
+          if(found) return found;
+        }
+        return null;
+      },
+      createCommentIdFactory(start = Date.now()){
+        let offset = 0;
+        return ()=> String(start + (++offset));
+      },
+      normalizeCommentNodes(nodes, nextId){
+        let changed = false;
+        if(!Array.isArray(nodes)) return changed;
+        nodes.forEach(node=>{
+          if(!node) return;
+          if(!node.author){
+            node.author = 'Anonymous User';
+            changed = true;
+          }
+          if(!node.time){
+            node.time = this.now();
+            changed = true;
+          }
+          const normalizedId = this.normalizeId(node.id);
+          if(normalizedId){
+            if(normalizedId !== String(node.id)){
+              node.id = normalizedId;
+              changed = true;
+            }
+          }else{
+            node.id = nextId();
+            changed = true;
+          }
+          const createdTs = this.commentSortValue(node);
+          if((Number(node.createdTs) || 0) !== createdTs){
+            node.createdTs = createdTs;
+            changed = true;
+          }
+          if(typeof node.likes !== 'number' || Number.isNaN(node.likes)){
+            node.likes = 0;
+            changed = true;
+          }
+          if(typeof node.ownerEmail !== 'string'){
+            node.ownerEmail = '';
+            changed = true;
+          }
+          if(typeof node.avatarUrl !== 'string'){
+            node.avatarUrl = '';
+            changed = true;
+          }
+          if(typeof node.imageUrl !== 'string'){
+            node.imageUrl = '';
+            changed = true;
+          }
+          if(!Array.isArray(node.replies)){
+            node.replies = [];
+            changed = true;
+          }
+          if(this.normalizeCommentNodes(node.replies, nextId)){
+            changed = true;
+          }
+        });
+        return changed;
+      },
+      cloneCommentNodes(nodes, nextId){
+        if(!Array.isArray(nodes)) return [];
+        return nodes.map(node=>({
+          id: this.normalizeId(node && node.id) || nextId(),
+          author: node && node.author ? node.author : 'Anonymous User',
+          ownerEmail: node && node.ownerEmail ? String(node.ownerEmail) : '',
+          avatarUrl: node && node.avatarUrl ? String(node.avatarUrl) : '',
+          imageUrl: node && node.imageUrl ? String(node.imageUrl) : '',
+          text: node && node.text ? node.text : '',
+          time: node && node.time ? node.time : this.now(),
+          createdTs: this.commentSortValue(node),
+          likes: Number(node && node.likes ? node.likes : 0),
+          replies: this.cloneCommentNodes(node && node.replies ? node.replies : [], nextId)
+        }));
+      },
+      readUserProfiles(){
+        try{
+          const raw = localStorage.getItem('club_users');
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed.map(user=>({
+            userId: String(user && (user.userId || user.id) ? (user.userId || user.id) : '').trim(),
+            email: String(user && user.email ? user.email : '').trim(),
+            emailLower: String(user && user.email ? user.email : '').trim().toLowerCase(),
+            nickname: String(user && user.nickname ? user.nickname : '').trim(),
+            nicknameLower: String(user && user.nickname ? user.nickname : '').trim().toLowerCase(),
+            avatar: String(user && user.avatar ? user.avatar : '').trim(),
+            forumCoverUrl: String(user && user.forumCoverUrl ? user.forumCoverUrl : '').trim()
+          })).filter(user=>user.email || user.nickname) : [];
+        }catch(e){
+          return [];
+        }
+      },
+      mergeForumProfileSummary(summary){
+        if(!summary) return;
+        const profileId = this.normalizeId(summary.id);
+        const nickname = String(summary.nickname || '').trim();
+        const avatar = String(summary.avatarUrl || '').trim();
+        const forumCoverUrl = String(summary.forumCoverUrl || '').trim();
+        if(!profileId && !nickname && !avatar && !forumCoverUrl) return;
+        const next = Array.isArray(this.userProfiles) ? this.userProfiles.slice() : [];
+        const nicknameLower = nickname.toLowerCase();
+        const index = next.findIndex(user => {
+          const userId = this.normalizeId(user && user.userId);
+          const userNickname = String(user && user.nickname ? user.nickname : '').trim().toLowerCase();
+          return (profileId && userId && profileId === userId) || (nicknameLower && userNickname === nicknameLower);
+        });
+        const existing = index > -1 ? next[index] : {};
+        const merged = Object.assign({}, existing, {
+          userId: profileId || this.normalizeId(existing.userId),
+          email: String(existing.email || '').trim(),
+          emailLower: String(existing.emailLower || '').trim(),
+          nickname: nickname || String(existing.nickname || '').trim(),
+          nicknameLower: nicknameLower || String(existing.nicknameLower || '').trim(),
+          avatar: avatar || String(existing.avatar || '').trim(),
+          forumCoverUrl: forumCoverUrl || String(existing.forumCoverUrl || '').trim()
+        });
+        if(index > -1){
+          next.splice(index, 1, merged);
+        }else{
+          next.push(merged);
+        }
+        this.userProfiles = next;
+      },
+      preloadImage(url){
+        const src = String(url || '').trim();
+        if(!src) return Promise.resolve('');
+        return new Promise((resolve, reject)=>{
+          const image = new Image();
+          image.onload = ()=> resolve(src);
+          image.onerror = ()=> reject(new Error('image_preload_failed'));
+          image.src = src;
+        });
+      },
+      async syncActiveProfileSummary(profileNameOverride){
+        const profileName = String(profileNameOverride || this.profileUserName || '').trim();
+        const profileKey = profileName.toLowerCase();
+        const requestId = this.profileSummaryRequestId + 1;
+        this.profileSummaryRequestId = requestId;
+        if(!profileName){
+          this.profileCoverLoading = false;
+          this.profileRemoteCoverFor = '';
+          this.profileRemoteCoverUrl = '';
+          return;
+        }
+        this.profileCoverLoading = true;
+        if(!this.hasSupabaseForum()){
+          this.profileCoverLoading = false;
+          return;
+        }
+        const supabase = typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
+        if(!supabase){
+          this.profileCoverLoading = false;
+          return;
+        }
+        try{
+          const targetId = profileNameOverride ? '' : this.normalizeId(this.profileMessageTargetId || '');
+          const { data, error } = await supabase.rpc('get_forum_profile_summary', {
+            p_author_id: targetId || null,
+            p_nickname: targetId ? null : profileName
+          });
+          if(error) return;
+          const row = Array.isArray(data) ? (data[0] || null) : (data || null);
+          if(!row){
+            if(this.profileSummaryRequestId === requestId){
+              this.profileRemoteCoverFor = profileKey;
+              this.profileRemoteCoverUrl = '';
+            }
+            return;
+          }
+          const nextCoverUrl = String(row.forum_cover_url || '').trim();
+          if(nextCoverUrl){
+            try{
+              await this.preloadImage(nextCoverUrl);
+            }catch(e){}
+          }
+          if(this.profileSummaryRequestId !== requestId) return;
+          this.profileRemoteCoverFor = profileKey;
+          this.profileRemoteCoverUrl = nextCoverUrl;
+          this.mergeForumProfileSummary({
+            id: row.id,
+            nickname: row.nickname || profileName,
+            avatarUrl: row.avatar_url,
+            forumCoverUrl: row.forum_cover_url
+          });
+        }catch(e){
+          if(this.profileSummaryRequestId === requestId){
+            this.profileRemoteCoverFor = profileKey;
+            this.profileRemoteCoverUrl = '';
+          }
+        }finally{
+          if(this.profileSummaryRequestId === requestId){
+            this.profileCoverLoading = false;
+          }
+        }
+      },
+      findUserByEmail(email){
+        const value = String(email || '').trim().toLowerCase();
+        if(!value) return null;
+        return (this.userProfiles || []).find(user=>user.emailLower === value) || null;
+      },
+      findUserByName(name){
+        const value = String(name || '').trim().toLowerCase();
+        if(!value) return null;
+        return (this.userProfiles || []).find(user=>user.nicknameLower === value || user.emailLower === value) || null;
+      },
+      displayNameForEntity(entity){
+        const item = entity && typeof entity === 'object' ? entity : null;
+        const ownerEmail = item ? String(item.ownerEmail || '').trim() : '';
+        const rawName = item ? String(item.author || '').trim() : String(entity || '').trim();
+        const userByEmail = ownerEmail ? this.findUserByEmail(ownerEmail) : null;
+        if(userByEmail && userByEmail.nickname) return userByEmail.nickname;
+        const userByName = rawName ? this.findUserByName(rawName) : null;
+        if(userByName && userByName.nickname) return userByName.nickname;
+        return rawName || 'User';
+      },
+      avatarSrcFor(entity){
+        const item = entity && typeof entity === 'object' ? entity : null;
+        const directAvatar = item && typeof item.avatarUrl === 'string' ? item.avatarUrl.trim() : '';
+        if(directAvatar) return directAvatar;
+        const ownerEmail = item ? String(item.ownerEmail || '').trim() : '';
+        const rawName = item ? String(item.author || '').trim() : String(entity || '').trim();
+        const userByEmail = ownerEmail ? this.findUserByEmail(ownerEmail) : null;
+        if(userByEmail && userByEmail.avatar) return userByEmail.avatar;
+        const userByName = rawName ? this.findUserByName(rawName) : null;
+        return userByName && userByName.avatar ? userByName.avatar : '';
+      },
+      canDeleteComment(comment){
+        if(!this.isAuthed || !comment) return false;
+        const sessionUserId = this.normalizeId(this.sessionUserId);
+        const ownerId = this.normalizeId(comment.ownerId);
+        if(sessionUserId && ownerId) return sessionUserId === ownerId;
+        const sessionEmail = String(this.sessionEmail || '').trim().toLowerCase();
+        const ownerEmail = String(comment.ownerEmail || '').trim().toLowerCase();
+        if(sessionEmail && ownerEmail) return sessionEmail === ownerEmail;
+        return String(comment.author || '').trim() === this.sessionDisplayName;
+      },
+      removeCommentNode(nodes, targetId){
+        const id = this.normalizeId(targetId);
+        if(!id || !Array.isArray(nodes)) return false;
+        for(let i = 0; i < nodes.length; i += 1){
+          const node = nodes[i];
+          if(!node) continue;
+          if(this.normalizeId(node.id) === id){
+            nodes.splice(i, 1);
+            return true;
+          }
+          if(this.removeCommentNode(node.replies, id)){
+            return true;
+          }
+        }
+        return false;
+      },
+      profileCoverStorageKey(name=''){
+        const value = String(name || '').trim();
+        if(!value) return '';
+        const userByEmail = this.findUserByEmail(value);
+        if(userByEmail && userByEmail.emailLower) return 'email:' + userByEmail.emailLower;
+        const userByName = this.findUserByName(value);
+        if(userByName && userByName.emailLower) return 'email:' + userByName.emailLower;
+        return 'name:' + value.toLowerCase();
+      },
+      loadProfileCoverState(){
+        try{
+          const raw = localStorage.getItem(this.coverKey());
+          const parsed = raw ? JSON.parse(raw) : {};
+          this.profileCoverMap = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        }catch(e){
+          this.profileCoverMap = {};
+        }
+      },
+      saveProfileCoverState(){
+        try{
+          localStorage.setItem(this.coverKey(), JSON.stringify(this.profileCoverMap || {}));
+          return true;
+        }catch(e){
+          alert('Local storage is full. Try compressing the cover image and retrying.');
+          return false;
+        }
+      },
+      loadFollowState(){
+        try{
+          const raw = localStorage.getItem(this.followKey());
+          const parsed = raw ? JSON.parse(raw) : [];
+          this.followedAuthors = Array.isArray(parsed) ? parsed.map(v => String(v || '').trim()).filter(Boolean) : [];
+        }catch(e){
+          this.followedAuthors = [];
+        }
+      },
+      saveFollowState(){
+        localStorage.setItem(this.followKey(), JSON.stringify(this.followedAuthors));
+      },
+      handleFollowClick(){
+        const name = String(this.profileUserName || '').trim();
+        if(!name) return;
+        this.moreMenuOpen = false;
+        if(!this.isFollowingProfile){
+          this.followedAuthors = this.followedAuthors.concat(name);
+          this.saveFollowState();
+          this.followMenuOpen = false;
+          return;
+        }
+        this.followMenuOpen = !this.followMenuOpen;
+      },
+      unfollowProfile(){
+        const name = String(this.profileUserName || '').trim();
+        if(!name) return;
+        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
+        this.saveFollowState();
+        this.followMenuOpen = false;
+      },
+      notifyFollowAction(text){
+        this.followMenuOpen = false;
+        alert(text);
+      },
+      toggleMoreMenu(){
+        this.followMenuOpen = false;
+        this.moreMenuOpen = !this.moreMenuOpen;
+      },
+      notifyMoreAction(text){
+        this.moreMenuOpen = false;
+        alert(text);
+      },
+      setProfileTab(tab){
+        this.profileTab = tab;
+      },
+      scrollToForumMain(){
+        this.$nextTick(()=>{
+          const el = document.getElementById('forum-main');
+          if(!el) return;
+          const top = el.getBoundingClientRect().top + window.pageYOffset - 12;
+          window.scrollTo({
+            top: Math.max(top, 0),
+            behavior: 'smooth'
+          });
+        });
+      },
+      loadSession(){
+        this.userProfiles = this.readUserProfiles();
+        this.sessionEmail = '';
+        this.sessionUserId = '';
+        this.sessionTime = '';
+        this.sessionNickname = '';
+        this.sessionAvatar = '';
+        const tryLoad = (store)=>{
+          try{
+            const raw = store.getItem('user_session_v1');
+            const s = raw ? JSON.parse(raw) : null;
+            const email = (s && s.email) ? String(s.email).trim() : '';
+            if(email){
+              this.sessionEmail = email;
+              this.sessionUserId = s && s.userId ? String(s.userId).trim() : '';
+              this.sessionTime = s.time ? String(s.time) : '';
+              this.sessionNickname = s && s.nickname ? String(s.nickname).trim() : '';
+              return s;
+            }
+          }catch(e){}
+          return null;
+        };
+        const session = tryLoad(localStorage) || tryLoad(sessionStorage);
+        if(session && session.avatar){
+          this.sessionAvatar = String(session.avatar || '').trim();
+        }
+        const me = this.findUserByEmail(this.sessionEmail);
+        if(me){
+          if(me.nickname) this.sessionNickname = me.nickname;
+          this.sessionAvatar = me.avatar || this.sessionAvatar;
+        }
+      },
+      goLogin(){
+        location.href = 'join.html';
+      },
+      now(){
+        return new Date().toLocaleString();
+      },
+      readFileAsDataUrl(file){
+        return new Promise((resolve, reject)=>{
+          const reader = new FileReader();
+          reader.onload = ()=> resolve(reader.result || '');
+          reader.onerror = ()=> reject(new Error('read_failed'));
+          reader.readAsDataURL(file);
+        });
+      },
+      profileCoverPlaceholderSrc(){
+        const title = String(this.profileUserName || 'Profile').trim() || 'Profile';
+        const svg = `
+          <svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+            <defs>
+              <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#5ea9e6"/>
+                <stop offset="100%" stop-color="#a7d2f8"/>
+              </linearGradient>
+              <radialGradient id="glow" cx="78%" cy="16%" r="36%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.72"/>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+              </radialGradient>
+            </defs>
+            <rect width="1600" height="900" fill="url(#bg)"/>
+            <circle cx="1220" cy="120" r="240" fill="url(#glow)"/>
+            <circle cx="310" cy="210" r="160" fill="#ffffff" fill-opacity="0.14"/>
+            <text x="110" y="640" fill="#ffffff" fill-opacity="0.94" font-size="86" font-family="Arial, sans-serif" font-weight="700">${title}</text>
+            <text x="112" y="720" fill="#ffffff" fill-opacity="0.9" font-size="38" font-family="Arial, sans-serif">Upload a cover image from the bottom-right corner</text>
+          </svg>
+        `;
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+      },
+      async readProfileCoverFile(event){
+        const file = (event && event.target && event.target.files && event.target.files[0]) ? event.target.files[0] : null;
+        if(event && event.target) event.target.value = '';
+        if(!file) return null;
+        if(!String(file.type || '').startsWith('image/')){
+          alert('Please select an image file.');
+          return null;
+        }
+        if(file.size > 3 * 1024 * 1024){
+          alert('Cover images are recommended to stay under 3 MB.');
+          return null;
+        }
+        return file;
+      },
+      async handleProfileCoverUpload(event){
+        if(!this.canEditProfileCover){
+          if(event && event.target) event.target.value = '';
+          return;
+        }
+        const key = this.profileCoverStorageKey(this.profileUserName || this.sessionDisplayName || this.sessionEmail);
+        if(!key) return;
+        const file = await this.readProfileCoverFile(event);
+        if(!file) return;
+        const storage = this.getStorageService();
+        if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+          try{
+            const uploaded = await storage.uploadForumCoverImage(file, this.sessionUserId);
+            const publicUrl = String(uploaded && uploaded.publicUrl || '').trim();
+            if(!publicUrl) throw new Error('storage_public_url_failed');
+            const supabase = typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
+            if(supabase){
+              const { error } = await supabase
+                .from('profiles')
+                .update({ forum_cover_url: publicUrl })
+                .eq('id', this.sessionUserId);
+              if(error) throw error;
+            }
+            this.profileRemoteCoverUrl = publicUrl;
+            this.profileCoverMap = Object.assign({}, this.profileCoverMap || {}, { [key]: publicUrl });
+            this.mergeForumProfileSummary({
+              id: this.sessionUserId,
+              nickname: this.profileUserName || this.sessionDisplayName,
+              avatarUrl: this.sessionAvatarSrc || '',
+              forumCoverUrl: publicUrl
+            });
+            if(this.imageViewerContext === 'profile-cover' && this.showImageViewer){
+              this.imageViewerSrc = publicUrl;
+              this.imageViewerAlt = this.profileUserName ? (this.profileUserName + '\'s cover') : 'Profile cover';
+            }
+            return;
+          }catch(err){
+            alert(storage.mapStorageError(err));
+            return;
+          }
+        }
+        let dataUrl = '';
+        try{
+          dataUrl = String(await this.readFileAsDataUrl(file) || '');
+        }catch(e){
+          alert('Failed to read the cover image. Please try again.');
+          return;
+        }
+        if(!dataUrl) return;
+        const previous = Object.assign({}, this.profileCoverMap || {});
+        this.profileCoverMap = Object.assign({}, previous, { [key]: dataUrl });
+        if(!this.saveProfileCoverState()){
+          this.profileCoverMap = previous;
+          return;
+        }
+        if(this.imageViewerContext === 'profile-cover' && this.showImageViewer){
+          this.imageViewerSrc = dataUrl;
+          this.imageViewerAlt = this.profileUserName ? (this.profileUserName + '\'s cover') : 'Profile cover';
+        }
+      },
+      async readSingleCommentImage(event){
+        const file = (event && event.target && event.target.files && event.target.files[0]) ? event.target.files[0] : null;
+        if(event && event.target) event.target.value = '';
+        if(!file) return '';
+        if(!String(file.type || '').startsWith('image/')){
+          alert('Please select an image file.');
+          return '';
+        }
+        if(file.size > 2 * 1024 * 1024){
+          alert('Comment images are recommended to stay under 2 MB.');
+          return '';
+        }
+        try{
+          const storage = this.getStorageService();
+          if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+            const uploaded = await storage.uploadForumCommentImage(file, this.sessionUserId);
+            return String(uploaded && uploaded.publicUrl || '');
+          }
+          return String(await this.readFileAsDataUrl(file) || '');
+        }catch(e){
+          const storage = this.getStorageService();
+          alert(this.hasSupabaseStorageConfigured() && storage ? storage.mapStorageError(e) : 'Failed to read the image. Please try again.');
+          return '';
+        }
+      },
+      async handleInlineCommentImageUpload(event){
+        const dataUrl = await this.readSingleCommentImage(event);
+        if(dataUrl){
+          this.inlineCommentImageUrl = dataUrl;
+        }
+      },
+      removeInlineCommentImage(){
+        this.inlineCommentImageUrl = '';
+      },
+      async handleImageUpload(event){
+        const files = Array.from((event && event.target && event.target.files) ? event.target.files : []);
+        if(event && event.target) event.target.value = '';
+        if(files.length === 0) return;
+
+        const current = Array.isArray(this.newPost.imageUrls) ? this.newPost.imageUrls.slice() : [];
+        const remain = 3 - current.length;
+        if(remain <= 0){
+          alert('You can upload up to 3 images.');
+          return;
+        }
+
+        const accepted = files.slice(0, remain);
+        const storage = this.getStorageService();
+        for(const file of accepted){
+          if(!file || !String(file.type || '').startsWith('image/')){
+            alert('Please select an image file.');
+            continue;
+          }
+          if(file.size > 1.5 * 1024 * 1024){
+            alert('Each image is recommended to stay under 1.5 MB.');
+            continue;
+          }
+          try{
+            if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+              const uploaded = await storage.uploadForumPostImage(file, this.sessionUserId);
+              if(uploaded && uploaded.publicUrl){
+                current.push(String(uploaded.publicUrl));
+                continue;
+              }
+            }
+            const dataUrl = await this.readFileAsDataUrl(file);
+            if(dataUrl){
+              current.push(String(dataUrl));
+            }
+          }catch(e){
+            alert(this.hasSupabaseStorageConfigured() && storage ? storage.mapStorageError(e) : 'Failed to read the image. Please try again.');
+          }
+        }
+        this.newPost.imageUrls = current;
+      },
+      removeImage(index){
+        if(!Array.isArray(this.newPost.imageUrls)) return;
+        this.newPost.imageUrls.splice(index, 1);
+      },
+      async handleVideoUpload(event){
+        const file = (event && event.target && event.target.files && event.target.files[0]) ? event.target.files[0] : null;
+        if(event && event.target) event.target.value = '';
+        if(!file) return;
+        if(!String(file.type || '').startsWith('video/')){
+          alert('Please select a video file.');
+          return;
+        }
+        if(file.size > 12 * 1024 * 1024){
+          alert('Please keep forum videos under 12 MB.');
+          return;
+        }
+        try{
+          const storage = this.getStorageService();
+          if(this.hasSupabaseStorageConfigured() && this.sessionUserId && storage){
+            const uploaded = await storage.uploadForumVideo(file, this.sessionUserId);
+            this.newPost.videoUploadUrl = String(uploaded && uploaded.publicUrl || '');
+            this.newPost.videoUploadName = String(file.name || 'Forum video');
+            return;
+          }
+          const dataUrl = await this.readFileAsDataUrl(file);
+          this.newPost.videoUploadUrl = String(dataUrl || '');
+          this.newPost.videoUploadName = String(file.name || 'Local video');
+        }catch(e){
+          const storage = this.getStorageService();
+          alert(this.hasSupabaseStorageConfigured() && storage ? storage.mapStorageError(e) : 'Failed to read the video. Please try again.');
+        }
+      },
+      removeVideo(){
+        this.newPost.videoUploadUrl = '';
+        this.newPost.videoUploadName = '';
+        this.newPost.channel = 'Community';
+      },
+      openImageViewer(src, alt=''){
+        const imageSrc = String(src || '').trim();
+        if(!imageSrc) return;
+        this.imageViewerSrc = imageSrc;
+        this.imageViewerAlt = String(alt || '').trim();
+        this.imageViewerContext = '';
+        this.showImageViewer = true;
+      },
+      openProfileCoverViewer(){
+        const src = String(this.profileCoverViewerSrc || '').trim();
+        if(!src) return;
+        this.imageViewerSrc = src;
+        this.imageViewerAlt = this.profileUserName ? (this.profileUserName + '\'s cover') : 'Profile cover';
+        this.imageViewerContext = 'profile-cover';
+        this.showImageViewer = true;
+      },
+      closeImageViewer(){
+        this.showImageViewer = false;
+        this.imageViewerSrc = '';
+        this.imageViewerAlt = '';
+        this.imageViewerContext = '';
+      },
+      snippet(text, max=70){
+        const t = (text||'').replace(/\s+/g,' ').trim();
+        return t.length > max ? (t.slice(0,max)+'...') : t;
+      },
+      postPreviewText(post, max=70){
+        const item = post || {};
+        const content = this.snippet(item.content || '', max);
+        if(content) return content;
+        if(item.videoUrl && Array.isArray(item.imageUrls) && item.imageUrls.length) return 'Image and video content';
+        if(item.videoUrl) return 'Video content';
+        if(Array.isArray(item.imageUrls) && item.imageUrls.length) return 'Image content';
+        return (item.type ? (item.type + ' content') : 'No content yet');
+      },
+      avatarText(name){
+        const n = String(name || 'User').trim();
+        const chars = Array.from(n);
+        return chars.slice(0, 2).join('');
+      },
+      async openUserProfile(name){
+        const author = String(name || '').trim();
+        if(!author) return;
+        this.closePostMenu();
+        this.profileTab = 'Posts';
+        this.followMenuOpen = false;
+        this.moreMenuOpen = false;
+        if(this.profileUserName === author && this.isProfileView){
+          await this.syncActiveProfileSummary();
+          this.scrollToForumMain();
+          return;
+        }
+        this.profileCoverLoading = true;
+        this.profileUserName = author;
+        try{
+          window.history.pushState({ view:'profile', author }, '', this.buildProfileUrl(author));
+        }catch(e){
+          location.href = this.buildProfileUrl(author);
+          return;
+        }
+        await this.syncActiveProfileSummary();
+        this.scrollToForumMain();
+      },
+      closeUserProfile(){
+        this.closePostMenu();
+        this.profileRemoteCoverUrl = '';
+        this.profileRemoteCoverFor = '';
+        this.profileCoverLoading = false;
+        this.profileUserName = '';
+        this.profileTab = 'Posts';
+        this.followMenuOpen = false;
+        this.moreMenuOpen = false;
+        try{
+          window.history.replaceState({ view:'feed' }, '', this.buildProfileUrl());
+        }catch(e){
+          location.href = this.buildProfileUrl();
+          return;
+        }
+        this.scrollToForumMain();
+      },
+      scrollToProfileComments(postId){
+        const id = this.normalizeId(postId);
+        if(!id) return;
+        this.$nextTick(()=>{
+          const el = document.getElementById('profile-comments-' + id);
+          if(!el) return;
+          const top = el.getBoundingClientRect().top + window.pageYOffset - 16;
+          window.scrollTo({
+            top: Math.max(top, 0),
+            behavior: 'smooth'
+          });
+        });
+      },
+      async likePost(p){
+        if(!p) return;
+        this.closePostMenu();
+        if(p.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            p.likes = await this.getForumService().likePost(p.id);
+            this.syncLocalForumMirror();
+            return;
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }
+        p.likes = Number(p.likes || 0) + 1;
+        this.save();
+      },
+      toggleInlineComments(postId){
+        const id = this.normalizeId(postId);
+        if(!id) return;
+        this.closePostMenu();
+        if(this.activeCommentPostId === id){
+          this.activeCommentPostId = null;
+          this.inlineCommentText = '';
+          this.inlineCommentImageUrl = '';
+          this.inlineCommentSync = false;
+          this.inlineCommentSort = 'hot';
+          return;
+        }
+        this.activeCommentPostId = id;
+        this.inlineCommentText = '';
+        this.inlineCommentImageUrl = '';
+        this.inlineCommentSync = false;
+        this.inlineCommentSort = 'hot';
+        this.focusInlineCommentField();
+      },
+      sortedInlineComments(post){
+        const list = (post && Array.isArray(post.comments) ? post.comments : []).slice();
+        if(this.inlineCommentSort === 'hot'){
+          return list.sort((a, b)=>{
+            const likeDiff = (Number(b && b.likes) || 0) - (Number(a && a.likes) || 0);
+            if(likeDiff !== 0) return likeDiff;
+            return this.commentSortValue(b) - this.commentSortValue(a);
+          });
+        }
+        return list.sort((a, b)=> this.commentSortValue(b) - this.commentSortValue(a));
+      },
+      async submitInlineComment(){
+        const activeId = this.normalizeId(this.activeCommentPostId);
+        const post = this.posts.find(p=>this.normalizeId(p && p.id) === activeId) || null;
+        if(!post) return;
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        let text = String(this.inlineCommentText || '').trim();
+        if(!text && !this.inlineCommentImageUrl){
+          alert('Please enter a comment or upload an image.');
+          return;
+        }
+        post.comments = Array.isArray(post.comments) ? post.comments : [];
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            const created = await this.getForumService().createComment(post.id, null, text, this.inlineCommentImageUrl || '', this.sessionUserId, this.sessionEmail);
+            post.comments.unshift(created);
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          post.comments.unshift({
+            id: String(Date.now()),
+            author: this.sessionDisplayName || 'Anonymous User',
+            ownerEmail: this.sessionEmail || '',
+            avatarUrl: this.sessionAvatarSrc || '',
+            imageUrl: this.inlineCommentImageUrl || '',
+            text,
+            time: this.now(),
+            createdTs: Date.now(),
+            likes: 0,
+            replies: []
+          });
+          this.save();
+        }
+        this.inlineCommentText = '';
+        this.inlineCommentImageUrl = '';
+        this.inlineCommentSync = false;
+        this.autoResizeInlineComment();
+      },
+      async likeInlineComment(comment){
+        if(!comment) return;
+        if(comment.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            comment.likes = await this.getForumService().likeComment(comment.id);
+            this.syncLocalForumMirror();
+            return;
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }
+        comment.likes = Number(comment.likes || 0) + 1;
+        this.save();
+      },
+      openReplyModal(post, comment){
+        if(!post || !comment) return;
+        this.replyTargetPostId = this.normalizeId(post.id) || null;
+        this.replyTargetCommentId = this.normalizeId(comment.id) || null;
+        this.replyTargetAuthor = this.displayNameForEntity(comment);
+        this.replyModalText = '';
+        this.replyModalImageUrl = '';
+        this.replyModalSync = false;
+        this.showReplyModal = true;
+        this.focusReplyModalField();
+      },
+      closeReplyModal(){
+        this.showReplyModal = false;
+        this.replyTargetPostId = null;
+        this.replyTargetCommentId = null;
+        this.replyTargetAuthor = '';
+        this.replyModalText = '';
+        this.replyModalImageUrl = '';
+        this.replyModalSync = false;
+      },
+      async handleReplyModalImageUpload(event){
+        const dataUrl = await this.readSingleCommentImage(event);
+        if(dataUrl){
+          this.replyModalImageUrl = dataUrl;
+        }
+      },
+      removeReplyModalImage(){
+        this.replyModalImageUrl = '';
+      },
+      async submitReplyModal(){
+        const targetPostId = this.normalizeId(this.replyTargetPostId);
+        const post = this.posts.find(p=>this.normalizeId(p && p.id) === targetPostId) || null;
+        if(!post) return;
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        let text = String(this.replyModalText || '').trim();
+        if(!text && !this.replyModalImageUrl){
+          alert('Please enter a reply or upload an image.');
+          return;
+        }
+        post.comments = Array.isArray(post.comments) ? post.comments : [];
+        const targetComment = this.findCommentNodeById(post.comments, this.replyTargetCommentId);
+        if(!targetComment) return;
+        targetComment.replies = Array.isArray(targetComment.replies) ? targetComment.replies : [];
+        if(post.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            const created = await this.getForumService().createComment(post.id, targetComment.id, text, this.replyModalImageUrl || '', this.sessionUserId, this.sessionEmail);
+            targetComment.replies.unshift(created);
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          targetComment.replies.unshift({
+            id: String(Date.now()),
+            author: this.sessionDisplayName || 'Anonymous User',
+            ownerEmail: this.sessionEmail || '',
+            avatarUrl: this.sessionAvatarSrc || '',
+            imageUrl: this.replyModalImageUrl || '',
+            text,
+            time: this.now(),
+            createdTs: Date.now(),
+            likes: 0,
+            replies: []
+          });
+          this.save();
+        }
+        this.closeReplyModal();
+      },
+      deleteComment(post, comment){
+        if(!post || !comment) return;
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        if(!this.canDeleteComment(comment)) return;
+        this.deleteTargetPostId = this.normalizeId(post.id) || null;
+        this.deleteTargetCommentId = this.normalizeId(comment.id) || null;
+        this.showDeleteCommentModal = true;
+      },
+      closeDeleteCommentModal(){
+        this.showDeleteCommentModal = false;
+        this.deleteTargetPostId = null;
+        this.deleteTargetCommentId = null;
+      },
+      async confirmDeleteComment(){
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        const targetPostId = this.normalizeId(this.deleteTargetPostId);
+        const post = this.posts.find(p=>this.normalizeId(p && p.id) === targetPostId) || null;
+        if(!post){
+          this.closeDeleteCommentModal();
+          return;
+        }
+        const comment = this.findCommentNodeById(post.comments, this.deleteTargetCommentId);
+        if(!comment || !this.canDeleteComment(comment)){
+          this.closeDeleteCommentModal();
+          return;
+        }
+        if(comment.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            await this.getForumService().deleteComment(comment.id);
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }
+        post.comments = Array.isArray(post.comments) ? post.comments : [];
+        if(!this.removeCommentNode(post.comments, comment.id)) return;
+        if(this.showReplyModal && this.normalizeId(this.replyTargetPostId) === this.normalizeId(post.id)){
+          this.closeReplyModal();
+        }
+        if(comment.source === 'supabase' && this.hasSupabaseForum()){
+          this.syncLocalForumMirror();
+        }else{
+          this.save();
+        }
+        this.closeDeleteCommentModal();
+      },
+      shareInlineComment(post, comment){
+        if(!post || !comment) return;
+        const url = this.buildProfileUrl() + '#post-' + post.id;
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(url).then(()=>{
+            alert('The post link for this comment has been copied.');
+          }).catch(()=>{
+            prompt('Copy link', url);
+          });
+        }else{
+          prompt('Copy link', url);
+        }
+      },
+      sharePost(p){
+        if(!p) return;
+        this.closePostMenu();
+        const url = this.buildProfileUrl() + '#post-' + p.id;
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(url).then(()=>{
+            alert('Link copied.');
+          }).catch(()=>{
+            prompt('Copy link', url);
+          });
+        }else{
+          prompt('Copy link', url);
+        }
+      },
+      shareCurrentProfile(){
+        this.moreMenuOpen = false;
+        const url = location.href.split('#')[0];
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(url).then(()=>{
+            alert('Profile link copied.');
+          }).catch(()=>{
+            prompt('Copy profile link', url);
+          });
+        }else{
+          prompt('Copy profile link', url);
+        }
+      },
+      openLatestProfilePost(){
+        if(!this.profileLatestPost) return;
+        this.openPost(this.profileLatestPost.id);
+      },
+      async openProfileMessage(){
+        if(!this.isAuthed){
+          alert('Please log in before leaving a message.');
+          return;
+        }
+        const targetId = this.normalizeId(this.profileMessageTargetId || '');
+        const targetName = String(this.profileMessageTargetName || '').trim();
+        const targetEmail = String(this.profileMessageTargetEmail || '').trim();
+        const sessionUserId = this.normalizeId(this.sessionUserId || '');
+        const sessionEmail = String(this.sessionEmail || '').trim().toLowerCase();
+        const sessionName = String(this.sessionDisplayName || '').trim().toLowerCase();
+        if(!targetId && !targetName && !targetEmail){
+          alert('This user could not be identified right now, so messaging is unavailable.');
+          return;
+        }
+        if(targetId && sessionUserId && targetId === sessionUserId){
+          alert('You cannot leave a message for yourself.');
+          return;
+        }
+        if(targetEmail && sessionEmail && targetEmail.toLowerCase() === sessionEmail){
+          alert('You cannot leave a message for yourself.');
+          return;
+        }
+        if(!targetEmail && targetName && sessionName && targetName.toLowerCase() === sessionName){
+          alert('You cannot leave a message for yourself.');
+          return;
+        }
+        if(!this.profileTargetAllowsMessages()){
+          alert('This user has disabled messages on their forum profile.');
+          return;
+        }
+        const text = prompt('Enter the message to send to this user\'s board');
+        const content = String(text || '').trim();
+        if(!content) return;
+        const supportService = this.getSupportService();
+        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && supportService){
+          try{
+            await supportService.sendMessageBoardEntry({
+              targetUserId: targetId,
+              targetEmail: targetEmail,
+              targetName: targetName,
+              text: content,
+              source: 'forum-profile'
+            });
+            alert('Your message has been sent to "' + (targetName || 'the recipient') + '".');
+            return;
+          }catch(e){
+            alert(supportService.mapSupportError(e));
+            return;
+          }
+        }
+        const list = this.loadMessageBoardEntries();
+        list.unshift({
+          id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+          targetEmail: targetEmail,
+          targetName: targetName,
+          fromEmail: String(this.sessionEmail || '').trim(),
+          fromName: String(this.sessionDisplayName || '').trim() || 'User',
+          text: content,
+          source: 'forum-profile',
+          createdAt: new Date().toLocaleString(),
+          createdTs: Date.now()
+        });
+        if(!this.saveMessageBoardEntries(list)) return;
+        alert('Your message has been sent to "' + (targetName || 'the recipient') + '".');
+      },
+      loadMessageBoardEntries(){
+        try{
+          const raw = localStorage.getItem(this.messageBoardKey());
+          const parsed = raw ? JSON.parse(raw) : [];
+          return Array.isArray(parsed) ? parsed : [];
+        }catch(e){
+          return [];
+        }
+      },
+      saveMessageBoardEntries(list){
+        try{
+          localStorage.setItem(this.messageBoardKey(), JSON.stringify(Array.isArray(list) ? list : []));
+          return true;
+        }catch(e){
+          alert('Local storage is full, so the message could not be sent right now.');
+          return false;
+        }
+      },
+
+      load(){
+        try{
+          const raw = localStorage.getItem(this.key());
+          const parsed = raw ? JSON.parse(raw) : [];
+          this.posts = (Array.isArray(parsed) ? parsed : []).filter(item => !(item && item.seeded));
+        }catch(e){
+          this.posts = [];
+        }
+      },
+      save(){
+        try{
+          localStorage.setItem(this.key(), JSON.stringify(this.posts));
+          return true;
+        }catch(e){
+          alert('Local storage is full. Try compressing images/videos or deleting some posts, then retry.');
+          return false;
+        }
+      },
+      async publishPost(){
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        const content = String(this.newPost.content || '').trim();
+        const imageUrls = Array.isArray(this.newPost.imageUrls) ? this.newPost.imageUrls.slice() : [];
+        const videoUrl = String(this.newPost.videoUploadUrl || '').trim();
+        if(!content && imageUrls.length === 0 && !videoUrl){
+          alert('Please enter content or upload an image/video.');
+          return;
+        }
+        const author = this.sessionDisplayName || this.sessionEmail || 'User';
+        const channel = videoUrl ? 'Video' : 'Community';
+        const post = {
+          id: String(Date.now()),
+          channel,
+          type: this.newPost.type || 'Question',
+          club: this.newPost.club || 'General',
+          visibility: 'public',
+          pinned: false,
+          content,
+          videoUrl,
+          videoName: String(this.newPost.videoUploadName || '').trim(),
+          imageUrls,
+          author,
+          avatarUrl: this.sessionAvatarSrc || '',
+          device: 'Web',
+          ownerEmail: this.sessionEmail,
+          time: this.now(),
+          createdTs: Date.now(),
+          likes: 0,
+          comments: []
+        };
+        if(this.hasSupabaseForum() && this.sessionUserId){
+          try{
+            const created = await this.getForumService().createPost(post, this.sessionUserId, this.sessionEmail);
+            this.posts.unshift(created);
+            this.useSupabaseForum = true;
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          this.posts.unshift(post);
+          if(!this.save()){
+            this.posts.shift();
+            return;
+          }
+        }
+        this.resetPost();
+      },
+      resetPost(){
+        this.newPost = { channel:'Community', type:'Question', club:'General', content:'', videoUploadUrl:'', videoUploadName:'', imageUrls:[] };
+      },
+      setChannel(tab){
+        this.channelTab = tab;
+      },
+      toggleHotList(){
+        this.showAllHot = !this.showAllHot;
+      },
+      toggleAdvanced(){
+        this.advOpen = !this.advOpen;
+      },
+      resetAdvanced(){
+        this.adv = {
+          keyword:'',
+          author:'',
+          startDate:'',
+          endDate:'',
+          minLikes:'',
+          minComments:'',
+          onlyWithComments:false
+        };
+      },
+      openGroupManage(){
+        this.showGroupManage = true;
+      },
+      closeGroupManage(){
+        this.showGroupManage = false;
+        this.newGroupName = '';
+      },
+      addGroup(){
+        const name = String(this.newGroupName || '').trim();
+        if(!name) return;
+        if(this.customGroups.includes(name)) return;
+        this.customGroups.push(name);
+        this.newGroupName = '';
+      },
+      removeGroup(idx){
+        this.customGroups.splice(idx, 1);
+      },
+      parseTime(value){
+        const ts = Date.parse(value);
+        return Number.isNaN(ts) ? null : ts;
+      },
+      clubKeywords(){
+        return {
+          'Swimming': ['freestyle','breaststroke','backstroke','butterfly','breathing','pull','kick','pace','turn','start'],
+          'Cycling': ['cadence','pace','helmet','fuel','climb','shift','brake','chain','tire pressure','road bike','mountain bike'],
+          'Badminton': ['serve','return','footwork','smash','net play','drop shot','contact','swing','doubles','clear'],
+          'Football': ['passing','first touch','movement','duel','shin guards','wing','midfield','striker','defender','shooting'],
+          'Tennis': ['forehand','backhand','serve','topspin','volley','footwork','contact point','follow-through','racket face','ball toss'],
+          'Programming': ['code','algorithm','debug','complexity','binary search','two pointers','data structure','edge case','testing','template'],
+          'General': []
+        };
+      },
+      textMatchesClub(text, club){
+        if(!club || club === 'General') return true;
+        const t = String(text || '').toLowerCase();
+        const keys = this.clubKeywords()[club] || [];
+        if(keys.length === 0) return true;
+        return keys.some(k => t.includes(String(k).toLowerCase()));
+      },
+      suggestFor(club, type){
+        const pick = (arr)=> arr[Math.floor(Math.random() * arr.length)];
+        const tpl = {
+          'Swimming': {
+            'Question': [
+              { title:'I keep swallowing water during freestyle breathing. How can I fix it?', content:'During Swimming practice I often sink when I breathe in freestyle. How do you find a steady breathing rhythm, control head rotation, and build confidence with drills such as side-kick or single-arm work?', comments:[
+                { author:'Swim Team Senior', text:'Think about rotating to the side instead of lifting your head. Single-arm freestyle and side-kick drills help a lot.' },
+                { author:'Anonymous User', text:'Slow the pace first and stay consistent with your breathing pattern before trying to swim faster.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'Swimming speed tip: lock in your pull before chasing pace', content:'If you want to swim faster, make the stroke complete first: clean entry, stable catch, full push to the hip, and a steady kick. Try 25 m technique work followed by 25 m easy recovery and track your pace each round.', comments:[
+                { author:'Anonymous User', text:'Two weeks of technique-plus-recovery sets made my stroke much smoother and my pace improved naturally.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'Weekend pool session: freestyle technique clinic for beginners', content:'The Swimming Club is running a weekend pool session focused on freestyle breathing, kicking, and stroke rhythm. Beginners are welcome, and goggles plus a swim cap are recommended.', comments:[
+                { author:'Moderator', text:'Please warm up before getting in and build the intensity gradually.' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Campus Swimming time trial registration is open (50 m / 100 m)', content:'The Swimming Club will host a campus time trial featuring events such as 50 m and 100 m freestyle. Warm-up and check-in will be scheduled together, so please arrive early and prepare your starts and turns in advance.', comments:[
+                { author:'Anonymous User', text:'Will there be a short turn clinic beforehand? My flip turn is still inconsistent.' }
+              ] }
+            ]
+          },
+          'Cycling': {
+            'Question': [
+              { title:'My heart rate spikes on climbs. How should I pace better on the bike?', content:'During Cycling sessions my heart rate jumps quickly on climbs and my legs fade fast. What cadence should I aim for, when should I shift, and how early should I fuel before a long climb?', comments:[
+                { author:'Cycling Captain', text:'Protect cadence first, around 80 rpm if possible, and shift earlier than you think instead of grinding a heavy gear.' },
+                { author:'Anonymous User', text:'Take in water and small bites before you feel empty. Waiting too long makes every climb harder.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'Beginner Cycling tip: steady cadence beats early surges', content:'To ride longer, learn to hold a steady cadence around 80-90 rpm and keep your effort smooth. On longer rides pay attention to hydration, salt, and energy intake. On descents, look ahead and brake before the corner, not inside it.', comments:[
+                { author:'Anonymous User', text:'Switching from mashing heavy gears to holding cadence made my knees feel much better.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'Weekend city ride: 20 km easy spin, sign-ups open', content:'The Cycling Club is organizing a beginner-friendly city ride this weekend on mostly flat roads. Please wear a helmet and bring a bottle plus basic tools. We will review hand signals and group riding basics before leaving.', comments:[
+                { author:'Moderator', text:'Please arrive on time and check your brakes and tire pressure before the start.' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Campus Cycling hill challenge: rules and format', content:'The Cycling Club hill challenge will use an individual time-trial format on a route with several sustained climbs and support points. Helmets and bike checks are required before the start, and riders should prioritize safety and awareness on course.', comments:[
+                { author:'Anonymous User', text:'Will road bikes and mountain bikes be ranked in the same category?' }
+              ] }
+            ]
+          },
+          'Badminton': {
+            'Question': [
+              { title:'My badminton clears never reach the back court. Where should the power come from?', content:'When I hit a clear, the shuttle often dies before the rear court and my arm gets tired. How should I sequence the movement from legs to rotation to swing, and where should the contact point be?', comments:[
+                { author:'Anonymous User', text:'Work on the swing pattern first. Power should travel through the whole body, and contact should stay high and slightly in front.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'Doubles positioning: how to rotate between front pressure and rear attack', content:'A common doubles shape is front pressure plus rear attack. The rear player controls with smashes, drops, and setup shots, while the front player hunts the net and flat exchanges. Useful practice themes include the first three shots after serve, net interceptions, and clear rotation calls.', comments:[
+                { author:'Anonymous User', text:'Once my partner and I agreed on simple calls, our rotations became much cleaner and errors dropped.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'Wednesday evening Badminton training: footwork plus multishuttle', content:'The Badminton Club is holding Wednesday night training covering front-to-back footwork, multishuttle practice, and short match play. Beginners are welcome and should bring a racket and water.', comments:[
+                { author:'Moderator', text:'Please warm up thoroughly, especially your ankles and knees.' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Badminton mixed doubles friendly: registration open', content:'The Badminton Club will host a mixed doubles friendly event with a group stage followed by knockout rounds. Warm-up time and partner draws will be arranged before play begins.', comments:[
+                { author:'Anonymous User', text:'Can players with different levels be paired randomly?' }
+              ] }
+            ]
+          },
+          'Football': {
+            'Question': [
+              { title:'My first touch keeps bouncing away. How should I train it?', content:'In Football sessions my first touch often pushes the ball too far, so I lose the next action. How should I use the inside of the foot or laces, and what drills help with balance, timing, and soft contact?', comments:[
+                { author:'Football Captain', text:'Practice receiving the ball with a soft ankle and a slight cushion. Do not block it rigidly.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'7v7 small-sided play: midfield movement and support angles', content:'In smaller-sided matches the tempo stays high, so midfielders should learn to drop for the ball and switch play quickly. Scan before receiving, keep triangles around the ball, and try to move it in one or two touches when possible.', comments:[
+                { author:'Anonymous User', text:'Scanning before the ball arrives made a huge difference and I stopped losing possession so cheaply.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'Friday night 7v7 friendly: we need a few extra players', content:'The Football Club is organizing a Friday night 7v7 friendly on the campus turf. Please bring shin guards and arrive early to warm up. If you want to join, comment with your preferred position.', comments:[
+                { author:'Anonymous User', text:'I can play full-back. Should I bring a spare shirt?' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Football league schedule released with key reminders', content:'The Football Club league schedule has now been published. Please arrive according to the posted check-in time, stay on top of hydration and recovery, wear shin guards, and avoid reckless challenges.', comments:[
+                { author:'Moderator', text:'Please be punctual so team organization is not affected.' }
+              ] }
+            ]
+          },
+          'Tennis': {
+            'Question': [
+              { title:'My Tennis forehand keeps flying long. How do I find the right contact point?', content:'When I practice Tennis, I often make contact too late on the forehand and the ball sails long. How can I judge the bounce earlier, move into position sooner, and feel the right contact point in front of the body?', comments:[
+                { author:'Coach A', text:'Get your feet into place before the swing. Let the body move to the ball instead of reaching with the arm.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'Tennis serving for beginners: a reliable toss comes first', content:'The hardest part of serving is often the toss. Focus on repeatable height and placement before chasing speed, then build from the trophy position into a smooth swing and finally add leg drive.', comments:[
+                { author:'Anonymous User', text:'Doing a daily toss routine made my serve progress much faster.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'Weekend Tennis rally session: forehand and backhand practice', content:'The Tennis Club is running a weekend hitting session focused on forehand and backhand rallies, movement drills, and simple serve practice. Beginners can sign up and partners will be arranged.', comments:[
+                { author:'Moderator', text:'Bring water if you can and make sure to warm up before starting.' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Campus Tennis singles challenge is open for registration', content:'The Tennis Club singles challenge is now open and will use a points-based format. Rules and scoring will be explained before play starts.', comments:[
+                { author:'Anonymous User', text:'Will the club provide the match balls?' }
+              ] }
+            ]
+          },
+          'Programming': {
+            'Question': [
+              { title:'I keep getting binary search boundaries wrong. Is there a reliable template?', content:'When I code binary search, I often create infinite loops or miss the answer on the edge. How should I choose the interval convention, compute mid, and update the boundaries safely?', comments:[
+                { author:'bhw', text:'Pick one interval style and stay consistent. Write the loop condition clearly and let each branch update only one side.' }
+              ] }
+            ],
+            'Tips & Experience': [
+              { title:'A common two-pointer pattern: define the invariant first', content:'The key to two-pointer problems is to define the invariant up front, such as what stays true inside the window. Move only one pointer at a time, make the minimum updates needed, and keep the invariant valid throughout the scan.', comments:[
+                { author:'Anonymous User', text:'Writing the invariant first made my solutions much clearer and more stable.' }
+              ] }
+            ],
+            'Event Sign-Up': [
+              { title:'This week\'s training: binary search and two-pointer discussion', content:'The Programming club will focus this week on binary search, two pointers, and sliding windows. Bring a couple of representative problems if you want to compare templates, edge cases, and complexity analysis together.', comments:[
+                { author:'Moderator', text:'Preparing two or three pattern problems will make the discussion much more useful.' }
+              ] }
+            ],
+            'Competition Updates': [
+              { title:'Campus Programming contest registration is open: fundamentals track', content:'The Programming club is organizing a campus contest that covers arrays, hashing, two pointers, binary search, and other core algorithms. Everyone is welcome to sign up.', comments:[
+                { author:'Anonymous User', text:'Will any programming language be allowed in the contest?' }
+              ] }
+            ]
+          },
+          'General': {
+            'Question': [{ title:'Platform issue: what should I do if my booking record looks wrong?', content:'After booking through the platform, something in my personal record looks off. Should I refresh the page or clear local browser data?', comments:[
+              { author:'Moderator', text:'If local browser data looks stale, refreshing the page and trying again usually fixes inconsistent records.' }
+            ] }],
+            'Tips & Experience': [{ title:'Platform tip: choose the club before picking the date', content:'On the booking page, selecting the club first and then choosing a date and time usually makes filtering easier.', comments:[] }],
+            'Event Sign-Up': [{ title:'Welcome to the platform community event', content:'Feel free to explore the booking, support, and forum pages. Some temporary browser-side fallback data may still appear if cloud sync is unavailable.', comments:[] }],
+            'Competition Updates': [{ title:'Platform notice: maintenance this week', content:'A platform update is planned this week, so some browser-side cached data may refresh automatically.', comments:[] }]
+          }
+        };
+
+        const byClub = tpl[club] || tpl['General'];
+        const list = byClub[type] || byClub['Question'] || tpl['General']['Question'];
+        return pick(list);
+      },
+      normalizeCommentText(club, type, text){
+        const raw = String(text || '').trim();
+        if(!raw) return raw;
+        if(!club || club === 'General') return raw;
+        if(this.textMatchesClub(raw, club)) return raw;
+
+        const s = this.suggestFor(club, type);
+        const hint = (s && Array.isArray(s.comments) && s.comments[0] && s.comments[0].text) ? String(s.comments[0].text) : (club + ' training tip: focus on basics and safety.');
+        const pref = raw.startsWith('[' + club + ']') ? raw : ('[' + club + '] ' + raw);
+        if(pref.includes(hint)) return pref;
+        return pref + ' ' + hint;
+      },
+      repairDemoPosts(){
+        let changed = false;
+        const types = ['Question','Tips & Experience','Event Sign-Up','Competition Updates'];
+        const nextId = this.createCommentIdFactory();
+        (this.posts || []).forEach(p=>{
+          const club = p.club || 'General';
+          const type = types.includes(p.type) ? p.type : 'Question';
+
+          if(!p.channel){
+            p.channel = 'Community';
+            changed = true;
+          }
+          if(!Array.isArray(p.imageUrls)){
+            p.imageUrls = [];
+            changed = true;
+          }
+          const normalizedPostId = this.normalizeId(p && p.id);
+          if(normalizedPostId){
+            if(normalizedPostId !== String(p.id)){
+              p.id = normalizedPostId;
+              changed = true;
+            }
+          }else{
+            p.id = String(Date.now());
+            changed = true;
+          }
+          const createdTs = this.postSortValue(p);
+          if((Number(p.createdTs) || 0) !== createdTs){
+            p.createdTs = createdTs;
+            changed = true;
+          }
+          if(typeof p.videoUrl !== 'string'){
+            p.videoUrl = '';
+            changed = true;
+          }
+          if(typeof p.videoName !== 'string'){
+            p.videoName = '';
+            changed = true;
+          }
+          if(typeof p.avatarUrl !== 'string'){
+            p.avatarUrl = '';
+            changed = true;
+          }
+          if(typeof p.visibility !== 'string' || !String(p.visibility || '').trim()){
+            p.visibility = 'public';
+            changed = true;
+          }
+          if(typeof p.pinned !== 'boolean'){
+            p.pinned = false;
+            changed = true;
+          }
+          if(this.normalizeCommentNodes(p.comments, nextId)){
+            changed = true;
+          }
+
+          if(!p || p.ownerEmail) return;
+
+          const contentOk = this.textMatchesClub(p.content, club);
+          if(contentOk) return;
+
+          const s = this.suggestFor(club, type);
+          p.type = type;
+          p.club = club;
+          p.content = s.content;
+          p.comments = this.cloneCommentNodes(s.comments, this.createCommentIdFactory());
+          changed = true;
+        });
+        return changed;
+      },
+      seed(){
+        const nextId = this.createCommentIdFactory();
+        const mk = (offset, post) => ({
+          id: String(Date.now() - offset),
+          channel: post.channel || 'Community',
+          type: post.type,
+          club: post.club,
+          visibility: post.visibility || 'public',
+          pinned: !!post.pinned,
+          author: post.author,
+          avatarUrl: post.avatarUrl || '',
+          title: post.title,
+          content: post.content,
+          videoUrl: post.videoUrl || '',
+          videoName: post.videoName || '',
+          imageUrls: Array.isArray(post.imageUrls) ? post.imageUrls.slice() : [],
+          time: this.now(),
+          createdTs: Date.now() - offset,
+          likes: post.likes || 0,
+          seeded: true,
+          comments: this.cloneCommentNodes(post.comments, nextId)
+        });
+
+        this.posts = [
+          mk(52000, {
+            type:'Question',
+            club:'Swimming',
+            author:'Anonymous User',
+            title:'I keep swallowing water during freestyle breathing. How can I fix it?',
+            content:'During Swimming Club sessions I often lift my head too much when I breathe, which makes my hips sink and breaks the stroke. What drills or timing cues helped you build smoother freestyle breathing?',
+            likes: 8,
+            comments: [
+              { author:'Swim Team Senior', text:'Rotate to the side instead of lifting the head. Single-arm freestyle and side-kick drills help a lot.' },
+              { author:'Anonymous User', text:'A steady breathing pattern at a slower pace helped me far more than trying to swim hard.' }
+            ]
+          }),
+          mk(42000, {
+            type:'Tips & Experience',
+            club:'Badminton',
+            author:'bhw',
+            title:'Beginner doubles positioning: how should front and rear players coordinate?',
+            content:'In Badminton doubles, one useful base shape is front pressure with rear attack. The back player sets up with smashes and drops while the front player looks for net interceptions and flat pressure. Simple rotation calls make this much easier.',
+            likes: 5,
+            comments: [
+              { author:'Anonymous User', text:'Rotations became much cleaner once my partner and I agreed on short verbal cues.' }
+            ]
+          }),
+          mk(32000, {
+            type:'Question',
+            club:'Tennis',
+            author:'Tennis Beginner',
+            title:'My Tennis forehand keeps flying long. How do I find the right contact point?',
+            content:'I recently started working on my forehand in Tennis Club, and I often contact the ball too late. Are there any simple feeding drills or footwork cues that help you meet the ball farther in front?',
+            likes: 4,
+            comments: [
+              { author:'Coach A', text:'Set the feet first and let the contact happen in front of the body. Do not reach with the arm.' }
+            ]
+          }),
+          mk(22000, {
+            type:'Event Sign-Up',
+            club:'Football',
+            author:'Football Captain',
+            title:'Friday night 7v7 friendly: we need a few extra players',
+            content:'The Football Club is hosting a Friday evening 7v7 friendly on the campus turf. Please bring shin guards and arrive early enough to warm up. Leave a comment with the position you usually play if you want a spot.',
+            likes: 9,
+            comments: [
+              { author:'Anonymous User', text:'I can play midfield. Should I bring a spare shirt?' }
+            ]
+          }),
+          mk(14000, {
+            type:'Tips & Experience',
+            club:'Cycling',
+            author:'Cycling Captain',
+            title:'Beginner Cycling pacing: do not sprint too early',
+            content:'One of the best beginner lessons in Cycling Club is to hold a steady cadence instead of surging at the start. Smooth effort, hydration, and timely fueling matter a lot more than an early burst of speed.',
+            likes: 6,
+            comments: [
+              { author:'Anonymous User', text:'Once I stopped grinding heavy gears, my legs felt far fresher on longer rides.' }
+            ]
+          }),
+          mk(8000, {
+            type:'Competition Updates',
+            club:'Programming',
+            author:'Programming Club Admin',
+            title:'This week\'s algorithm training: binary search and two pointers',
+            content:'This week the Programming club will focus on binary search and two-pointer patterns. Bring a representative problem or a clean template if you want to compare boundary handling and time complexity with others.',
+            likes: 3,
+            comments: [
+              { author:'bhw', text:'Binary search gets much easier when you commit to one interval convention and use it everywhere.' }
+            ]
+          })
+        ];
+      },
+
+      openPost(id){
+        this.closePostMenu();
+        this.currentId = this.normalizeId(id);
+        this.showModal = true;
+        this.comment = { author:'', text:'' };
+      },
+      closeModal(){
+        this.showModal = false;
+        this.currentId = null;
+      },
+
+      likeCurrent(){
+        if(!this.current) return;
+        this.likePost(this.current);
+      },
+
+      async addComment(){
+        if(!this.current) return;
+        if(!this.isAuthed){
+          this.goLogin();
+          return;
+        }
+        const author = (this.comment.author || '').trim() || 'Anonymous User';
+        let text = (this.comment.text || '').trim();
+        if(!text){
+          alert('Please enter a comment.');
+          return;
+        }
+        this.current.comments = Array.isArray(this.current.comments) ? this.current.comments : [];
+        if(this.current.source === 'supabase' && this.hasSupabaseForum()){
+          try{
+            const created = await this.getForumService().createComment(this.current.id, null, text, '', this.sessionUserId, this.sessionEmail);
+            this.current.comments.unshift(created);
+            this.syncLocalForumMirror();
+          }catch(e){
+            alert(this.getForumService().mapForumActionError(e));
+            return;
+          }
+        }else{
+          this.current.comments.unshift({
+            id: String(Date.now()),
+            author,
+            ownerEmail: this.sessionEmail || '',
+            avatarUrl: this.sessionAvatarSrc || '',
+            text,
+            time: this.now(),
+            createdTs: Date.now(),
+            likes: 0,
+            replies: []
+          });
+          this.save();
+        }
+        this.comment.text = '';
+      },
+
+      deleteCurrent(){
+        if(!this.current) return;
+        this.deletePost(this.current);
+      }
+    }
+  })
+</script>
+
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

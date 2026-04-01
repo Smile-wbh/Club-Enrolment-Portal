@@ -1,0 +1,1098 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Course Details - Club Enrollment Portal</title>
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-courses.js"></script>
+  <link rel="stylesheet" href="../css/mfms.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+</head>
+<body>
+<div id="app" v-cloak>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a class="active" href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="course-detail-page">
+    <div class="container">
+      <div v-if="course" class="detail-page-shell">
+        <section class="detail-hero-card">
+          <h1>{{ course.title }}</h1>
+          <p class="detail-hero-club">{{ clubEnglish(course) }}</p>
+          <p class="detail-hero-lead">{{ courseLead(course) }}</p>
+        </section>
+
+        <div class="detail-layout">
+          <div class="detail-main-column">
+            <article class="detail-overview-card">
+              <div class="detail-overview-media">
+                <img :src="courseCover(course)" :alt="course.title" />
+              </div>
+
+              <div class="detail-overview-body">
+                <ul class="detail-overview-list">
+                  <li>{{ course.level }} · {{ course.mode }}</li>
+                  <li>Time: {{ activeSchedule }}</li>
+                  <li>Location: {{ course.location }}</li>
+                  <li>Seats: {{ course.seats }}</li>
+                  <li>Fee: {{ course.fee }}</li>
+                </ul>
+
+                <div class="detail-overview-actions">
+                  <button class="btn primary detail-action-btn" type="button" @click="goBook(course)">Book Now</button>
+                  <a class="btn ghost detail-action-btn" href="mfms.html">Back to Course List</a>
+                </div>
+              </div>
+            </article>
+
+            <div class="detail-metrics-grid">
+              <article class="detail-metric-card">
+                <span>Course Duration</span>
+                <strong>{{ courseDuration }}</strong>
+              </article>
+
+              <article class="detail-metric-card">
+                <span>Remaining Seats</span>
+                <strong>{{ course.seats }}</strong>
+              </article>
+
+              <article class="detail-metric-card">
+                <span>Teaching Format</span>
+                <strong>{{ course.mode }}</strong>
+              </article>
+            </div>
+
+            <article class="detail-content-card">
+              <h2>Course Overview</h2>
+
+              <div class="detail-copy-block">
+                <h3>Course Summary</h3>
+                <p>{{ course.detail }}</p>
+              </div>
+
+              <div class="detail-copy-block">
+                <h3>What You Will Learn</h3>
+                <ul class="detail-bullet-list">
+                  <li v-for="(item, idx) in learningPoints(course)" :key="'learn-' + idx">{{ item }}</li>
+                </ul>
+              </div>
+
+              <div class="detail-copy-block">
+                <h3>Who This Course Is For</h3>
+                <ul class="detail-bullet-list">
+                  <li v-for="(item, idx) in audienceTips(course)" :key="'fit-' + idx">{{ item }}</li>
+                </ul>
+              </div>
+            </article>
+
+            <article class="detail-content-card">
+              <h2>Course Notes</h2>
+              <ul class="detail-note-list">
+                <li v-for="(item, idx) in courseNotes(course)" :key="'note-' + idx">{{ item }}</li>
+              </ul>
+            </article>
+
+            <section class="detail-related-section" v-if="relatedCourses.length">
+              <h2>Recommended Courses</h2>
+
+              <div class="detail-related-grid">
+                <article
+                  class="detail-related-card"
+                  v-for="item in relatedCourses"
+                  :key="'related-' + item.id"
+                  role="button"
+                  tabindex="0"
+                  @click="openCourse(item)"
+                  @keydown.enter.prevent="openCourse(item)"
+                  @keydown.space.prevent="openCourse(item)"
+                >
+                  <img :src="courseCover(item)" :alt="item.title" />
+                  <div class="detail-related-body">
+                    <h3>{{ item.title }}</h3>
+                    <p>{{ item.desc }}</p>
+                  </div>
+                </article>
+              </div>
+            </section>
+          </div>
+
+          <aside class="detail-sidebar">
+            <article class="detail-side-card detail-fee-card">
+              <h2>Course Fee</h2>
+              <strong class="detail-fee-value">{{ course.fee }}</strong>
+              <p class="detail-fee-meta">{{ course.seats }} seats remain right now, and you can book a suitable time slot directly.</p>
+
+              <div class="detail-mini-profile">
+                <div class="detail-avatar detail-avatar-sm">{{ coachInitials(coachInfo.name) }}</div>
+                <div>
+                  <strong>{{ coachInfo.name }}</strong>
+                  <p>{{ coachInfo.title }}</p>
+                </div>
+              </div>
+            </article>
+
+            <article class="detail-side-card">
+              <h2>Course Instructor</h2>
+              <div class="detail-avatar">{{ coachInitials(coachInfo.name) }}</div>
+              <h3>{{ coachInfo.name }}</h3>
+              <p class="detail-side-role">{{ coachInfo.title }}</p>
+              <p class="detail-side-text">{{ coachInfo.bio }}</p>
+              <button class="btn ghost detail-side-btn" type="button" @click="addFav(course)" :disabled="isFav(course.id)">
+                {{ isFav(course.id) ? 'Saved to Favorites' : 'Save Course' }}
+              </button>
+            </article>
+
+            <article class="detail-side-card detail-schedule-card">
+              <h2>Choose a Course Time</h2>
+
+              <button
+                class="detail-slot-btn"
+                v-for="(slot, idx) in course.schedule"
+                :key="'slot-' + idx"
+                type="button"
+                :class="{ active: activeSchedule === slot }"
+                @click="selectSchedule(slot)"
+              >
+                <span class="detail-slot-week">{{ scheduleWeekLabel(slot) }}</span>
+                <span class="detail-slot-time">{{ scheduleTimeRange(slot) }}</span>
+                <small>{{ activeSchedule === slot ? 'Selected' : 'Click to Switch' }}</small>
+              </button>
+
+              <button class="btn primary detail-side-btn" type="button" @click="goBook(course)">Book Now</button>
+            </article>
+          </aside>
+        </div>
+      </div>
+
+      <div v-else class="empty-state course-detail-empty">
+        <h3>Course Not Found</h3>
+        <p>The course may have been removed, or the course ID in the current link is invalid.</p>
+        <a class="toolbar-btn primary" href="mfms.html">Back to Course List</a>
+      </div>
+    </div>
+  </section>
+
+  <div v-if="showLoginModal" class="login-modal-mask" @click.self="closeLoginModal">
+    <div class="login-modal" role="dialog" aria-modal="true">
+      <div class="login-modal-head">
+        <h3>Notice</h3>
+        <div class="login-close" @click="closeLoginModal">Close</div>
+      </div>
+      <div class="login-modal-body">
+        <div class="login-modal-text">{{ loginModalText }}</div>
+        <div class="login-modal-actions">
+          <button class="btn primary" type="button" @click="goLoginFromModal">Log in</button>
+          <button class="btn ghost" type="button" @click="closeLoginModal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showActionModal" class="action-modal-mask" @click.self="closeActionModal">
+    <div class="action-modal" role="dialog" aria-modal="true">
+      <div class="action-modal-head">
+        <h3>{{ actionModalTitle }}</h3>
+        <div class="action-close" @click="closeActionModal">Close</div>
+      </div>
+      <div class="action-modal-body">
+        <div class="action-modal-text">{{ actionModalText }}</div>
+        <div class="action-modal-actions">
+          <a class="btn primary" :href="actionPrimaryHref">Open Personal Center</a>
+          <button class="btn ghost" type="button" @click="doActionCancel">{{ actionCancelLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const teachingDetailApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        courseId: '',
+        showLoginModal: false,
+        pendingPayload: null,
+        loginModalText: 'You need to log in before booking.',
+        loginRedirectUrl: 'join.html?tab=bookings',
+        showActionModal: false,
+        actionModalTitle: 'Notice',
+        actionModalText: '',
+        actionPrimaryHref: 'join.html',
+        actionCancelLabel: 'Close',
+        actionModalType: '',
+        actionModalCourseId: '',
+        sessionUserId: '',
+        useSupabaseCourses: false,
+        coursesSupabase: [],
+        favoriteIdsSupabase: [],
+        courseSyncError: '',
+        coursesVersion: 0,
+        favsVersion: 0,
+        selectedSchedule: '',
+        courses: [
+          {
+            id: 1, slug: 'badminton', club: 'Badminton', level: 'Beginner', mode: 'In-person',
+            title: 'Badminton Serve Fundamentals (Beginner)',
+            desc: 'Grip, stance, and serve mechanics broken down with guided practice.',
+            detail: 'This course covers the key basics of forehand and backhand serving, common error correction, and practice suggestions to help beginners build a stable serve.',
+            time: 'Wed 19:00-20:00',
+            schedule: ['Wed 19:00-20:00', 'Sun 09:30-10:30'],
+            location: 'Indoor Hall B (In-person)',
+            seats: 12,
+            fee: '£0',
+            popularity: 42,
+            createdAt: 1710000000000
+          },
+          {
+            id: 2, slug: 'badminton', club: 'Badminton', level: 'Advanced', mode: 'In-person',
+            title: 'Badminton Footwork and Net Play (Advanced)',
+            desc: 'Four-corner footwork, net control, and rhythm training.',
+            detail: 'This advanced course focuses on connected movement and net control quality, using multi-shuttle drills to improve reaction speed, stability, and small-court play.',
+            time: 'Fri 18:00-19:30',
+            schedule: ['Fri 18:00-19:30', 'Sun 16:00-17:30'],
+            location: 'Indoor Hall B (In-person)',
+            seats: 8,
+            fee: '£2/session',
+            popularity: 35,
+            createdAt: 1715000000000
+          },
+          {
+            id: 3, slug: 'football', club: 'Football', level: 'Beginner', mode: 'In-person',
+            title: 'Football Ball Control and Passing Basics (Beginner)',
+            desc: 'Ball control, short passing, two-player coordination, and simple opposition drills.',
+            detail: 'Designed for beginners, this course builds ball control and passing fundamentals with inside-foot and instep passing, first-touch breakdowns, and basic small-group combinations.',
+            time: 'Tue 18:00-19:30',
+            schedule: ['Tue 18:00-19:30', 'Sat 15:00-16:30'],
+            location: 'Stadium A (In-person)',
+            seats: 15,
+            fee: '£0',
+            popularity: 55,
+            createdAt: 1720000000000
+          },
+          {
+            id: 4, slug: 'football', club: 'Football', level: 'Advanced', mode: 'In-person',
+            title: 'Football Tactics and Positional Training (Advanced)',
+            desc: 'Formation awareness, off-ball movement, transitions, and match-like drills.',
+            detail: 'Using tactical board sessions and live scrimmages, this course helps learners understand formations and positional duties while improving game reading and teamwork.',
+            time: 'Thu 18:00-20:00',
+            schedule: ['Thu 18:00-20:00', 'Sun 14:00-16:00'],
+            location: 'Stadium A (In-person)',
+            seats: 10,
+            fee: '£0',
+            popularity: 48,
+            createdAt: 1722000000000
+          },
+          {
+            id: 5, slug: 'swimming', club: 'Swimming', level: 'Beginner', mode: 'In-person',
+            title: 'Freestyle Beginner: Breathing and Stroke',
+            desc: 'Breathing rhythm, stroke motion, and basic coordination drills.',
+            detail: 'This course focuses on freestyle fundamentals, especially breathing rhythm and stroke coordination, making it a strong fit for complete beginners or learners rebuilding basics.',
+            time: 'Sat 10:00-11:00',
+            schedule: ['Sat 10:00-11:00', 'Wed 07:30-08:30'],
+            location: 'Aquatics Center (In-person)',
+            seats: 18,
+            fee: '£2/session',
+            popularity: 60,
+            createdAt: 1724000000000
+          },
+          {
+            id: 6, slug: 'tennis', club: 'Tennis', level: 'Beginner', mode: 'In-person',
+            title: 'Tennis Forehand, Backhand, and Serve Basics',
+            desc: 'Core forehand and backhand technique, serve basics, and simple rally practice.',
+            detail: 'This course covers grip and swing-path correction, forehand and backhand consistency, and the fundamentals of serving with practical training methods.',
+            time: 'Sat 14:00-15:30',
+            schedule: ['Sat 14:00-15:30', 'Mon 18:30-20:00'],
+            location: 'Tennis Court C (In-person)',
+            seats: 10,
+            fee: '£2/session',
+            popularity: 33,
+            createdAt: 1726000000000
+          },
+          {
+            id: 7, slug: 'programming', club: 'Programming', level: 'Beginner', mode: 'Online',
+            title: 'Web Frontend Beginner: HTML/CSS Fundamentals',
+            desc: 'Page structure and base styling for building a simple website.',
+            detail: 'From HTML structure to CSS layout basics, this course explains common page patterns and component thinking, making it useful for course projects and personal portfolios.',
+            time: 'Fri 20:00-21:30',
+            schedule: ['Fri 20:00-21:30', 'Tue 20:00-21:30'],
+            location: 'Online meeting link (Virtual)',
+            seats: 40,
+            fee: '£0',
+            popularity: 70,
+            createdAt: 1728000000000
+          },
+          {
+            id: 8, slug: 'programming', club: 'Programming', level: 'Advanced', mode: 'Online',
+            title: 'Frontend Mini Project: Forms and Local Storage (Advanced)',
+            desc: 'Form validation, localStorage, and interactive page logic.',
+            detail: 'This mini project uses forms and localStorage persistence to practise real interaction logic, making it a strong reference for implementing booking and registration flows like this course system.',
+            time: 'Sun 19:30-21:00',
+            schedule: ['Sun 19:30-21:00', 'Wed 20:00-21:30'],
+            location: 'Online meeting link (Virtual)',
+            seats: 35,
+            fee: '£0',
+            popularity: 65,
+            createdAt: 1730000000000
+          }
+        ]
+      };
+    },
+    computed: {
+      coursesPool() {
+        const version = this.coursesVersion;
+        version;
+        let localCourses = [];
+        try {
+          localCourses = JSON.parse(localStorage.getItem('mfms_courses_v1') || '[]');
+        } catch (error) {
+          localCourses = [];
+        }
+        const baseCourses = (this.useSupabaseCourses && this.coursesSupabase.length)
+          ? this.coursesSupabase
+          : this.courses;
+        return [...localCourses, ...baseCourses]
+          .map((course) => this.normalizeCourse(course))
+          .filter(Boolean);
+      },
+      favIds() {
+        const version = this.favsVersion;
+        version;
+        return this.getFavs().map((item) => String(item));
+      },
+      course() {
+        const targetId = String(this.courseId || '');
+        if (!targetId) return null;
+        const byId = this.coursesPool.find((item) => String(item && item.id) === targetId);
+        if (byId) return byId;
+        return this.coursesPool.find((item) => String(item && item.slug) === targetId) || null;
+      },
+      coachInfo() {
+        return this.coachByClub(this.course);
+      },
+      activeSchedule() {
+        if (!this.course) return '';
+        return this.selectedSchedule || this.defaultSchedule(this.course);
+      },
+      courseDuration() {
+        return this.formatDuration(this.activeSchedule || (this.course && this.course.time) || '');
+      },
+      relatedCourses() {
+        if (!this.course) return [];
+        const currentId = String(this.course.id || '');
+        const currentGroup = String(this.course.clubCategory || this.course.club || '');
+        const pool = this.coursesPool.filter((item) => String(item && item.id) !== currentId);
+        const sameClub = pool.filter((item) => String(item.clubCategory || item.club || '') === currentGroup);
+        const others = pool.filter((item) => String(item.clubCategory || item.club || '') !== currentGroup);
+        const sorted = sameClub.concat(others).sort((a, b) => Number(b.popularity || 0) - Number(a.popularity || 0));
+        return sorted.slice(0, 3);
+      }
+    },
+    watch: {
+      course() {
+        this.syncSelectedSchedule();
+        if (this.course && this.course.title) {
+          document.title = this.course.title + ' - Course Details';
+        }
+      }
+    },
+    async mounted() {
+      this.readCourseIdFromUrl();
+      await this.syncSupabaseCourseData();
+      this.syncSelectedSchedule();
+      window.addEventListener('storage', this.onStorageChange);
+      window.addEventListener('pageshow', this.refreshLocalState);
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+      this.$nextTick(() => {
+        if (this.course && this.course.title) {
+          document.title = this.course.title + ' - Course Details';
+        }
+      });
+    },
+    beforeDestroy() {
+      window.removeEventListener('storage', this.onStorageChange);
+      window.removeEventListener('pageshow', this.refreshLocalState);
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    },
+    methods: {
+      parseMultiValue(raw) {
+        if (Array.isArray(raw)) {
+          return raw.map((item) => String(item || '').trim()).filter(Boolean);
+        }
+        return String(raw || '')
+          .split(/[\n\r]+|[，,；;]+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      },
+      timeValue(raw) {
+        if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+        const text = String(raw || '').trim();
+        if (text) {
+          const numeric = Number(text);
+          if (!Number.isNaN(numeric) && text.length >= 8) return numeric;
+        }
+        const parsed = Date.parse(text || '');
+        return Number.isNaN(parsed) ? 0 : parsed;
+      },
+      getCourseService() {
+        return window.clubCourseSupabase || null;
+      },
+      hasSupabaseCourses() {
+        const service = this.getCourseService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      readSession() {
+        const tryLoad = (store) => {
+          try {
+            const raw = store.getItem('user_session_v1');
+            const session = raw ? JSON.parse(raw) : null;
+            if (!session || !session.email) return null;
+            return {
+              userId: String(session.userId || '').trim(),
+              email: String(session.email || '').trim().toLowerCase()
+            };
+          } catch (error) {
+            return null;
+          }
+        };
+        return tryLoad(localStorage) || tryLoad(sessionStorage) || null;
+      },
+      async syncSupabaseCourseData() {
+        const session = this.readSession();
+        this.sessionUserId = session && session.userId ? session.userId : '';
+        if (!this.hasSupabaseCourses()) {
+          this.useSupabaseCourses = false;
+          this.favoriteIdsSupabase = [];
+          return;
+        }
+
+        try {
+          const payload = await this.getCourseService().fetchCourseCatalog(this.sessionUserId);
+          this.coursesSupabase = Array.isArray(payload && payload.courses) ? payload.courses : [];
+          this.favoriteIdsSupabase = Array.isArray(payload && payload.favoriteIds) ? payload.favoriteIds.map((item) => String(item)) : [];
+          this.useSupabaseCourses = this.coursesSupabase.length > 0;
+          this.courseSyncError = '';
+        } catch (error) {
+          this.useSupabaseCourses = false;
+          this.favoriteIdsSupabase = [];
+          this.courseSyncError = String(error && error.message || '').trim();
+        }
+      },
+      normalizeCourse(course) {
+        if (!course) return null;
+        const schedule = this.parseMultiValue(course.schedule || course.time || '').slice(0, 12);
+        const primaryTime = String(course.time || '').trim() || schedule[0] || 'Time TBD';
+        const safeSchedule = schedule.length
+          ? schedule
+          : (primaryTime && primaryTime !== 'Time TBD' ? [primaryTime] : []);
+        const desc = String(course.desc || course.summary || '').trim()
+          || String(course.lead || course.detail || '').trim()
+          || 'Open the course page to review details and booking information.';
+        const detail = String(course.detail || '').trim() || desc;
+        const clubName = String(course.club || course.clubName || '').trim() || 'Unnamed Club';
+        const clubCategory = String(course.clubCategory || course.category || clubName).trim();
+        return Object.assign({}, course, {
+          title: String(course.title || 'Untitled Course').trim(),
+          club: clubName,
+          clubCategory: clubCategory,
+          desc: desc,
+          detail: detail,
+          time: primaryTime,
+          schedule: safeSchedule,
+          location: String(course.location || '').trim() || 'Location TBD',
+          fee: String(course.fee || '').trim() || 'Free',
+          seats: Number(course.seats || 0) > 0 ? Number(course.seats) : 12,
+          createdAt: this.timeValue(course.createdAt || course.updatedAt || course.id),
+          updatedAt: this.timeValue(course.updatedAt || course.createdAt || course.id),
+          learningPoints: this.parseMultiValue(course.learningPoints || ''),
+          audienceTips: this.parseMultiValue(course.audienceTips || ''),
+          notesList: this.parseMultiValue(course.notesList || course.notes || '')
+        });
+      },
+      readCourseIdFromUrl() {
+        const params = new URLSearchParams(location.search || '');
+        this.courseId = String(params.get('id') || '').trim();
+        this.syncSelectedSchedule();
+      },
+      clubEnglish(input) {
+        const course = input && typeof input === 'object' ? input : null;
+        const map = {
+          'Badminton': 'Badminton Club',
+          'Football': 'Football Club',
+          'Swimming': 'Swimming Club',
+          'Tennis': 'Tennis Club',
+          'Programming': 'Programming Club',
+          'Music': 'Music Club',
+          'Cycling': 'Cycling Club'
+        };
+        const custom = course && String(course.englishClub || '').trim();
+        if (custom) return custom;
+        const key = String(course ? (course.clubCategory || course.club || '') : input || '').trim();
+        return map[key] || key || 'Club Course';
+      },
+      courseLead(course) {
+        if (!course) return '';
+        return String(course.lead || '').trim() || 'Suitable for learners who want to improve core skills, rhythm, and class participation in a structured way, with flexible booking based on the course schedule.';
+      },
+      learningPoints(course) {
+        if (course && Array.isArray(course.learningPoints) && course.learningPoints.length) {
+          return course.learningPoints;
+        }
+        const key = String((course && (course.clubCategory || course.club || course.slug)) || '').toLowerCase();
+        const map = {
+          badminton: ['Build a stable grip and a clean power rhythm', 'Improve footwork and multi-shot transitions', 'Receive class feedback focused on shot consistency'],
+          Badminton: ['Build a stable grip and a clean power rhythm', 'Improve footwork and multi-shot transitions', 'Receive class feedback focused on shot consistency'],
+          football: ['Learn core ball control, passing, and movement combinations', 'Improve spatial awareness and tempo changes on the pitch', 'Strengthen teamwork through practical opposition drills'],
+          Football: ['Learn core ball control, passing, and movement combinations', 'Improve spatial awareness and tempo changes on the pitch', 'Strengthen teamwork through practical opposition drills'],
+          swimming: ['Build breathing rhythm and stroke coordination', 'Improve water entry, kicking, and body position control', 'Develop steadier pacing through segmented training'],
+          Swimming: ['Build breathing rhythm and stroke coordination', 'Improve water entry, kicking, and body position control', 'Develop steadier pacing through segmented training'],
+          tennis: ['Understand forehand and backhand swing paths', 'Build basic serve mechanics and placement control', 'Improve rally rhythm and shot stability through practice'],
+          Tennis: ['Understand forehand and backhand swing paths', 'Build basic serve mechanics and placement control', 'Improve rally rhythm and shot stability through practice'],
+          programming: ['Understand the core concepts and implementation ideas in this lesson', 'Use exercises to master layout structure or interactive logic', 'Gradually build the ability to complete small projects independently'],
+          Programming: ['Understand the core concepts and implementation ideas in this lesson', 'Use exercises to master layout structure or interactive logic', 'Gradually build the ability to complete small projects independently']
+        };
+        return map[key] || map[String(course && course.club) || ''] || [
+          'Build a foundational understanding of the course\'s core skills',
+          'Strengthen learning through step-by-step practice and feedback',
+          'Develop a steady training rhythm through regular sessions'
+        ];
+      },
+      audienceTips(course) {
+        if (!course) return [];
+        if (Array.isArray(course.audienceTips) && course.audienceTips.length) {
+          return course.audienceTips;
+        }
+        const beginnerText = course.level === 'Beginner'
+          ? 'Best for complete beginners or anyone who wants to rebuild their core skill framework'
+          : 'Best for learners with prior experience who want to improve stability and fluency';
+        const modeText = course.mode === 'Online'
+          ? 'Great for learners who want flexible remote participation and paced practice'
+          : 'Great for learners who want live demonstrations and immediate correction in person';
+        return [
+          beginnerText,
+          'Great for members who want to keep a regular weekly training rhythm and make steady progress',
+          modeText
+        ];
+      },
+      courseNotes(course) {
+        if (!course) return [];
+        if (Array.isArray(course.notesList) && course.notesList.length) {
+          return course.notesList;
+        }
+        const modeNote = course.mode === 'Online'
+          ? 'For online sessions, prepare your network connection and class equipment in advance and join on time.'
+          : 'For in-person sessions, arrive about 10 minutes early to check in, warm up, and prepare your equipment.';
+        return [
+          'Choose a suitable course time before submitting your booking. The booking information will sync to your personal center.',
+          modeNote,
+          'If you need to cancel or adjust a slot, try to handle it at least 24 hours in advance so the seat can be released.'
+        ];
+      },
+      coachByClub(course) {
+        if (course && (course.coachName || course.coachTitle || course.coachBio)) {
+          return {
+            name: String(course.coachName || '').trim() || 'Club Coach',
+            title: String(course.coachTitle || '').trim() || 'Course Instructor',
+            bio: String(course.coachBio || '').trim() || 'The instructor provides structured feedback throughout the class to help learners complete practice steadily.'
+          };
+        }
+        const map = {
+          'Badminton': {
+            name: 'Alex Chen',
+            title: 'Badminton Intensive Coach',
+            bio: 'Brings years of in-person coaching experience, with a strong focus on technical foundations, rhythm, and class feedback.'
+          },
+          'Football': {
+            name: 'Ryan Zhao',
+            title: 'Football Specialist Coach',
+            bio: 'Specialises in passing control, movement, and small-group combinations, helping learners read the game better in live play.'
+          },
+          'Swimming': {
+            name: 'Mia Wang',
+            title: 'Swimming Instructor',
+            bio: 'Focuses on breathing rhythm, stroke correction, and endurance work, making the course suitable from beginner through advanced stages.'
+          },
+          'Tennis': {
+            name: 'Emma Lin',
+            title: 'Tennis Foundations Coach',
+            bio: 'Skilled in forehand, backhand, serving, and rhythm development, helping learners build stable strokes more quickly.'
+          },
+          'Programming': {
+            name: 'Ethan Zhou',
+            title: 'Frontend Course Instructor',
+            bio: 'Teaches page structure, interactive logic, and mini-project practice to help learners build reusable development habits.'
+          }
+        };
+        return map[String(course && (course.clubCategory || course.club)) || ''] || {
+          name: 'Club Coach',
+          title: 'Course Mentor',
+          bio: 'Provides structured feedback throughout the lesson so learners can complete classwork and practice with confidence.'
+        };
+      },
+      coachInitials(name) {
+        const text = String(name || '').trim();
+        if (!text) return 'CC';
+        const parts = text.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) {
+          return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return text.slice(0, 2).toUpperCase();
+      },
+      defaultSchedule(course) {
+        if (!course) return '';
+        const list = Array.isArray(course.schedule) ? course.schedule : [];
+        return list[0] || course.time || '';
+      },
+      syncSelectedSchedule() {
+        const fallback = this.defaultSchedule(this.course);
+        const list = this.course && Array.isArray(this.course.schedule) ? this.course.schedule : [];
+        if (!fallback) {
+          this.selectedSchedule = '';
+          return;
+        }
+        if (!this.selectedSchedule || (list.length && list.indexOf(this.selectedSchedule) === -1)) {
+          this.selectedSchedule = fallback;
+        }
+      },
+      selectSchedule(slot) {
+        this.selectedSchedule = String(slot || '');
+      },
+      scheduleWeekLabel(slot) {
+        const text = String(slot || '').trim();
+        return text.split(/\s+/)[0] || 'Course Time';
+      },
+      scheduleTimeRange(slot) {
+        const text = String(slot || '').trim();
+        const parts = text.split(/\s+/);
+        return parts.slice(1).join(' ') || text;
+      },
+      parseDurationMinutes(text) {
+        const match = String(text || '').match(/(\d{1,2}):(\d{2})-(\d{1,2}):(\d{2})/);
+        if (!match) return 0;
+        const start = Number(match[1]) * 60 + Number(match[2]);
+        const end = Number(match[3]) * 60 + Number(match[4]);
+        if (Number.isNaN(start) || Number.isNaN(end)) return 0;
+        return end >= start ? end - start : 0;
+      },
+      formatDuration(text) {
+        const minutes = this.parseDurationMinutes(text);
+        return minutes ? minutes + ' min' : 'To Be Confirmed';
+      },
+      courseCover(course) {
+        if (course && course.cover) return course.cover;
+        if (course && course.clubCover) return course.clubCover;
+        const key = String(course && (course.clubCategory || course.club || course.slug) || '').toLowerCase();
+        const map = {
+          badminton: '../zp/ymq.webp',
+          'Badminton': '../zp/ymq.webp',
+          football: '../zp/zq.webp',
+          'Football': '../zp/zq.webp',
+          swimming: '../zp/yy1.webp',
+          'Swimming': '../zp/yy1.webp',
+          tennis: '../zp/wq.webp',
+          'Tennis': '../zp/wq.webp',
+          programming: '../zp/bc.webp',
+          'Programming': '../zp/bc.webp',
+          music: '../zp/yy.webp',
+          'Music': '../zp/yy.webp',
+          cycling: '../zp/qx.webp',
+          'Cycling': '../zp/qx.webp',
+          basketball: '../zp/hb1.webp'
+        };
+        return map[key] || '../zp/gywm.webp';
+      },
+      favKey() {
+        const email = this.getSessionEmail();
+        return 'mfms_favs_v1:' + (email || 'guest');
+      },
+      favCoursesKey() {
+        return 'mfms_fav_courses_v1';
+      },
+      teachingBookingKey() {
+        return 'mfms_teaching_bookings_v1';
+      },
+      courseCacheKey() {
+        return 'mfms_course_cache_v1';
+      },
+      pendingCourseKey() {
+        return 'mfms_pending_course_booking_v1';
+      },
+      getFavs() {
+        if (this.useSupabaseCourses) {
+          return this.favoriteIdsSupabase.slice();
+        }
+        try {
+          return JSON.parse(localStorage.getItem(this.favKey()) || '[]');
+        } catch (error) {
+          return [];
+        }
+      },
+      isFav(id) {
+        return this.favIds.includes(String(id));
+      },
+      getSessionEmail() {
+        const tryLoad = (store) => {
+          try {
+            const raw = store.getItem('user_session_v1');
+            const session = raw ? JSON.parse(raw) : null;
+            return (session && session.email) ? String(session.email).trim() : '';
+          } catch (error) {
+            return '';
+          }
+        };
+        return tryLoad(localStorage) || tryLoad(sessionStorage) || '';
+      },
+      openLoginModal(text, payload, redirectUrl) {
+        this.loginModalText = text || 'You need to log in before booking.';
+        this.pendingPayload = payload || null;
+        this.loginRedirectUrl = redirectUrl || 'join.html';
+        this.showLoginModal = true;
+      },
+      closeLoginModal() {
+        this.showLoginModal = false;
+      },
+      closeActionModal() {
+        this.showActionModal = false;
+      },
+      openActionModal(type, course) {
+        const courseId = course && course.id !== undefined ? String(course.id) : '';
+        this.actionModalType = String(type || '');
+        this.actionModalCourseId = courseId;
+        if (type === 'fav') {
+          this.actionModalTitle = 'Added to Favorites';
+          this.actionModalText = 'Added to favorites. Open your personal center to review it in My Favorites.';
+          this.actionPrimaryHref = 'join.html?tab=favs';
+          this.actionCancelLabel = 'Remove Favorite';
+        } else {
+          this.actionModalTitle = 'Notice';
+          this.actionModalText = 'Action completed.';
+          this.actionPrimaryHref = 'join.html';
+          this.actionCancelLabel = 'Close';
+        }
+        this.showActionModal = true;
+      },
+      async doActionCancel() {
+        const type = String(this.actionModalType || '');
+        const courseId = String(this.actionModalCourseId || '');
+        if (!courseId) {
+          this.closeActionModal();
+          return;
+        }
+        if (type === 'fav') await this.removeFavoriteById(courseId);
+        this.closeActionModal();
+      },
+      goLoginFromModal() {
+        if (this.pendingPayload) {
+          localStorage.setItem(this.pendingCourseKey(), JSON.stringify(this.pendingPayload));
+        }
+        location.href = this.loginRedirectUrl || 'join.html';
+      },
+      openCourse(course) {
+        const courseId = course && course.id !== undefined && course.id !== null ? String(course.id) : '';
+        if (!courseId) return;
+        location.href = 'mfms-detail.html?id=' + encodeURIComponent(courseId);
+      },
+      syncLocalBookingMirror(record) {
+        if (!record) return;
+        let all = [];
+        try {
+          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
+        } catch (error) {
+          all = [];
+        }
+        const next = Object.assign({}, record, {
+          ownerEmail: String(record.ownerEmail || this.getSessionEmail() || '').trim().toLowerCase()
+        });
+        const index = (Array.isArray(all) ? all : []).findIndex((item) => String(item && item.id) === String(next.id));
+        if (index > -1) {
+          all.splice(index, 1, next);
+        } else {
+          all.unshift(next);
+        }
+        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
+      },
+      syncLocalFavoriteCache(course) {
+        if (!course) return;
+        const email = this.getSessionEmail();
+        if (!email) return;
+        try {
+          const raw = localStorage.getItem(this.courseCacheKey());
+          const cache = raw ? JSON.parse(raw) : {};
+          cache[String(course.id)] = {
+            courseId: String(course.id),
+            title: course.title,
+            clubName: course.club,
+            mode: course.mode,
+            level: course.level,
+            time: course.time,
+            location: course.location,
+            seats: Number(course.seatCapacity || course.seats),
+            fee: course.fee
+          };
+          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
+        } catch (error) {}
+
+        const favs = this.getFavs().map((item) => String(item));
+        if (!favs.includes(String(course.id))) favs.push(String(course.id));
+        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const nowIso = new Date().toISOString();
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== String(course.id);
+        });
+        next.unshift({
+          id: String(course.id),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: this.activeSchedule || course.time,
+          location: course.location,
+          seats: Number(course.seatCapacity || course.seats),
+          fee: course.fee,
+          ownerEmail: String(email),
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+      },
+      async removeFavoriteById(courseId) {
+        const id = String(courseId || '');
+        const course = this.coursesPool.find((item) => String(item && item.id) === id) || null;
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          await this.getCourseService().removeFavorite(this.sessionUserId, id);
+          this.favoriteIdsSupabase = this.favoriteIdsSupabase.filter((item) => String(item) !== id);
+        }
+        this.removeFavLocal(id);
+      },
+      async goBook(course) {
+        const payload = {
+          id: Date.now(),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: this.activeSchedule || course.time,
+          location: course.location,
+          seats: Number(course.seats),
+          fee: course.fee,
+          status: 'Booked'
+        };
+        const email = this.getSessionEmail();
+        if (!email) {
+          this.openLoginModal('You need to log in before booking.', payload, 'join.html?tab=teaching_bookings');
+          return;
+        }
+
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          try {
+            const record = await this.getCourseService().createCourseBooking(course, this.activeSchedule || course.time, email);
+            this.syncLocalBookingMirror(record);
+            await this.syncSupabaseCourseData();
+            alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
+            location.href = 'join.html?tab=teaching_bookings';
+          } catch (error) {
+            alert(this.getCourseService().mapCourseActionError(error));
+          }
+          return;
+        }
+
+        let all = [];
+        try {
+          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
+        } catch (error) {
+          all = [];
+        }
+        payload.ownerEmail = email;
+        payload.bookedAt = new Date().toISOString();
+        all.unshift(payload);
+        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
+
+        alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
+        location.href = 'join.html?tab=teaching_bookings';
+      },
+      async addFav(course) {
+        const email = this.getSessionEmail();
+        if (!email) {
+          this.openLoginModal('You need to log in before adding a course to favorites.', null, 'join.html');
+          return;
+        }
+        if (this.isFav(course.id)) return;
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          try {
+            await this.getCourseService().addFavorite(this.sessionUserId, course.id);
+            this.favoriteIdsSupabase = Array.from(new Set(this.favoriteIdsSupabase.concat(String(course.id))));
+            this.syncLocalFavoriteCache(course);
+            this.favsVersion += 1;
+            this.openActionModal('fav', course);
+          } catch (error) {
+            alert(this.getCourseService().mapCourseActionError(error));
+          }
+          return;
+        }
+        try {
+          const raw = localStorage.getItem(this.courseCacheKey());
+          const cache = raw ? JSON.parse(raw) : {};
+          cache[String(course.id)] = {
+            courseId: String(course.id),
+            title: course.title,
+            clubName: course.club,
+            mode: course.mode,
+            level: course.level,
+            time: course.time,
+            location: course.location,
+            seats: Number(course.seats),
+            fee: course.fee
+          };
+          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
+        } catch (error) {}
+
+        const favs = this.getFavs().map((item) => String(item));
+        favs.push(String(course.id));
+        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const nowIso = new Date().toISOString();
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== String(course.id);
+        });
+        next.unshift({
+          id: String(Date.now()),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: course.time,
+          location: course.location,
+          seats: Number(course.seats),
+          fee: course.fee,
+          ownerEmail: String(email),
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+        this.favsVersion += 1;
+        this.openActionModal('fav', course);
+      },
+      removeFavLocal(courseId) {
+        const email = this.getSessionEmail();
+        if (!email) return;
+        const id = String(courseId);
+        const favs = this.getFavs().map((item) => String(item)).filter((item) => item !== id);
+        localStorage.setItem(this.favKey(), JSON.stringify(favs));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== id;
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+        this.favsVersion += 1;
+      },
+      onStorageChange(event) {
+        const key = event && event.key ? String(event.key) : '';
+        if (!key) return;
+        if (key === 'mfms_courses_v1') {
+          this.coursesVersion += 1;
+        }
+        if (key === 'user_session_v1') {
+          this.syncSupabaseCourseData();
+        }
+        const email = this.getSessionEmail();
+        const favKey = 'mfms_favs_v1:' + (email || 'guest');
+        if (key === favKey || key === this.favCoursesKey()) {
+          this.favsVersion += 1;
+        }
+      },
+      refreshLocalState() {
+        if (this.hasSupabaseCourses()) {
+          this.syncSupabaseCourseData();
+        }
+        this.coursesVersion += 1;
+        this.favsVersion += 1;
+      },
+      onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          this.refreshLocalState();
+        }
+      }
+    }
+  });
+</script>
+
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>

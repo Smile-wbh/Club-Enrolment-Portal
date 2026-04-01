@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Club Courses - Club Enrollment Portal</title>
+  <script src="../js/vue.js"></script>
+  <script src="../js/vue-router.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-courses.js"></script>
+  <link rel="stylesheet" href="../css/mfms.css" />
+  <link rel="stylesheet" href="../css/chat-widget.css" />
+</head>
+<body>
+<div id="app" v-cloak>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a class="active" href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="teaching-hero">
+    <div class="container">
+      <div class="hero-shell">
+        <div class="hero-copy">
+          <p class="hero-eyebrow">Club Courses Hub</p>
+          <h1>Explore schedules, teaching content, and booking links in a structured way</h1>
+          <p class="hero-sub">
+            Browse beginner-to-advanced courses in one place, filter quickly by club, teaching format, and difficulty, and review schedules, locations, remaining seats, and course details directly.
+          </p>
+
+          <div class="hero-actions">
+            <a class="hero-btn primary" href="#course-filters">Start Filtering</a>
+            <a class="hero-btn secondary" href="join.html?tab=teaching_bookings">View My Course Bookings</a>
+          </div>
+        </div>
+
+        <div class="hero-stats">
+          <article class="stat-card">
+            <strong>{{ totalCourseCount }}</strong>
+            <span>Available Courses</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ popularCourseCount }}</strong>
+            <span>Popular Courses</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ beginnerCourseCount }}</strong>
+            <span>Beginner-Friendly Courses</span>
+          </article>
+
+          <article class="stat-card">
+            <strong>{{ favoriteCount }}</strong>
+            <span>Favorited Courses</span>
+          </article>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="guide-section">
+    <div class="container">
+      <div class="guide-card">
+        <div class="guide-head">
+          <h2>How to Book a Course</h2>
+          <p>Complete filtering, detail viewing, and booking in three steps. Course schedules and seat counts now prefer Supabase cloud data, with browser fallback only used when cloud sync is unavailable.</p>
+        </div>
+
+        <div class="guide-steps">
+          <article class="guide-step">
+            <div class="step-index">01</div>
+            <div class="step-body">
+              <h3>Filter Courses</h3>
+              <p>Use clubs, teaching formats, difficulty levels, and keywords to quickly find the course content that fits you.</p>
+            </div>
+          </article>
+
+          <article class="guide-step">
+            <div class="step-index">02</div>
+            <div class="step-body">
+              <h3>View Details</h3>
+              <p>Open a dedicated detail page from each course card to review the full description, schedule, location, fee, and favorite action.</p>
+            </div>
+          </article>
+
+          <article class="guide-step">
+            <div class="step-index">03</div>
+            <div class="step-body">
+              <h3>Complete Booking</h3>
+              <p>After you sign in, you can book a course in one click, and the record will appear in the course bookings area of your personal center.</p>
+            </div>
+          </article>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <section class="courses-hub-section">
+    <div class="container">
+      <div class="courses-hub-card">
+        <div class="course-filter-block" id="course-filters">
+          <div class="filter-copy course-list-copy">
+            <h2>Course List</h2>
+            <p>Enter a keyword or choose a club, level, and teaching format to refresh the course list instantly. Each card keeps the title, summary, and time, and clicking any course opens a detail page with the location, fee, and full overview.</p>
+          </div>
+
+          <div class="keyword-search">
+            <div class="keyword-search-row">
+              <label class="keyword-input-wrap" for="course-keyword">
+                <span class="keyword-search-icon" aria-hidden="true"></span>
+                <input
+                  id="course-keyword"
+                  type="text"
+                  placeholder="Search course titles, keywords, or clubs..."
+                  v-model.trim="q"
+                  @keydown.enter.prevent="scrollToGrid"
+                />
+              </label>
+
+              <button class="toolbar-btn primary keyword-search-btn" type="button" @click="scrollToGrid">Search</button>
+            </div>
+          </div>
+
+          <div class="filters-grid">
+            <label class="filter-field">
+              <span>Club</span>
+              <select v-model="club">
+                <option value="">All Clubs</option>
+                <option v-for="item in clubOptions" :key="'club-' + item" :value="item">{{ item }}</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>Difficulty Level</span>
+              <select v-model="level">
+                <option value="">All Levels</option>
+                <option value="Beginner">Beginner</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>Teaching Format</span>
+              <select v-model="mode">
+                <option value="">All Formats</option>
+                <option value="In-person">In-person</option>
+                <option value="Online">Online</option>
+                <option value="Hybrid">Hybrid</option>
+              </select>
+            </label>
+
+            <label class="filter-field">
+              <span>Sort By</span>
+              <select v-model="sortBy">
+                <option value="hot">Most Popular</option>
+                <option value="latest">Newest Courses</option>
+                <option value="title">Course Title</option>
+              </select>
+            </label>
+
+            <div class="filter-actions">
+              <button class="toolbar-btn primary" type="button" @click="scrollToGrid">View Results</button>
+              <button class="toolbar-btn ghost" type="button" @click="resetFilters">Reset Filters</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="courses-panel-divider"></div>
+
+        <div class="results-panel" id="course-results">
+          <div class="course-list-scroll">
+            <div class="course-list-container" id="course-grid" v-if="filteredCourses.length">
+              <article
+                class="course-list-card"
+                v-for="c in filteredCourses"
+                :key="c.id"
+                role="button"
+                tabindex="0"
+                @click="openCourse(c)"
+                @keydown.enter.prevent="openCourse(c)"
+                @keydown.space.prevent="openCourse(c)"
+              >
+                <img :src="courseCover(c)" :alt="c.title" class="course-list-thumb" />
+
+                <div class="course-list-info">
+                  <h3 class="course-list-title">{{ c.title }}</h3>
+                  <p class="course-list-desc">{{ c.desc }}</p>
+                  <div class="course-list-time">Course Time: {{ c.time }}</div>
+                </div>
+              </article>
+            </div>
+
+            <div class="empty-state" v-else>
+              <h3>No courses matched your filters</h3>
+              <p>Try clearing the keyword, switching the club, or restoring all filters to browse again.</p>
+              <button class="toolbar-btn primary" type="button" @click="resetFilters">Restore All Courses</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="consult-cta">
+    <div class="container">
+      <div class="consult-card">
+        <div class="consult-left">
+          <h2>Still deciding which course suits you?</h2>
+          <p>Contact support to learn more about schedules, target participants, and class arrangements.</p>
+          <p>You can also book the course you like directly while seats are still available.</p>
+          <div class="consult-actions">
+            <a class="btn primary" href="tzgg.html">Contact Support Now</a>
+            <a class="btn ghost" href="join.html?tab=teaching_bookings">Open Course Bookings</a>
+          </div>
+        </div>
+
+        <div class="consult-right">
+          <img src="../zp/gywm.webp" alt="Support and course selection" />
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div v-if="showLoginModal" class="login-modal-mask" @click.self="closeLoginModal">
+    <div class="login-modal" role="dialog" aria-modal="true">
+      <div class="login-modal-head">
+        <h3>Notice</h3>
+        <div class="login-close" @click="closeLoginModal">Close</div>
+      </div>
+      <div class="login-modal-body">
+        <div class="login-modal-text">{{ loginModalText }}</div>
+        <div class="login-modal-actions">
+          <button class="btn primary" type="button" @click="goLoginFromModal">Log in</button>
+          <button class="btn ghost" type="button" @click="closeLoginModal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div v-if="showActionModal" class="action-modal-mask" @click.self="closeActionModal">
+    <div class="action-modal" role="dialog" aria-modal="true">
+      <div class="action-modal-head">
+        <h3>{{ actionModalTitle }}</h3>
+        <div class="action-close" @click="closeActionModal">Close</div>
+      </div>
+      <div class="action-modal-body">
+        <div class="action-modal-text">{{ actionModalText }}</div>
+        <div class="action-modal-actions">
+          <a class="btn primary" :href="actionPrimaryHref">Open Personal Center</a>
+          <button class="btn ghost" type="button" @click="doActionCancel">{{ actionCancelLabel }}</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <div class="container footer-inner">
+      <div class="footer-links">
+        <a href="tzgg.html">Contact Us</a>
+        <a href="#">Privacy Policy</a>
+        <a href="#">Terms of Use</a>
+        <a href="spjs.html">Follow Us</a>
+      </div>
+      <p>Copyright © beihong wang 2026</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+  const teachingApp = new Vue({
+    el: '#app',
+    data() {
+      return {
+        q: '',
+        club: '',
+        level: '',
+        mode: '',
+        sortBy: 'hot',
+        showLoginModal: false,
+        pendingPayload: null,
+        loginModalText: 'You need to log in before booking.',
+        loginRedirectUrl: 'join.html?tab=bookings',
+        showActionModal: false,
+        actionModalTitle: 'Notice',
+        actionModalText: '',
+        actionPrimaryHref: 'join.html',
+        actionCancelLabel: 'Close',
+        actionModalType: '',
+        actionModalCourseId: '',
+        sessionUserId: '',
+        useSupabaseCourses: false,
+        coursesSupabase: [],
+        favoriteIdsSupabase: [],
+        courseSyncError: '',
+        coursesVersion: 0,
+        favsVersion: 0,
+        materialsVersion: 0,
+        courses: [
+          {
+            id: 1, slug: 'badminton', club: 'Badminton', level: 'Beginner', mode: 'In-person',
+            title: 'Badminton Serve Fundamentals (Beginner)',
+            desc: 'Grip, stance, and serve mechanics broken down with guided practice.',
+            detail: 'This course covers the key basics of forehand and backhand serving, common error correction, and practice suggestions to help beginners build a stable serve.',
+            time: 'Wed 19:00-20:00',
+            schedule: ['Wed 19:00-20:00', 'Sun 09:30-10:30'],
+            location: 'Indoor Hall B (In-person)',
+            seats: 12,
+            fee: '£0',
+            popularity: 42,
+            createdAt: 1710000000000
+          },
+          {
+            id: 2, slug: 'badminton', club: 'Badminton', level: 'Advanced', mode: 'In-person',
+            title: 'Badminton Footwork and Net Play (Advanced)',
+            desc: 'Four-corner footwork, net control, and rhythm training.',
+            detail: 'This advanced course focuses on connected movement and net control quality, using multi-shuttle drills to improve reaction speed, stability, and small-court play.',
+            time: 'Fri 18:00-19:30',
+            schedule: ['Fri 18:00-19:30', 'Sun 16:00-17:30'],
+            location: 'Indoor Hall B (In-person)',
+            seats: 8,
+            fee: '£2/session',
+            popularity: 35,
+            createdAt: 1715000000000
+          },
+          {
+            id: 3, slug: 'football', club: 'Football', level: 'Beginner', mode: 'In-person',
+            title: 'Football Ball Control and Passing Basics (Beginner)',
+            desc: 'Ball control, short passing, two-player coordination, and simple opposition drills.',
+            detail: 'Designed for beginners, this course builds ball control and passing fundamentals with inside-foot and instep passing, first-touch breakdowns, and basic small-group combinations.',
+            time: 'Tue 18:00-19:30',
+            schedule: ['Tue 18:00-19:30', 'Sat 15:00-16:30'],
+            location: 'Stadium A (In-person)',
+            seats: 15,
+            fee: '£0',
+            popularity: 55,
+            createdAt: 1720000000000
+          },
+          {
+            id: 4, slug: 'football', club: 'Football', level: 'Advanced', mode: 'In-person',
+            title: 'Football Tactics and Positional Training (Advanced)',
+            desc: 'Formation awareness, off-ball movement, transitions, and match-like drills.',
+            detail: 'Using tactical board sessions and live scrimmages, this course helps learners understand formations and positional duties while improving game reading and teamwork.',
+            time: 'Thu 18:00-20:00',
+            schedule: ['Thu 18:00-20:00', 'Sun 14:00-16:00'],
+            location: 'Stadium A (In-person)',
+            seats: 10,
+            fee: '£0',
+            popularity: 48,
+            createdAt: 1722000000000
+          },
+          {
+            id: 5, slug: 'swimming', club: 'Swimming', level: 'Beginner', mode: 'In-person',
+            title: 'Freestyle Beginner: Breathing and Stroke',
+            desc: 'Breathing rhythm, stroke motion, and basic coordination drills.',
+            detail: 'This course focuses on freestyle fundamentals, especially breathing rhythm and stroke coordination, making it a strong fit for complete beginners or learners rebuilding basics.',
+            time: 'Sat 10:00-11:00',
+            schedule: ['Sat 10:00-11:00', 'Wed 07:30-08:30'],
+            location: 'Aquatics Center (In-person)',
+            seats: 18,
+            fee: '£2/session',
+            popularity: 60,
+            createdAt: 1724000000000
+          },
+          {
+            id: 6, slug: 'tennis', club: 'Tennis', level: 'Beginner', mode: 'In-person',
+            title: 'Tennis Forehand, Backhand, and Serve Basics',
+            desc: 'Core forehand and backhand technique, serve basics, and simple rally practice.',
+            detail: 'This course covers grip and swing-path correction, forehand and backhand consistency, and the fundamentals of serving with practical training methods.',
+            time: 'Sat 14:00-15:30',
+            schedule: ['Sat 14:00-15:30', 'Mon 18:30-20:00'],
+            location: 'Tennis Court C (In-person)',
+            seats: 10,
+            fee: '£2/session',
+            popularity: 33,
+            createdAt: 1726000000000
+          },
+          {
+            id: 7, slug: 'programming', club: 'Programming', level: 'Beginner', mode: 'Online',
+            title: 'Web Frontend Beginner: HTML/CSS Fundamentals',
+            desc: 'Page structure and base styling for building a simple website.',
+            detail: 'From HTML structure to CSS layout basics, this course explains common page patterns and component thinking, making it useful for course projects and personal portfolios.',
+            time: 'Fri 20:00-21:30',
+            schedule: ['Fri 20:00-21:30', 'Tue 20:00-21:30'],
+            location: 'Online meeting link (Virtual)',
+            seats: 40,
+            fee: '£0',
+            popularity: 70,
+            createdAt: 1728000000000
+          },
+          {
+            id: 8, slug: 'programming', club: 'Programming', level: 'Advanced', mode: 'Online',
+            title: 'Frontend Mini Project: Forms and Local Storage (Advanced)',
+            desc: 'Form validation, localStorage, and interactive page logic.',
+            detail: 'This mini project uses forms and localStorage persistence to practise real interaction logic, making it a strong reference for implementing booking and registration flows like this course system.',
+            time: 'Sun 19:30-21:00',
+            schedule: ['Sun 19:30-21:00', 'Wed 20:00-21:30'],
+            location: 'Online meeting link (Virtual)',
+            seats: 35,
+            fee: '£0',
+            popularity: 65,
+            createdAt: 1730000000000
+          }
+        ]
+      };
+    },
+    computed: {
+      coursesPool() {
+        const version = this.coursesVersion;
+        version;
+        let localCourses = [];
+        try {
+          localCourses = JSON.parse(localStorage.getItem('mfms_courses_v1') || '[]');
+        } catch (error) {
+          localCourses = [];
+        }
+        const baseCourses = (this.useSupabaseCourses && this.coursesSupabase.length)
+          ? this.coursesSupabase
+          : this.courses;
+        return [...localCourses, ...baseCourses]
+          .map((course) => this.normalizeCourse(course))
+          .filter(Boolean);
+      },
+      clubOptions() {
+        const set = new Set();
+        this.coursesPool.forEach((course) => {
+          const name = String(course && course.club || '').trim();
+          if (name) set.add(name);
+        });
+        return Array.from(set).sort((a, b) => a.localeCompare(b, 'en'));
+      },
+      favIds() {
+        const version = this.favsVersion;
+        version;
+        return this.getFavs().map((item) => String(item));
+      },
+      downloadedCourseIds() {
+        return [];
+      },
+      filteredCourses() {
+        const q = (this.q || '').toLowerCase();
+
+        let arr = this.coursesPool.filter((course) => {
+          const haystack = [course.title, course.desc || '', course.detail || '', course.club, course.clubCategory || '', course.mode, course.level, course.coachName || '', course.coachTitle || '']
+            .join(' ')
+            .toLowerCase();
+          const matchQ = !q || haystack.includes(q);
+          const matchClub = !this.club || course.club === this.club;
+          const matchLevel = !this.level || course.level === this.level;
+          const matchMode = !this.mode || course.mode === this.mode;
+          return matchQ && matchClub && matchLevel && matchMode;
+        });
+
+        const hotScore = (course) => {
+          if (course && course.popularity !== undefined && course.popularity !== null) return Number(course.popularity) || 0;
+          return Number(course && course.likes) || 0;
+        };
+        const latestScore = (course) => {
+          if (course && course.updatedAt !== undefined && course.updatedAt !== null) return this.timeValue(course.updatedAt);
+          if (course && course.createdAt !== undefined && course.createdAt !== null) return this.timeValue(course.createdAt);
+          return this.timeValue(course && course.id);
+        };
+
+        if (this.sortBy === 'hot') {
+          arr = arr.slice().sort((a, b) => hotScore(b) - hotScore(a));
+        } else if (this.sortBy === 'latest') {
+          arr = arr.slice().sort((a, b) => latestScore(b) - latestScore(a));
+        } else {
+          arr = arr.slice().sort((a, b) => (a.title || '').localeCompare(b.title || '', 'en'));
+        }
+
+        return arr;
+      },
+      totalCourseCount() {
+        return this.filteredCourses.length;
+      },
+      popularCourseCount() {
+        return this.filteredCourses.filter((course) => Number(course.popularity || course.likes || 0) >= 50).length;
+      },
+      beginnerCourseCount() {
+        return this.filteredCourses.filter((course) => course.level === 'Beginner').length;
+      },
+      favoriteCount() {
+        const version = this.favsVersion;
+        version;
+        return this.getFavs().length;
+      }
+    },
+    async mounted() {
+      await this.syncSupabaseCourseData();
+      window.addEventListener('storage', this.onStorageChange);
+      window.addEventListener('pageshow', this.refreshLocalState);
+      document.addEventListener('visibilitychange', this.onVisibilityChange);
+    },
+    beforeDestroy() {
+      window.removeEventListener('storage', this.onStorageChange);
+      window.removeEventListener('pageshow', this.refreshLocalState);
+      document.removeEventListener('visibilitychange', this.onVisibilityChange);
+    },
+    methods: {
+      noop() {},
+      parseMultiValue(raw) {
+        if (Array.isArray(raw)) {
+          return raw.map((item) => String(item || '').trim()).filter(Boolean);
+        }
+        return String(raw || '')
+          .split(/[\n\r]+|[，,；;]+/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+      },
+      timeValue(raw) {
+        if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
+        const text = String(raw || '').trim();
+        if (text) {
+          const numeric = Number(text);
+          if (!Number.isNaN(numeric) && text.length >= 8) return numeric;
+        }
+        const parsed = Date.parse(text || '');
+        return Number.isNaN(parsed) ? 0 : parsed;
+      },
+      getCourseService() {
+        return window.clubCourseSupabase || null;
+      },
+      hasSupabaseCourses() {
+        const service = this.getCourseService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      readSession() {
+        const tryLoad = (store) => {
+          try {
+            const raw = store.getItem('user_session_v1');
+            const session = raw ? JSON.parse(raw) : null;
+            if (!session || !session.email) return null;
+            return {
+              userId: String(session.userId || '').trim(),
+              email: String(session.email || '').trim().toLowerCase()
+            };
+          } catch (error) {
+            return null;
+          }
+        };
+        return tryLoad(localStorage) || tryLoad(sessionStorage) || null;
+      },
+      async syncSupabaseCourseData() {
+        const session = this.readSession();
+        this.sessionUserId = session && session.userId ? session.userId : '';
+        if (!this.hasSupabaseCourses()) {
+          this.useSupabaseCourses = false;
+          this.favoriteIdsSupabase = [];
+          return;
+        }
+
+        try {
+          const payload = await this.getCourseService().fetchCourseCatalog(this.sessionUserId);
+          this.coursesSupabase = Array.isArray(payload && payload.courses) ? payload.courses : [];
+          this.favoriteIdsSupabase = Array.isArray(payload && payload.favoriteIds) ? payload.favoriteIds.map((item) => String(item)) : [];
+          this.useSupabaseCourses = this.coursesSupabase.length > 0;
+          this.courseSyncError = '';
+        } catch (error) {
+          this.useSupabaseCourses = false;
+          this.favoriteIdsSupabase = [];
+          this.courseSyncError = String(error && error.message || '').trim();
+        }
+      },
+      normalizeCourse(course) {
+        if (!course) return null;
+        const schedule = this.parseMultiValue(course.schedule || course.time || '').slice(0, 12);
+        const primaryTime = String(course.time || '').trim() || schedule[0] || 'Time TBD';
+        const safeSchedule = schedule.length
+          ? schedule
+          : (primaryTime && primaryTime !== 'Time TBD' ? [primaryTime] : []);
+        const desc = String(course.desc || course.summary || '').trim()
+          || String(course.lead || course.detail || '').trim()
+          || 'Open the course page to review details and booking information.';
+        const detail = String(course.detail || '').trim() || desc;
+        const clubName = String(course.club || course.clubName || '').trim() || 'Unnamed Club';
+        const clubCategory = String(course.clubCategory || course.category || clubName).trim();
+        return Object.assign({}, course, {
+          title: String(course.title || 'Untitled Course').trim(),
+          club: clubName,
+          clubCategory: clubCategory,
+          desc: desc,
+          detail: detail,
+          time: primaryTime,
+          schedule: safeSchedule,
+          location: String(course.location || '').trim() || 'Location TBD',
+          fee: String(course.fee || '').trim() || 'Free',
+          seats: Number(course.seats || 0) > 0 ? Number(course.seats) : 12,
+          createdAt: this.timeValue(course.createdAt || course.updatedAt || course.id),
+          updatedAt: this.timeValue(course.updatedAt || course.createdAt || course.id)
+        });
+      },
+      scrollToGrid() {
+        this.$nextTick(() => {
+          const target = document.getElementById('course-grid') || document.getElementById('course-results');
+          if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        });
+      },
+      resetFilters() {
+        this.q = '';
+        this.club = '';
+        this.level = '';
+        this.mode = '';
+        this.sortBy = 'hot';
+      },
+      courseCover(course) {
+        if (course && course.cover) return course.cover;
+        if (course && course.clubCover) return course.clubCover;
+        const key = String(course && (course.clubCategory || course.club || course.slug) || '').toLowerCase();
+        const map = {
+          badminton: '../zp/ymq.webp',
+          football: '../zp/zq.webp',
+          swimming: '../zp/yy1.webp',
+          tennis: '../zp/wq.webp',
+          programming: '../zp/bc.webp',
+          music: '../zp/yy.webp',
+          cycling: '../zp/qx.webp',
+          basketball: '../zp/hb1.webp',
+          Badminton: '../zp/ymq.webp',
+          Football: '../zp/zq.webp',
+          Swimming: '../zp/yy1.webp',
+          Tennis: '../zp/wq.webp',
+          Programming: '../zp/bc.webp',
+          Music: '../zp/yy.webp',
+          Cycling: '../zp/qx.webp',
+          basketball: '../zp/hb1.webp'
+        };
+        return map[key] || '../zp/gywm.webp';
+      },
+      openCourse(course) {
+        const courseId = course && course.id !== undefined && course.id !== null ? String(course.id) : '';
+        if (!courseId) return;
+        location.href = 'mfms-detail.html?id=' + encodeURIComponent(courseId);
+      },
+      favKey() {
+        const email = this.getSessionEmail();
+        return 'mfms_favs_v1:' + (email || 'guest');
+      },
+      favCoursesKey() {
+        return 'mfms_fav_courses_v1';
+      },
+      materialsKey() {
+        return 'mfms_materials_v1';
+      },
+      teachingBookingKey() {
+        return 'mfms_teaching_bookings_v1';
+      },
+      courseCacheKey() {
+        return 'mfms_course_cache_v1';
+      },
+      getFavs() {
+        if (this.useSupabaseCourses) {
+          return this.favoriteIdsSupabase.slice();
+        }
+        try {
+          return JSON.parse(localStorage.getItem(this.favKey()) || '[]');
+        } catch (error) {
+          return [];
+        }
+      },
+      isFav(id) {
+        return this.favIds.includes(String(id));
+      },
+      isDownloaded(id) {
+        return false;
+      },
+      pendingCourseKey() {
+        return 'mfms_pending_course_booking_v1';
+      },
+      getSessionEmail() {
+        const tryLoad = (store) => {
+          try {
+            const raw = store.getItem('user_session_v1');
+            const session = raw ? JSON.parse(raw) : null;
+            return (session && session.email) ? String(session.email).trim() : '';
+          } catch (error) {
+            return '';
+          }
+        };
+        return tryLoad(localStorage) || tryLoad(sessionStorage) || '';
+      },
+      openLoginModal(text, payload, redirectUrl) {
+        this.loginModalText = text || 'You need to log in before booking.';
+        this.pendingPayload = payload || null;
+        this.loginRedirectUrl = redirectUrl || 'join.html';
+        this.showLoginModal = true;
+      },
+      closeLoginModal() {
+        this.showLoginModal = false;
+      },
+      closeActionModal() {
+        this.showActionModal = false;
+      },
+      openActionModal(type, course) {
+        const courseId = course && course.id !== undefined ? String(course.id) : '';
+        this.actionModalType = String(type || '');
+        this.actionModalCourseId = courseId;
+        if (type === 'fav') {
+          this.actionModalTitle = 'Added to Favorites';
+          this.actionModalText = 'Added to favorites. Open your personal center to review it in My Favorites.';
+          this.actionPrimaryHref = 'join.html?tab=favs';
+          this.actionCancelLabel = 'Remove Favorite';
+        } else {
+          this.actionModalTitle = 'Download Complete';
+          this.actionModalText = 'Download complete. Open your personal center to review it in My Materials.';
+          this.actionPrimaryHref = 'join.html?tab=materials';
+          this.actionCancelLabel = 'Undo Download';
+        }
+        this.showActionModal = true;
+      },
+      async doActionCancel() {
+        const type = String(this.actionModalType || '');
+        const courseId = String(this.actionModalCourseId || '');
+        if (!courseId) {
+          this.closeActionModal();
+          return;
+        }
+        if (type === 'fav') await this.removeFavoriteById(courseId);
+        if (type === 'material') this.removeMaterialLocal(courseId);
+        this.closeActionModal();
+      },
+      goLoginFromModal() {
+        if (this.pendingPayload) {
+          localStorage.setItem(this.pendingCourseKey(), JSON.stringify(this.pendingPayload));
+        }
+        location.href = this.loginRedirectUrl || 'join.html';
+      },
+      syncLocalBookingMirror(record) {
+        if (!record) return;
+        let all = [];
+        try {
+          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
+        } catch (error) {
+          all = [];
+        }
+        const next = Object.assign({}, record, {
+          ownerEmail: String(record.ownerEmail || this.getSessionEmail() || '').trim().toLowerCase()
+        });
+        const index = (Array.isArray(all) ? all : []).findIndex((item) => String(item && item.id) === String(next.id));
+        if (index > -1) {
+          all.splice(index, 1, next);
+        } else {
+          all.unshift(next);
+        }
+        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
+      },
+      syncLocalFavoriteCache(course) {
+        if (!course) return;
+        const email = this.getSessionEmail();
+        if (!email) return;
+        try {
+          const raw = localStorage.getItem(this.courseCacheKey());
+          const cache = raw ? JSON.parse(raw) : {};
+          cache[String(course.id)] = {
+            courseId: String(course.id),
+            title: course.title,
+            clubName: course.club,
+            mode: course.mode,
+            level: course.level,
+            time: course.time,
+            location: course.location,
+            seats: Number(course.seatCapacity || course.seats),
+            fee: course.fee
+          };
+          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
+        } catch (error) {}
+
+        const favs = this.getFavs().map((item) => String(item));
+        if (!favs.includes(String(course.id))) favs.push(String(course.id));
+        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const nowIso = new Date().toISOString();
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== String(course.id);
+        });
+        next.unshift({
+          id: String(course.id),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: course.time,
+          location: course.location,
+          seats: Number(course.seatCapacity || course.seats),
+          fee: course.fee,
+          ownerEmail: String(email),
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+      },
+      async removeFavoriteById(courseId) {
+        const id = String(courseId || '');
+        const course = this.coursesPool.find((item) => String(item && item.id) === id) || null;
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          await this.getCourseService().removeFavorite(this.sessionUserId, id);
+          this.favoriteIdsSupabase = this.favoriteIdsSupabase.filter((item) => String(item) !== id);
+        }
+        this.removeFavLocal(id);
+      },
+      async goBook(course) {
+        const payload = {
+          id: Date.now(),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: course.time,
+          location: course.location,
+          seats: Number(course.seats),
+          fee: course.fee,
+          status: 'Booked'
+        };
+        const email = this.getSessionEmail();
+        if (!email) {
+          this.openLoginModal('You need to log in before booking.', payload, 'join.html?tab=teaching_bookings');
+          return;
+        }
+
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          try {
+            const record = await this.getCourseService().createCourseBooking(course, course.time, email);
+            this.syncLocalBookingMirror(record);
+            await this.syncSupabaseCourseData();
+            alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
+            location.href = 'join.html?tab=teaching_bookings';
+          } catch (error) {
+            alert(this.getCourseService().mapCourseActionError(error));
+          }
+          return;
+        }
+
+        let all = [];
+        try {
+          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
+        } catch (error) {
+          all = [];
+        }
+        payload.ownerEmail = email;
+        payload.bookedAt = new Date().toISOString();
+        all.unshift(payload);
+        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
+
+        alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
+        location.href = 'join.html?tab=teaching_bookings';
+      },
+      async addFav(course) {
+        const email = this.getSessionEmail();
+        if (!email) {
+          this.openLoginModal('You need to log in before adding a course to favorites.', null, 'join.html');
+          return;
+        }
+        if (this.isFav(course.id)) return;
+        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
+          try {
+            await this.getCourseService().addFavorite(this.sessionUserId, course.id);
+            this.favoriteIdsSupabase = Array.from(new Set(this.favoriteIdsSupabase.concat(String(course.id))));
+            this.syncLocalFavoriteCache(course);
+            this.favsVersion += 1;
+            this.openActionModal('fav', course);
+          } catch (error) {
+            alert(this.getCourseService().mapCourseActionError(error));
+          }
+          return;
+        }
+        try {
+          const raw = localStorage.getItem(this.courseCacheKey());
+          const cache = raw ? JSON.parse(raw) : {};
+          cache[String(course.id)] = {
+            courseId: String(course.id),
+            title: course.title,
+            clubName: course.club,
+            mode: course.mode,
+            level: course.level,
+            time: course.time,
+            location: course.location,
+            seats: Number(course.seats),
+            fee: course.fee
+          };
+          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
+        } catch (error) {}
+
+        const favs = this.getFavs().map((item) => String(item));
+        favs.push(String(course.id));
+        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const nowIso = new Date().toISOString();
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== String(course.id);
+        });
+        next.unshift({
+          id: String(Date.now()),
+          courseId: String(course.id),
+          title: course.title,
+          clubName: course.club,
+          mode: course.mode,
+          level: course.level,
+          time: course.time,
+          location: course.location,
+          seats: Number(course.seats),
+          fee: course.fee,
+          ownerEmail: String(email),
+          createdAt: nowIso,
+          updatedAt: nowIso
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+        this.favsVersion += 1;
+        this.openActionModal('fav', course);
+      },
+      removeFavLocal(courseId) {
+        const email = this.getSessionEmail();
+        if (!email) return;
+        const id = String(courseId);
+        const favs = this.getFavs().map((item) => String(item)).filter((item) => item !== id);
+        localStorage.setItem(this.favKey(), JSON.stringify(favs));
+
+        const all = (() => {
+          try {
+            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
+          } catch (error) {
+            return [];
+          }
+        })();
+        const list = Array.isArray(all) ? all : [];
+        const next = list.filter((item) => {
+          if (!item) return false;
+          if (String(item.ownerEmail || '') !== String(email)) return true;
+          return String(item.courseId || '') !== id;
+        });
+        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+        this.favsVersion += 1;
+      },
+      downloadMaterial(course) {
+        alert('This feature has been removed.');
+      },
+      removeMaterialLocal(courseId) {},
+      onStorageChange(event) {
+        const key = event && event.key ? String(event.key) : '';
+        if (!key) return;
+        if (key === 'user_session_v1') {
+          this.syncSupabaseCourseData();
+        }
+        const email = this.getSessionEmail();
+        const favKey = 'mfms_favs_v1:' + (email || 'guest');
+        if (key === 'mfms_courses_v1') {
+          this.coursesVersion += 1;
+        }
+        if (key === favKey || key === this.favCoursesKey()) {
+          this.favsVersion += 1;
+        }
+        if (key === this.materialsKey()) {
+          this.materialsVersion += 1;
+        }
+      },
+      refreshLocalState() {
+        if (this.hasSupabaseCourses()) {
+          this.syncSupabaseCourseData();
+        }
+        this.coursesVersion += 1;
+        this.favsVersion += 1;
+        this.materialsVersion += 1;
+      },
+      onVisibilityChange() {
+        if (document.visibilityState === 'visible') {
+          this.refreshLocalState();
+        }
+      }
+    }
+  });
+</script>
+
+<script src="../js/portal-header-auth.js"></script>
+<script src="../js/chat-widget.js"></script>
+</body>
+</html>
