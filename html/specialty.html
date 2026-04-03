@@ -428,86 +428,7 @@
           'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
           'basketball', 'golf', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
         ],
-        clubs: [
-          {
-            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
-            tags: ['Tactical Training', 'Event Sign-up', 'Teamwork'],
-            location: 'Stadium A (In-person)',
-            seats: 12, fee: '£0 (Free)', cover: '../zp/zq.webp', slots: []
-          },
-          {
-            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
-            tags: ['Doubles Training', 'Daily Practice', 'Campus Matches'],
-            location: 'Indoor Hall B (In-person)',
-            seats: 8, fee: '£3/session (Optional)', cover: '../zp/ymq.webp', slots: []
-          },
-          {
-            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
-            tags: ['Grouped Training', 'Fitness Growth', 'Safety Coaching'],
-            location: 'Aquatics Center (In-person)',
-            seats: 16, fee: '£2/session', cover: '../zp/yy1.webp', slots: []
-          },
-          {
-            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
-            tags: ['City Rides', 'Route Sharing', 'Gear Exchange'],
-            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
-            seats: 20, fee: '£0', cover: '../zp/qx.webp', slots: []
-          },
-          {
-            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
-            tags: ['Web Development', 'Python', 'Project Practice'],
-            location: 'Online meeting link (Virtual)',
-            seats: 40, fee: '£0', cover: '../zp/bc.webp', slots: []
-          },
-          {
-            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
-            tags: ['Serve Training', 'Weekend Activities', 'Beginner Welcome'],
-            location: 'Tennis Court C (In-person)',
-            seats: 10, fee: '£2/session', cover: '../zp/wq.webp', slots: []
-          },
-          {
-            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
-            tags: ['Ensemble Rehearsal', 'Stage Showcases', 'Recording Sharing'],
-            location: 'Arts Building 2F / online sharing',
-            seats: 18, fee: '£0', cover: '../zp/yy.webp', slots: []
-          },
-          {
-            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
-            tags: ['Morning Check-in', 'Endurance Growth', 'Pacing Training'],
-            location: 'Track meeting point (In-person)',
-            seats: 30, fee: '£0', cover: '../zp/pb.webp', slots: []
-          },
-          {
-            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
-            tags: ['Half-court Games', 'Shooting Practice', 'Teamwork'],
-            location: 'Basketball Court D (In-person)',
-            seats: 18, fee: '£0 (Free)', cover: '../zp/hb1.webp', slots: []
-          },
-          {
-            id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
-            tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome'],
-            location: 'Practice Ground E (In-person)',
-            seats: 12, fee: '£5/session (Optional)', cover: '../zp/hb2.webp', slots: []
-          },
-          {
-            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
-            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training'],
-            location: 'Stadium F (In-person)',
-            seats: 22, fee: '£0', cover: '../zp/hb3.webp', slots: []
-          },
-          {
-            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
-            tags: ['Attack and Defense', 'Core Coordination', 'Training Camp'],
-            location: 'Sports Hall G (In-person)',
-            seats: 16, fee: '£0', cover: '../zp/hb2.webp', slots: []
-          },
-          {
-            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
-            tags: ['Core Movements', 'Flexibility Training', 'Open Class'],
-            location: 'Gym Hall H (In-person)',
-            seats: 14, fee: '£0', cover: '../zp/hb1.webp', slots: []
-          }
-        ]
+        clubs: []
       };
     },
     computed: {
@@ -617,7 +538,6 @@
     },
       async mounted() {
         this.checkSession();
-        this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
         this.refreshClubPool();
         this.bookings = this.loadBookings();
         window.addEventListener('storage', this.onStorageChange);
@@ -1292,9 +1212,6 @@
         const supabase = (this.supabaseClubs || [])
           .map((club) => this.normalizeStoredClub(club, 'supabase'))
           .filter(Boolean);
-        const base = (this.baseClubsSnapshot || [])
-          .map((club) => this.normalizeStoredClub(club, 'base'))
-          .filter(Boolean);
         const registry = this.loadRegistryClubs()
           .map((club) => this.normalizeStoredClub(club, 'registry'))
           .filter(Boolean);
@@ -1305,7 +1222,7 @@
         const next = [];
         const catalog = this.cloudBookingCatalogEnabled
           ? supabase
-          : registry.concat(extra, base);
+          : registry.concat(extra);
 
         catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;
