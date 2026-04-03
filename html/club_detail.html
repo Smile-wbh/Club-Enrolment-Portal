@@ -219,19 +219,19 @@
           return `Note: Please complete your booking by choosing a date and time slot on the booking page. ${tagText}`.trim();
         },
         venueList(){
-          return this.toList(this.club ? this.club.venueInfo : '');
+          return this.toList(this.club ? (this.club.venueInfo || this.buildVenueInfoFallback(this.club)) : '');
         },
         whatList(){
-          return this.toList(this.club ? this.club.whatWeDo : '');
+          return this.toList(this.club ? (this.club.whatWeDo || this.buildWhatWeDoFallback(this.club)) : '');
         },
         audienceList(){
-          return this.toList(this.club ? this.club.audience : '');
+          return this.toList(this.club ? (this.club.audience || this.buildAudienceFallback(this.club)) : '');
         },
         trainingList(){
-          return this.toList(this.club ? this.club.trainingPlan : '');
+          return this.toList(this.club ? (this.club.trainingPlan || this.buildTrainingFallback(this.club)) : '');
         },
         notesList(){
-          return this.toList(this.club ? this.club.notes : '');
+          return this.toList(this.club ? (this.club.notes || this.buildNotesFallback(this.club)) : '');
         },
         activeMapLink(){
           if(this.resolvedMapLink) return this.resolvedMapLink;
@@ -359,6 +359,87 @@
         normalizeCoverValue(value){
           const text = String(value || '').trim();
           return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
+        },
+        buildVenueInfoFallback(club){
+          if(!club) return '';
+          const lines = [];
+          const location = String(club.location || '').trim();
+          const mode = String(club.mode || '').trim();
+          const time = String(club.time || '').trim();
+          if(location && location !== 'TBD'){
+            lines.push(`Main venue: ${location}`);
+          }
+          if(time && time !== '—'){
+            lines.push(`Typical session time: ${time}`);
+          }
+          if(mode){
+            lines.push(`Format: ${mode}${club.onlineLink ? ' with online updates shared through the room link when needed' : ''}`);
+          }
+          if(club.mapLink){
+            lines.push('Use the map link above to check the exact arrival point before you travel');
+          }
+          return lines.join('\n');
+        },
+        buildWhatWeDoFallback(club){
+          if(!club) return '';
+          const tags = Array.isArray(club.tags) ? club.tags.map(t => String(t || '').trim()).filter(Boolean) : [];
+          if(tags.length){
+            return tags.map(tag => `Focus area: ${tag}`).join('\n');
+          }
+          const desc = String(club.desc || '').trim();
+          if(desc){
+            return desc
+              .split(/[.!?]\s+/)
+              .map(x => x.trim())
+              .filter(Boolean)
+              .slice(0, 3)
+              .join('\n');
+          }
+          return 'Regular club activities and guided sessions are organised through the weekly schedule.';
+        },
+        buildAudienceFallback(club){
+          if(!club) return '';
+          const category = String(club.category || 'club').trim().toLowerCase();
+          const mode = String(club.mode || '').trim().toLowerCase();
+          const lines = [
+            `Members looking for regular ${category} activities and a consistent weekly routine`,
+            'Beginners who want a clear place to start and join sessions with booking support',
+            'Returning members who want to stay active and connected with the club community'
+          ];
+          if(mode === 'online' || mode === 'hybrid'){
+            lines.push('Students who prefer a mix of in-person and online updates or remote participation');
+          }
+          return lines.join('\n');
+        },
+        buildTrainingFallback(club){
+          if(!club) return '';
+          const time = String(club.time || '').trim();
+          const seats = Number(club.seats || 0);
+          const lines = [];
+          if(time && time !== '—'){
+            lines.push(`Sessions usually follow this published time window: ${time}`);
+          }
+          lines.push('Weekly activities move from guided warm-up or orientation into the main practice block');
+          if(seats > 0){
+            lines.push(`Booking capacity is currently set to ${seats} places so groups stay manageable`);
+          }
+          lines.push('Use the booking page to confirm the latest slot before you attend');
+          return lines.join('\n');
+        },
+        buildNotesFallback(club){
+          if(!club) return '';
+          const fee = String(club.fee || '').trim();
+          const lines = [
+            'Complete your booking before arriving so the organiser can prepare the right group size',
+            'Bring any personal equipment normally required for this type of activity unless told otherwise'
+          ];
+          if(fee){
+            lines.push(`Current fee information: ${fee}`);
+          }
+          if(club.onlineLink){
+            lines.push('If an online room is used, the access link is available from the room link above');
+          }
+          return lines.join('\n');
         },
         async findClub(slug){
           const normalizedSlug = String(slug || '').trim();
