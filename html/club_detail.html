@@ -41,7 +41,12 @@
           </div>
         </div>
 
-        <div class="cover" :style="coverStyle">
+        <div class="cover" :class="{ 'cover-empty': !hasCoverImage }" :style="coverStyle">
+          <div v-if="!hasCoverImage" class="coverEmptyState">
+            <span class="coverEmptyBadge">No Cover Photo</span>
+            <strong>{{ club.name }}</strong>
+            <span>Upload a club cover in the dashboard to personalise this section.</span>
+          </div>
           <div class="coverTag">
             <strong>This Week's Highlight</strong>
             <span>{{ highlightText }}</span>
@@ -190,9 +195,14 @@
         }
       },
       computed:{
+        hasCoverImage(){
+          return !!String(this.club && this.club.cover || '').trim();
+        },
         coverStyle(){
-          const fallback = "../zp/ymq.webp";
-          const url = this.club && this.club.cover ? this.club.cover : fallback;
+          const url = String(this.club && this.club.cover || '').trim();
+          if(!url){
+            return {};
+          }
           return { backgroundImage: `url('${url}')` };
         },
         highlightText(){

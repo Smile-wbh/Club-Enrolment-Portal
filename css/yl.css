@@ -226,11 +226,61 @@ a{ color: inherit; text-decoration: none; }
   background-position: center;
 }
 
+.cover.cover-empty{
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(241,247,255,0.96) 48%, rgba(232,241,252,0.95) 100%);
+}
+
 .cover::after{
   content:"";
   position:absolute;
   inset:0;
   background: radial-gradient(500px 220px at 30% 30%, rgba(255,255,255,.18), transparent 55%);
+}
+
+.cover.cover-empty::after{
+  background:
+    radial-gradient(340px 180px at 20% 24%, rgba(64,158,255,.12), transparent 60%),
+    radial-gradient(240px 180px at 78% 20%, rgba(103,194,58,.10), transparent 58%);
+}
+
+.coverEmptyState{
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+}
+
+.coverEmptyBadge{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(64,158,255,0.12);
+  border: 1px solid rgba(64,158,255,0.18);
+  color: #1f5fbf;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.coverEmptyState strong{
+  color: #1f2d3d;
+  font-size: 22px;
+  line-height: 1.15;
+}
+
+.coverEmptyState span:last-child{
+  max-width: 34ch;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .coverTag{
