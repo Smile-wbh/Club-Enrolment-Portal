@@ -1080,11 +1080,11 @@
 
         var fileInput = document.getElementById('regCoverFile');
         var file = fileInput && fileInput.files ? fileInput.files[0] : null;
-        if(!file) return '../zp/zq.webp';
+        if(!file) return '';
 
         if(file.size > 3 * 1024 * 1024){
           alert('Cover image should be no larger than 3MB.');
-          return '../zp/zq.webp';
+          return '';
         }
 
         if(hasCloudStorageConfigured() && state.sessionUserId){
@@ -1099,14 +1099,14 @@
               ? storage.mapStorageError(error)
               : 'Unable to upload this cover image right now.'
             );
-            return '../zp/zq.webp';
+            return '';
           }
         }
 
         try{
           return await readFileAsDataURL(file);
         }catch(e){
-          return '../zp/zq.webp';
+          return '';
         }
       }
 
@@ -1853,11 +1853,11 @@
         }
 
         var file = refs.coverFile && refs.coverFile.files ? refs.coverFile.files[0] : null;
-        if(!file) return fallback || '../zp/zq.webp';
+        if(!file) return fallback || '';
 
         if(file.size > 3 * 1024 * 1024){
           alert('Cover image should be no larger than 3MB.');
-          return fallback || '../zp/zq.webp';
+          return fallback || '';
         }
 
         if(hasCloudStorageConfigured() && state.sessionUserId){
@@ -1872,14 +1872,14 @@
               ? storage.mapStorageError(error)
               : 'Unable to upload this cover image right now.'
             );
-            return fallback || '../zp/zq.webp';
+            return fallback || '';
           }
         }
 
         try{
           return await readFileAsDataURL(file);
         }catch(e){
-          return fallback || '../zp/zq.webp';
+          return fallback || '';
         }
       }
 
@@ -1897,7 +1897,7 @@
           time: values.time,
           fee: values.fee || '£0',
           seats: values.seats,
-          cover: cover || (existing && existing.cover) || '../zp/zq.webp',
+          cover: typeof cover === 'string' ? cover : ((existing && existing.cover) || ''),
           tags: values.tags,
           desc: values.desc,
           heroSub: values.heroSub || values.desc,
@@ -2425,7 +2425,7 @@
           return;
         }
 
-        var cover = await resolveClubCover('create', '../zp/zq.webp');
+        var cover = await resolveClubCover('create', '');
         var club = buildClubPayload(values, null, cover);
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           try{
@@ -2531,7 +2531,7 @@
           return;
         }
 
-        var cover = await resolveClubCover('edit', current.cover || '../zp/zq.webp');
+        var cover = await resolveClubCover('edit', current.cover || '');
         var club = buildClubPayload(values, current, cover);
 
         if(hasCloudDashboardConfigured() && state.sessionUserId){

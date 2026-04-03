@@ -223,7 +223,7 @@
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
         fee: trimText(club.fee_text) || '£0',
-        cover: trimText(club.cover_url) || '../zp/ymq.webp',
+        cover: trimText(club.cover_url),
         tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map(function (tag) { return trimText(tag); }) : [],
         desc: trimText(club.description || club.hero_sub),
         heroSub: trimText(club.hero_sub),

@@ -114,7 +114,7 @@
       time: trimText(row.time_text),
       fee: trimText(row.fee_text) || '£0',
       seats: Math.max(0, toNumber(row.seats, 0)),
-      cover: trimText(row.cover_url) || '../zp/zq.webp',
+      cover: trimText(row.cover_url),
       tags: toArray(row.tags),
       desc: trimText(row.description),
       heroSub: trimText(row.hero_sub),
