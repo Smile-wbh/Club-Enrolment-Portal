@@ -1968,6 +1968,104 @@
         };
       }
 
+      function buildClubVenueFallback(club){
+        if(!club) return '';
+        var lines = [];
+        var location = String(club.location || '').trim();
+        var mode = String(club.mode || '').trim();
+        var time = String(club.time || '').trim();
+        if(location){
+          lines.push('Main venue: ' + location);
+        }
+        if(time){
+          lines.push('Typical session time: ' + time);
+        }
+        if(mode){
+          lines.push('Format: ' + mode + (club.onlineLink ? ' with online updates available when needed' : ''));
+        }
+        if(club.mapLink){
+          lines.push('Use the map link to confirm the arrival point before you travel');
+        }
+        return lines.join('\n');
+      }
+
+      function buildClubWhatWeDoFallback(club){
+        if(!club) return '';
+        var tags = Array.isArray(club.tags) ? club.tags : [];
+        var cleanTags = tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
+        if(cleanTags.length){
+          return cleanTags.map(function(tag){ return 'Focus area: ' + tag; }).join('\n');
+        }
+        var desc = String(club.desc || '').trim();
+        if(desc){
+          return desc
+            .split(/[.!?]\s+/)
+            .map(function(part){ return part.trim(); })
+            .filter(Boolean)
+            .slice(0, 3)
+            .join('\n');
+        }
+        return 'Regular club activities and guided sessions are arranged through the weekly schedule.';
+      }
+
+      function buildClubAudienceFallback(club){
+        if(!club) return '';
+        var category = String(club.category || 'club').trim().toLowerCase();
+        var mode = String(club.mode || '').trim().toLowerCase();
+        var lines = [
+          'Members looking for regular ' + category + ' activities and a steady weekly routine',
+          'Beginners who want a clear place to start and join scheduled sessions',
+          'Returning members who want to stay active and connected with the club community'
+        ];
+        if(mode === 'online' || mode === 'hybrid'){
+          lines.push('Students who prefer a mix of in-person and online updates or remote participation');
+        }
+        return lines.join('\n');
+      }
+
+      function buildClubTrainingFallback(club){
+        if(!club) return '';
+        var lines = [];
+        var time = String(club.time || '').trim();
+        var seats = Number(club.seats || 0);
+        if(time){
+          lines.push('Sessions usually follow this published time window: ' + time);
+        }
+        lines.push('Weekly activities move from guided warm-up or orientation into the main practice block');
+        if(seats > 0){
+          lines.push('Booking capacity is currently set to ' + seats + ' places so groups stay manageable');
+        }
+        lines.push('Use the booking page to confirm the latest slot before attending');
+        return lines.join('\n');
+      }
+
+      function buildClubNotesFallback(club){
+        if(!club) return '';
+        var fee = String(club.fee || '').trim();
+        var lines = [
+          'Complete your booking before arriving so the organiser can prepare the right group size',
+          'Bring any personal equipment normally required for this activity unless told otherwise'
+        ];
+        if(fee){
+          lines.push('Current fee information: ' + fee);
+        }
+        if(club.onlineLink){
+          lines.push('If an online room is used, the access link is available from the room link field');
+        }
+        return lines.join('\n');
+      }
+
+      function applyClubDetailFallbacks(club){
+        var base = Object.assign({}, club || {});
+        base.heroSub = String(base.heroSub || base.desc || '').trim();
+        base.venueInfo = String(base.venueInfo || '').trim() || buildClubVenueFallback(base);
+        base.whatWeDo = String(base.whatWeDo || '').trim() || buildClubWhatWeDoFallback(base);
+        base.audience = String(base.audience || '').trim() || buildClubAudienceFallback(base);
+        base.trainingPlan = String(base.trainingPlan || '').trim() || buildClubTrainingFallback(base);
+        base.notes = String(base.notes || '').trim() || buildClubNotesFallback(base);
+        return base;
+      }
+
       async function resolveClubCover(mode, fallback){
         var refs = getClubFormRefs(mode);
         var coverUrl = refs.coverUrl ? sanitizeClubCoverValue(refs.coverUrl.value) : '';
@@ -2008,6 +2106,11 @@
 
       function buildClubPayload(values, currentClub, cover){
         var existing = currentClub || null;
+        var enriched = applyClubDetailFallbacks(Object.assign({}, values, {
+          cover: cover,
+          ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
+          ownerId: (existing && existing.ownerId) || state.sessionUserId
+        }));
         return {
           id: existing && existing.id ? existing.id : Date.now(),
           slug: existing && existing.slug ? existing.slug : slugify(values.name),
@@ -2023,12 +2126,12 @@
           cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
           tags: values.tags,
           desc: values.desc,
-          heroSub: values.heroSub || values.desc,
-          venueInfo: values.venueInfo,
-          whatWeDo: values.whatWeDo,
-          audience: values.audience,
-          trainingPlan: values.trainingPlan,
-          notes: values.notes,
+          heroSub: enriched.heroSub,
+          venueInfo: enriched.venueInfo,
+          whatWeDo: enriched.whatWeDo,
+          audience: enriched.audience,
+          trainingPlan: enriched.trainingPlan,
+          notes: enriched.notes,
           slots: (existing && Array.isArray(existing.slots)) ? existing.slots : [],
           ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
           createdAt: (existing && existing.createdAt) || new Date().toISOString(),
@@ -2428,6 +2531,7 @@
 
       function fillEditClubForm(club){
         if(!club) return;
+        var enriched = applyClubDetailFallbacks(club);
         var refs = getClubFormRefs('edit');
         editingClubId = String(club.id || '');
         if(refs.hiddenId) refs.hiddenId.value = editingClubId;
@@ -2441,16 +2545,16 @@
         refs.onlineLink.value = club.onlineLink || '';
         refs.fee.value = club.fee || '';
         refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
-        refs.heroSub.value = club.heroSub || '';
+        refs.heroSub.value = enriched.heroSub || '';
         refs.tags.value = Array.isArray(club.tags) ? club.tags.join(', ') : '';
         refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
         refs.desc.value = club.desc || '';
-        refs.venueInfo.value = club.venueInfo || '';
-        refs.whatWeDo.value = club.whatWeDo || '';
-        refs.audience.value = club.audience || '';
-        refs.trainingPlan.value = club.trainingPlan || '';
-        refs.notes.value = club.notes || '';
+        refs.venueInfo.value = enriched.venueInfo || '';
+        refs.whatWeDo.value = enriched.whatWeDo || '';
+        refs.audience.value = enriched.audience || '';
+        refs.trainingPlan.value = enriched.trainingPlan || '';
+        refs.notes.value = enriched.notes || '';
         syncEditClubFormMode(club);
       }
 
