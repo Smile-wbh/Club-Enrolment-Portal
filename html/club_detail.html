@@ -63,28 +63,6 @@
       </div>
     </section>
 
-    <section class="map-band" v-if="club && showMapPanel">
-      <div class="map-band-shell">
-        <iframe
-          class="map-band-frame"
-          :src="mapEmbedUrl"
-          loading="lazy"
-          referrerpolicy="no-referrer-when-downgrade"
-          allowfullscreen
-          :title="club.name + ' Google Maps location'"></iframe>
-
-        <div class="map-band-overlay">
-          <span class="map-band-eyebrow">Google Maps</span>
-          <strong>{{ club.location || club.name }}</strong>
-          <span>{{ mapOverlayText }}</span>
-        </div>
-
-        <a class="map-band-action" :href="mapOpenUrl" target="_blank" rel="noopener">
-          Open in Google Maps
-        </a>
-      </div>
-    </section>
-
     <section class="main" v-if="club">
       <div class="leftCol">
         <div class="card">
@@ -177,6 +155,28 @@
 
         <div class="note">{{ noteText }}</div>
       </aside>
+    </section>
+
+    <section class="map-band map-band-bottom" v-if="club && showMapPanel">
+      <div class="map-band-shell">
+        <iframe
+          class="map-band-frame"
+          :src="mapEmbedUrl"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+          :title="club.name + ' Google Maps location'"></iframe>
+
+        <div class="map-band-overlay">
+          <span class="map-band-eyebrow">Google Maps</span>
+          <strong>{{ club.location || club.name }}</strong>
+          <span>{{ mapOverlayText }}</span>
+        </div>
+
+        <a class="map-band-action" :href="mapOpenUrl" target="_blank" rel="noopener">
+          Open in Google Maps
+        </a>
+      </div>
     </section>
   </div>
 
