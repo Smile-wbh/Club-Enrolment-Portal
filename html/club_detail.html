@@ -324,7 +324,7 @@
             fee: c && c.fee ? c.fee : '£0',
             desc: c && c.desc ? c.desc : '',
             heroSub: c && c.heroSub ? c.heroSub : '',
-            cover: c && c.cover ? c.cover : '',
+            cover: this.normalizeCoverValue(c && c.cover ? c.cover : ''),
             mapLink: c && c.mapLink ? c.mapLink : '',
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
             venueInfo: c && c.venueInfo ? c.venueInfo : '',
@@ -336,6 +336,10 @@
             time,
             seats
           };
+        },
+        normalizeCoverValue(value){
+          const text = String(value || '').trim();
+          return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
         },
         async findClub(slug){
           const normalizedSlug = String(slug || '').trim();

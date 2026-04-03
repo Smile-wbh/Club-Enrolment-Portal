@@ -33,8 +33,19 @@
     'gymnastics-core-movement-flexibility': true
   };
 
+  var LEGACY_AUTO_COVER_PATHS = {
+    '../zp/zq.webp': true,
+    '../zp/ymq.webp': true,
+    '../zp/gywm.webp': true
+  };
+
   function trimText(value) {
     return String(value || '').trim();
+  }
+
+  function normalizeCoverValue(value) {
+    var text = trimText(value);
+    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
   }
 
   function isDemoClubSlug(value) {
@@ -114,7 +125,7 @@
       time: trimText(row.time_text),
       fee: trimText(row.fee_text) || '£0',
       seats: Math.max(0, toNumber(row.seats, 0)),
-      cover: trimText(row.cover_url),
+      cover: normalizeCoverValue(row.cover_url),
       tags: toArray(row.tags),
       desc: trimText(row.description),
       heroSub: trimText(row.hero_sub),
@@ -185,7 +196,7 @@
       club: trimText(club.name),
       clubSlug: trimText(club.slug),
       clubCategory: trimText(club.category) || trimText(club.name),
-      clubCover: trimText(club.cover_url),
+      clubCover: normalizeCoverValue(club.cover_url),
       englishClub: trimText(row.english_club),
       level: trimText(row.level) || 'Beginner',
       mode: trimText(row.mode) || 'In-person',
@@ -194,7 +205,7 @@
       location: trimText(row.location),
       seats: Math.max(0, toNumber(row.seats, 0)),
       fee: trimText(row.fee_text) || 'Free',
-      cover: trimText(row.cover_url) || trimText(club.cover_url),
+      cover: normalizeCoverValue(row.cover_url) || normalizeCoverValue(club.cover_url),
       desc: trimText(row.description),
       lead: trimText(row.lead),
       detail: trimText(row.detail),
@@ -225,7 +236,7 @@
       time_text: trimText(source.time),
       fee_text: trimText(source.fee) || '£0',
       seats: Math.max(0, toNumber(source.seats, 0)),
-      cover_url: trimText(source.cover),
+      cover_url: normalizeCoverValue(source.cover) || null,
       tags: toArray(source.tags),
       description: trimText(source.desc),
       hero_sub: trimText(source.heroSub),
@@ -254,7 +265,7 @@
       location: trimText(source.location),
       seats: Math.max(0, toNumber(source.seats, 0)),
       fee_text: trimText(source.fee) || 'Free',
-      cover_url: trimText(source.cover),
+      cover_url: normalizeCoverValue(source.cover) || null,
       description: trimText(source.desc),
       lead: trimText(source.lead),
       detail: trimText(source.detail),

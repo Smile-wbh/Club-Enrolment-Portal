@@ -836,6 +836,12 @@
         'gymnastics-core-movement-flexibility': true
       };
 
+      var LEGACY_AUTO_COVER_PATHS = {
+        '../zp/zq.webp': true,
+        '../zp/ymq.webp': true,
+        '../zp/gywm.webp': true
+      };
+
       function isDemoClub(value){
         return !!DEMO_CLUB_SLUGS[String(value || '').trim().toLowerCase()];
       }
@@ -848,6 +854,11 @@
         var source = String(value || '').replace(/\s+/g, '').trim();
         if(!source) return 'US';
         return Array.from(source).slice(0, 2).join('').toUpperCase();
+      }
+
+      function sanitizeClubCoverValue(value){
+        var text = String(value || '').trim();
+        return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
       }
 
       function parseTimeValue(value){
@@ -1073,7 +1084,8 @@
       }
 
       async function resolveRegisterCover(){
-        var coverUrl = document.getElementById('regCoverUrl').value.trim();
+        var coverUrlInput = document.getElementById('regCoverUrl');
+        var coverUrl = coverUrlInput ? sanitizeClubCoverValue(coverUrlInput.value) : '';
         if(coverUrl){
           return coverUrl;
         }
@@ -1499,6 +1511,12 @@
           state.courses = safeParse(KEYS.courses, []);
         }
 
+        state.clubs = state.clubs.map(function(c){
+          return c ? Object.assign({}, c, {
+            cover: sanitizeClubCoverValue(c.cover)
+          }) : c;
+        });
+
         state.myClubs = state.clubs.filter(function(c){
           if(!c) return false;
           if(isDemoClub(c.slug)) return false;
@@ -1847,17 +1865,17 @@
 
       async function resolveClubCover(mode, fallback){
         var refs = getClubFormRefs(mode);
-        var coverUrl = refs.coverUrl ? refs.coverUrl.value.trim() : '';
+        var coverUrl = refs.coverUrl ? sanitizeClubCoverValue(refs.coverUrl.value) : '';
         if(coverUrl){
           return coverUrl;
         }
 
         var file = refs.coverFile && refs.coverFile.files ? refs.coverFile.files[0] : null;
-        if(!file) return fallback || '';
+        if(!file) return sanitizeClubCoverValue(fallback || '');
 
         if(file.size > 3 * 1024 * 1024){
           alert('Cover image should be no larger than 3MB.');
-          return fallback || '';
+          return sanitizeClubCoverValue(fallback || '');
         }
 
         if(hasCloudStorageConfigured() && state.sessionUserId){
@@ -1872,14 +1890,14 @@
               ? storage.mapStorageError(error)
               : 'Unable to upload this cover image right now.'
             );
-            return fallback || '';
+            return sanitizeClubCoverValue(fallback || '');
           }
         }
 
         try{
           return await readFileAsDataURL(file);
         }catch(e){
-          return fallback || '';
+          return sanitizeClubCoverValue(fallback || '');
         }
       }
 
@@ -1897,7 +1915,7 @@
           time: values.time,
           fee: values.fee || '£0',
           seats: values.seats,
-          cover: typeof cover === 'string' ? cover : ((existing && existing.cover) || ''),
+          cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
           tags: values.tags,
           desc: values.desc,
           heroSub: values.heroSub || values.desc,
@@ -2321,7 +2339,7 @@
         refs.heroSub.value = club.heroSub || '';
         refs.tags.value = Array.isArray(club.tags) ? club.tags.join(', ') : '';
         refs.coverFile.value = '';
-        refs.coverUrl.value = club.cover || '';
+        if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
         refs.desc.value = club.desc || '';
         refs.venueInfo.value = club.venueInfo || '';
         refs.whatWeDo.value = club.whatWeDo || '';

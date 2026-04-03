@@ -5,6 +5,17 @@
     return String(value || '').trim();
   }
 
+  var LEGACY_AUTO_COVER_PATHS = {
+    '../zp/zq.webp': true,
+    '../zp/ymq.webp': true,
+    '../zp/gywm.webp': true
+  };
+
+  function normalizeCoverValue(value) {
+    var text = trimText(value);
+    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+  }
+
   function normalizeEmail(value) {
     return trimText(value).toLowerCase();
   }
@@ -223,7 +234,7 @@
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
         fee: trimText(club.fee_text) || '£0',
-        cover: trimText(club.cover_url),
+        cover: normalizeCoverValue(club.cover_url),
         tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map(function (tag) { return trimText(tag); }) : [],
         desc: trimText(club.description || club.hero_sub),
         heroSub: trimText(club.hero_sub),

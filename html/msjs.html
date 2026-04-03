@@ -178,8 +178,11 @@
 
       <div class="club-grid" id="club-grid" v-if="filteredClubs.length">
         <article class="club-card" v-for="c in filteredClubs" :key="c.id">
-          <div class="club-cover">
-            <img :src="c.cover" :alt="c.name" />
+          <div class="club-cover" :class="{ 'club-cover-empty': !c.cover }">
+            <img v-if="c.cover" :src="c.cover" :alt="c.name" />
+            <div v-else class="club-cover-empty-state">
+              <span>No Cover Photo</span>
+            </div>
             <div class="club-tag">{{ c.category }}</div>
           </div>
 
@@ -551,6 +554,11 @@
         }
       },
 
+      normalizeCoverValue(value) {
+        const text = String(value || '').trim();
+        return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
+      },
+
       mapRegistryClub(c) {
         const slots = Array.isArray(c && c.slots) ? c.slots : [];
         const seats = typeof c.seats === 'number'
@@ -559,7 +567,7 @@
         const time = c && c.time
           ? c.time
           : slots.map((s) => s && s.time).filter(Boolean).slice(0, 2).join(' / ') || '—';
-        const cover = c && c.cover ? c.cover : '../zp/zq.webp';
+        const cover = this.normalizeCoverValue(c && c.cover ? c.cover : '');
 
         return {
           id: 'r-' + (c && c.id ? c.id : Date.now()),

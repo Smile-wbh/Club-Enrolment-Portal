@@ -134,7 +134,10 @@
 
         <div class="club-list-container" id="booking-grid" v-if="filteredClubs.length">
           <article class="club-list-card" v-for="c in filteredClubs" :key="c.id" @click="selectClub(c)">
-            <img :src="c.cover || '../zp/ymq.webp'" :alt="c.name" class="club-list-thumb" />
+            <div class="club-list-thumb" :class="{ 'club-thumb-empty': !c.cover }">
+              <img v-if="c.cover" :src="c.cover" :alt="c.name" class="club-list-thumb-image" />
+              <div v-else class="club-thumb-empty-state">No Cover Photo</div>
+            </div>
 
             <div class="club-list-info">
               <div class="club-list-header">
@@ -193,7 +196,10 @@
         <section class="schedule-layout">
           <div class="schedule-main-card">
             <div class="schedule-club-head">
-              <img :src="currentClub.cover || '../zp/ymq.webp'" :alt="currentClub.name" class="schedule-thumb" />
+              <div class="schedule-thumb" :class="{ 'club-thumb-empty': !currentClub.cover }">
+                <img v-if="currentClub.cover" :src="currentClub.cover" :alt="currentClub.name" class="schedule-thumb-image" />
+                <div v-else class="club-thumb-empty-state">No Cover Photo</div>
+              </div>
 
               <div class="schedule-club-copy">
                 <div class="schedule-kicker">{{ currentClub.category }} · {{ currentClub.mode }}</div>
@@ -1178,7 +1184,7 @@
           clubName: this.currentClub.name,
           category: this.currentClub.category,
           mode: this.currentClub.mode,
-          cover: this.currentClub.cover || '../zp/ymq.webp',
+          cover: this.currentClub.cover || '',
           dayIso: this.pendingBooking.dayIso,
           dayLabel: this.pendingBooking.dayLabel,
           slotId: this.pendingBooking.slot.dbId || this.pendingBooking.slot.id,
@@ -1272,11 +1278,15 @@
           time: String(club.time || '').trim(),
           seats: seats,
           fee: String(club.fee || '£0').trim(),
-          cover: String(club.cover || '../zp/gywm.webp').trim(),
+          cover: this.normalizeCoverValue(club.cover || ''),
           tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map((tag) => String(tag).trim()) : [],
           slots: slots,
           slotsByDay: slotsByDay
         });
+      },
+      normalizeCoverValue(value) {
+        const text = String(value || '').trim();
+        return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
       },
       refreshClubPool() {
         const supabase = (this.supabaseClubs || [])
