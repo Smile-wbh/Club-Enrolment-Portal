@@ -259,10 +259,132 @@
           'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
           'basketball', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
         ],
-        clubs: []
+        clubs: [
+          {
+            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly training and friendly matches for a range of skill levels, with pitch booking and event sign-up support.',
+            location: 'Stadium A (In-person)',
+            time: 'Tue/Thu 18:00-20:00',
+            seats: 12,
+            fee: '£0 (Free)',
+            cover: '../zp/zq.webp',
+            tags: ['Event Sign-up', 'Training Camp', 'Teamwork']
+          },
+          {
+            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
+            desc: 'Multiple bookable slots with live seat updates, suitable for regular training and campus competitions.',
+            location: 'Indoor Hall B (In-person)',
+            time: 'Mon/Wed 19:00-21:00',
+            seats: 8,
+            fee: '£3/session (Optional)',
+            cover: '../zp/ymq.webp',
+            tags: ['Campus Matches', 'Live Seats', 'Hot Club']
+          },
+          {
+            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
+            desc: 'Stroke and endurance training for beginners through advanced swimmers, with lane-based session booking.',
+            location: 'Aquatics Center (In-person)',
+            time: 'Sat 10:00-12:00',
+            seats: 16,
+            fee: '£2/session',
+            cover: '../zp/yy1.webp',
+            tags: ['Level-based Training', 'Lane Booking', 'Beginner Friendly']
+          },
+          {
+            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
+            desc: 'City rides and weekend long-distance sessions with meet-up details and route plans shared ahead of time.',
+            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
+            time: 'Sun 08:30-11:30',
+            seats: 20,
+            fee: '£0',
+            cover: '../zp/qx.webp',
+            tags: ['Weekend Rides', 'Route Sharing', 'Outdoor Community']
+          },
+          {
+            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
+            desc: 'Learn Web, Python, and AI fundamentals while sharing projects in a beginner-to-advanced online space.',
+            location: 'Online meeting link (Virtual)',
+            time: 'Fri 20:00-21:30',
+            seats: 40,
+            fee: '£0',
+            cover: '../zp/bc.webp',
+            tags: ['Web Development', 'Python', 'Project Practice']
+          },
+          {
+            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
+            desc: 'Doubles training and weekend activities with bookable sessions for members at different levels.',
+            location: 'Tennis Court C (In-person)',
+            time: 'Sat 14:00-16:00',
+            seats: 10,
+            fee: '£2/session',
+            cover: '../zp/wq.webp',
+            tags: ['Doubles Training', 'Weekend Activities', 'Session Booking']
+          },
+          {
+            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
+            desc: 'Instrument exchange, ensemble rehearsals, and performance sign-up with shared sheet music and rehearsal plans online.',
+            location: 'Arts Building 2F / online sharing',
+            time: 'Wed 17:00-18:30',
+            seats: 18,
+            fee: '£0',
+            cover: '../zp/yy.webp',
+            tags: ['Instrument Exchange', 'Ensemble Rehearsal', 'Performance Sign-up']
+          },
+          {
+            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly group runs and campus running events with activity sign-up and training plans.',
+            location: 'Track meeting point (In-person)',
+            time: 'Tue/Fri 07:00-08:00',
+            seats: 30,
+            fee: '£0',
+            cover: '../zp/pb.webp',
+            tags: ['Morning Run Check-in', 'Road Running', 'Training Plan']
+          },
+          {
+            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Weekly practices and campus league sign-up with basic tactical coaching and scrimmages.',
+            location: 'Basketball Court D (In-person)',
+            time: 'Wed/Sat 18:00-20:00',
+            seats: 18,
+            fee: '£0 (Free)',
+            cover: '../zp/hb1.webp',
+            tags: ['League Sign-up', 'Tactical Training', 'Scrimmages']
+          },
+          {
+            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
+            desc: 'Core passing and contact training with support for inter-school competition sign-up and tactical drills.',
+            location: 'Stadium F (In-person)',
+            time: 'Tue/Thu 16:30-18:00',
+            seats: 22,
+            fee: '£0',
+            cover: '../zp/hb3.webp',
+            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training']
+          },
+          {
+            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Team coordination sessions and small-court games with grouped practice and event sign-up.',
+            location: 'Sports Hall G (In-person)',
+            time: 'Mon 18:30-20:00',
+            seats: 16,
+            fee: '£0',
+            cover: '../zp/hb2.webp',
+            tags: ['Team Coordination', 'Grouped Practice', 'Event Sign-up']
+          },
+          {
+            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
+            desc: 'Foundational flexibility and strength training with movement demos and grouped practice for beginner to advanced members.',
+            location: 'Gym Hall H (In-person)',
+            time: 'Fri 17:00-18:30',
+            seats: 14,
+            fee: '£0',
+            cover: '../zp/hb1.webp',
+            tags: ['Flexibility Training', 'Strength Growth', 'Movement Demonstration']
+          }
+        ]
       };
     },
     mounted() {
+      this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
       this.applyQueryFromUrl();
       this.refreshRegistryState();
       this.syncSupabaseClubPreviewData();
@@ -472,6 +594,7 @@
       },
 
       refreshRegistryState() {
+        const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []));
         const supabase = (this.supabaseClubs || [])
           .map((c) => this.mapRegistryClub(c))
           .filter((c) => c.slug);
@@ -481,7 +604,7 @@
           .filter((c) => c.slug);
         const seen = new Set();
         const next = [];
-        const catalog = this.cloudClubCatalogEnabled ? supabase : mapped;
+        const catalog = this.cloudClubCatalogEnabled ? supabase : mapped.concat(base);
 
         catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;
