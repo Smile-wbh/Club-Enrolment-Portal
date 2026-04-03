@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Club Details - Club Enrollment Portal</title>
   <script src="../js/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-bookings.js?v=20260403-1"></script>
   <link rel="stylesheet" href="../css/yl.css">
   <link rel="stylesheet" href="../css/chat-widget.css">
 </head>
@@ -56,6 +60,28 @@
           </div>
         </div>
         <div class="cover" style="background-image:url('../zp/ymq.webp')"></div>
+      </div>
+    </section>
+
+    <section class="map-band" v-if="club && showMapPanel">
+      <div class="map-band-shell">
+        <iframe
+          class="map-band-frame"
+          :src="mapEmbedUrl"
+          loading="lazy"
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+          :title="club.name + ' Google Maps location'"></iframe>
+
+        <div class="map-band-overlay">
+          <span class="map-band-eyebrow">Google Maps</span>
+          <strong>{{ club.location || club.name }}</strong>
+          <span>{{ mapOverlayText }}</span>
+        </div>
+
+        <a class="map-band-action" :href="mapOpenUrl" target="_blank" rel="noopener">
+          Open in Google Maps
+        </a>
       </div>
     </section>
 
@@ -159,7 +185,8 @@
       el:'#app',
       data(){
         return{
-          club: null
+          club: null,
+          resolvedMapLink: ''
         }
       },
       computed:{
@@ -194,13 +221,68 @@
         },
         notesList(){
           return this.toList(this.club ? this.club.notes : '');
+        },
+        activeMapLink(){
+          if(this.resolvedMapLink) return this.resolvedMapLink;
+          return this.club && this.club.mapLink ? this.club.mapLink : '';
+        },
+        fallbackMapQuery(){
+          if(!this.club) return '';
+          const parts = [
+            String(this.club.location || '').trim(),
+            String(this.club.name || '').trim()
+          ].filter(Boolean);
+          return Array.from(new Set(parts)).join(' ');
+        },
+        mapQueryText(){
+          if(!this.club) return '';
+          if(this.club.mapLink){
+            return this.extractMapQuery(this.activeMapLink);
+          }
+          return this.fallbackMapQuery;
+        },
+        hasPhysicalVenue(){
+          if(!this.club) return false;
+          const mode = String(this.club.mode || '').trim().toLowerCase();
+          const locationText = String(this.club.location || '').trim().toLowerCase();
+          if(this.club.mapLink) return true;
+          if(!locationText) return false;
+          if(mode === 'online') return false;
+          if(locationText.indexOf('online') > -1 || locationText.indexOf('virtual') > -1) return false;
+          return true;
+        },
+        mapEmbedUrl(){
+          const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
+          if(embedFromLink) return embedFromLink;
+          const query = this.mapQueryText || this.fallbackMapQuery;
+          if(!query) return '';
+          return 'https://www.google.com/maps?q=' + encodeURIComponent(query) + '&z=16&output=embed';
+        },
+        mapOpenUrl(){
+          if(!this.club) return '#';
+          if(this.club.mapLink) return this.toExternalUrl(this.club.mapLink);
+          const query = this.mapQueryText;
+          return query
+            ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
+            : '#';
+        },
+        mapOverlayText(){
+          if(!this.club) return '';
+          const time = String(this.club.time || '').trim();
+          const mode = String(this.club.mode || '').trim();
+          if(time && mode) return mode + ' · ' + time;
+          return time || mode || 'Find the venue before you arrive';
+        },
+        showMapPanel(){
+          return !!(this.club && this.hasPhysicalVenue && (this.mapQueryText || this.club.mapLink));
         }
       },
-      mounted(){
+      async mounted(){
         const params = new URLSearchParams(location.search);
         const slug = params.get('club');
         if(!slug) return;
-        this.club = this.findClub(slug);
+        this.club = await this.findClub(slug);
+        await this.resolveMapLinkForEmbed();
       },
       methods:{
         keyRegistry(){ return 'club_registry_v1'; },
@@ -245,9 +327,38 @@
             seats
           };
         },
-        findClub(slug){
+        async findClub(slug){
+          const normalizedSlug = String(slug || '').trim();
+          if(!normalizedSlug) return null;
+
+          if(window.clubBookingSupabase && typeof window.clubBookingSupabase.isConfigured === 'function' && window.clubBookingSupabase.isConfigured()){
+            try{
+              const today = new Date();
+              const end = new Date(today);
+              end.setDate(end.getDate() + 27);
+              const formatIso = function(date){
+                const normalized = new Date(date);
+                normalized.setHours(0, 0, 0, 0);
+                const year = normalized.getFullYear();
+                const month = String(normalized.getMonth() + 1).padStart(2, '0');
+                const day = String(normalized.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+              };
+              const cloud = await window.clubBookingSupabase.fetchClubCatalog({
+                startDate: formatIso(today),
+                endDate: formatIso(end)
+              });
+              const foundCloud = Array.isArray(cloud && cloud.clubs)
+                ? cloud.clubs.find(function(item){ return item && item.slug === normalizedSlug; })
+                : null;
+              if(foundCloud) return this.normalizeClub(foundCloud);
+            }catch(error){
+              console.warn('Club detail cloud sync failed, using local registry fallback.', error);
+            }
+          }
+
           const reg = this.loadRegistry();
-          const found = reg.find(x=>x && x.slug === slug);
+          const found = reg.find(x=>x && x.slug === normalizedSlug);
           if(!found) return null;
           return this.normalizeClub(found);
         },
@@ -269,6 +380,93 @@
           if(!raw) return '#';
           if(/^https?:\/\//i.test(raw)) return raw;
           return 'https://' + raw;
+        },
+        async resolveMapLinkForEmbed(){
+          this.resolvedMapLink = '';
+          if(!this.club || !this.club.mapLink) return;
+          const raw = this.toExternalUrl(this.club.mapLink);
+          try{
+            const parsed = new URL(raw);
+            if(parsed.hostname && parsed.hostname.toLowerCase() === 'maps.app.goo.gl'){
+              const resolver = await fetch('/api/resolve-map?url=' + encodeURIComponent(raw), {
+                method: 'GET',
+                cache: 'no-store'
+              });
+              if(resolver.ok){
+                const payload = await resolver.json();
+                const finalUrl = String(payload && payload.finalUrl || '').trim();
+                this.resolvedMapLink = finalUrl || raw;
+                return;
+              }
+            }
+          }catch(e){
+            // Fall through to local resolution fallback.
+          }
+          try{
+            const response = await fetch(raw, {
+              method: 'GET',
+              mode: 'no-cors',
+              redirect: 'follow',
+              cache: 'no-store'
+            });
+            const finalUrl = String(response && response.url || '').trim();
+            this.resolvedMapLink = finalUrl || raw;
+          }catch(error){
+            this.resolvedMapLink = raw;
+          }
+        },
+        buildMapEmbedFromLink(value){
+          const raw = String(value || '').trim();
+          if(!raw) return '';
+          try{
+            const normalized = this.toExternalUrl(raw);
+            const url = new URL(normalized);
+            const href = decodeURIComponent(normalized);
+            const directQuery = url.searchParams.get('q')
+              || url.searchParams.get('query')
+              || url.searchParams.get('destination')
+              || url.searchParams.get('daddr');
+            if(directQuery){
+              return 'https://www.google.com/maps?q=' + encodeURIComponent(directQuery.trim()) + '&z=16&output=embed';
+            }
+
+            const center = url.searchParams.get('center') || url.searchParams.get('ll');
+            if(center){
+              return 'https://www.google.com/maps?q=' + encodeURIComponent(center.trim()) + '&z=16&output=embed';
+            }
+
+            const atMatch = href.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+            if(atMatch){
+              return 'https://www.google.com/maps?q=' + encodeURIComponent(atMatch[1] + ',' + atMatch[2]) + '&z=16&output=embed';
+            }
+
+            const placeMatch = decodeURIComponent(url.pathname || '').match(/\/place\/([^/]+)/);
+            if(placeMatch && placeMatch[1]){
+              return 'https://www.google.com/maps?q=' + encodeURIComponent(placeMatch[1].replace(/\+/g, ' ').trim()) + '&z=16&output=embed';
+            }
+          }catch(e){
+            return '';
+          }
+          return '';
+        },
+        extractMapQuery(value){
+          const raw = String(value || '').trim();
+          if(!raw) return '';
+          try{
+            const url = new URL(this.toExternalUrl(raw));
+            const q = url.searchParams.get('q')
+              || url.searchParams.get('query')
+              || url.searchParams.get('destination')
+              || url.searchParams.get('daddr');
+            if(q) return q.trim();
+            const center = url.searchParams.get('center') || url.searchParams.get('ll');
+            if(center) return center.trim();
+            const placeMatch = decodeURIComponent(url.pathname || '').match(/\/place\/([^/]+)/);
+            if(placeMatch && placeMatch[1]) return placeMatch[1].replace(/\+/g, ' ').trim();
+          }catch(e){
+            return raw;
+          }
+          return '';
         }
       }
     })
