@@ -861,6 +861,76 @@
         return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
       }
 
+      function normalizeLocalClubForMigration(club){
+        if(!club) return null;
+        var name = String(club.name || '').trim();
+        if(!name) return null;
+        var slug = String(club.slug || '').trim() || slugify(name);
+        var seats = Number(club.seats || 0);
+        var status = String(club.status || '').trim().toLowerCase();
+        return {
+          slug: slug,
+          name: name,
+          category: String(club.category || 'Sports').trim() || 'Sports',
+          mode: String(club.mode || 'In-person').trim() || 'In-person',
+          location: String(club.location || '').trim(),
+          mapLink: String(club.mapLink || '').trim(),
+          onlineLink: String(club.onlineLink || '').trim(),
+          time: String(club.time || '').trim(),
+          fee: String(club.fee || '£0').trim() || '£0',
+          seats: Number.isFinite(seats) && seats > 0 ? seats : 20,
+          cover: sanitizeClubCoverValue(club.cover),
+          tags: Array.isArray(club.tags)
+            ? club.tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean)
+            : [],
+          desc: String(club.desc || '').trim(),
+          heroSub: String(club.heroSub || club.desc || '').trim(),
+          venueInfo: String(club.venueInfo || '').trim(),
+          whatWeDo: String(club.whatWeDo || '').trim(),
+          audience: String(club.audience || '').trim(),
+          trainingPlan: String(club.trainingPlan || '').trim(),
+          notes: String(club.notes || '').trim(),
+          ownerEmail: state.sessionEmail,
+          ownerId: state.sessionUserId,
+          createdAt: String(club.createdAt || '').trim(),
+          updatedAt: String(club.updatedAt || '').trim(),
+          status: status === 'approved' || status === 'inactive' ? status : 'pending'
+        };
+      }
+
+      async function migrateLocalClubsToCloud(service, remoteClubs){
+        var localClubs = safeParse(KEYS.clubs, []);
+        if(!Array.isArray(localClubs) || !localClubs.length) return Array.isArray(remoteClubs) ? remoteClubs : [];
+
+        var normalizedLocal = localClubs
+          .map(normalizeLocalClubForMigration)
+          .filter(function(club){ return club && !isDemoClub(club.slug); });
+
+        if(!normalizedLocal.length){
+          localStorage.removeItem(KEYS.clubs);
+          return Array.isArray(remoteClubs) ? remoteClubs : [];
+        }
+
+        var nextRemote = Array.isArray(remoteClubs) ? remoteClubs.slice() : [];
+        var remoteSlugs = new Set(nextRemote.map(function(club){
+          return String(club && club.slug || '').trim().toLowerCase();
+        }).filter(Boolean));
+
+        for(var i = 0; i < normalizedLocal.length; i += 1){
+          var localClub = normalizedLocal[i];
+          var slugKey = String(localClub.slug || '').trim().toLowerCase();
+          if(!slugKey || remoteSlugs.has(slugKey)) continue;
+          var created = await service.createClub(localClub, state.sessionUserId);
+          if(created){
+            nextRemote.unshift(created);
+            remoteSlugs.add(slugKey);
+          }
+        }
+
+        localStorage.removeItem(KEYS.clubs);
+        return nextRemote;
+      }
+
       function parseTimeValue(value){
         var text = String(value || '').trim();
         if(!text) return 0;
@@ -1492,7 +1562,7 @@
           try{
             var service = getAdminService();
             var remote = await service.fetchDashboardState(state.sessionUserId);
-            state.clubs = Array.isArray(remote && remote.clubs) ? remote.clubs : [];
+            state.clubs = await migrateLocalClubsToCloud(service, Array.isArray(remote && remote.clubs) ? remote.clubs : []);
             state.members = Array.isArray(remote && remote.members) ? remote.members : [];
             state.bookings = Array.isArray(remote && remote.bookings) ? remote.bookings : [];
             state.courses = Array.isArray(remote && remote.courses) ? remote.courses : [];
