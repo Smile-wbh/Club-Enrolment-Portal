@@ -506,8 +506,7 @@
     var clubs = Object.keys(combined).map(function (key) {
       return combined[key];
     });
-    if (clubs.length || !isTargetAccount(email)) return clubs;
-    return readEmbeddedDefaultClubs();
+    return clubs;
   }
 
   function normalizeLocalCourse(course) {

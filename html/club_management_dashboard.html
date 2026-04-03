@@ -879,6 +879,38 @@
         localStorage.setItem(key, JSON.stringify(value));
       }
 
+      var DEMO_CLUB_SLUGS = {
+        football: true,
+        badminton: true,
+        swimming: true,
+        cycling: true,
+        programming: true,
+        tennis: true,
+        music: true,
+        running: true,
+        basketball: true,
+        golf: true,
+        rugby: true,
+        handball: true,
+        gymnastics: true
+      };
+
+      var DEMO_COURSE_SLUGS = {
+        'badminton-serve-fundamentals': true,
+        'football-passing-basics': true,
+        'swimming-breathing-and-stroke': true,
+        'cycling-route-planning': true,
+        'programming-html-css-foundations': true,
+        'tennis-serve-and-rally-basics': true,
+        'music-ensemble-rehearsal-skills': true,
+        'running-endurance-rhythm': true,
+        'basketball-shooting-and-spacing': true,
+        'golf-swing-basics': true,
+        'rugby-contact-and-shape': true,
+        'handball-attack-defense-core': true,
+        'gymnastics-core-movement-flexibility': true
+      };
+
       var LEGACY_AUTO_COVER_PATHS = {
         '../zp/zq.webp': true,
         '../zp/ymq.webp': true,
@@ -894,6 +926,14 @@
       function sanitizeClubCoverValue(value){
         var text = String(value || '').trim();
         return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+      }
+
+      function isDemoClub(value){
+        return !!DEMO_CLUB_SLUGS[String(value || '').trim().toLowerCase()];
+      }
+
+      function isDemoCourse(value){
+        return !!DEMO_COURSE_SLUGS[String(value || '').trim().toLowerCase()];
       }
 
       function normalizeLocalClubForMigration(club){
@@ -939,7 +979,7 @@
 
         var normalizedLocal = localClubs
           .map(normalizeLocalClubForMigration)
-          .filter(Boolean);
+          .filter(function(club){ return club && !isDemoClub(club.slug); });
 
         if(!normalizedLocal.length){
           localStorage.removeItem(KEYS.clubs);
@@ -1626,6 +1666,7 @@
 
         state.myClubs = state.clubs.filter(function(c){
           if(!c) return false;
+          if(isDemoClub(c.slug)) return false;
           if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
           return !c.ownerEmail || c.ownerEmail === state.sessionEmail;
         });
@@ -1648,6 +1689,7 @@
 
         state.myCourses = state.courses.filter(function(c){
           if(!c) return false;
+          if(isDemoCourse(c.slug)) return false;
           if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
           return state.myClubIds.has(String(c.clubId || '').trim())
             || c.ownerEmail === state.sessionEmail
