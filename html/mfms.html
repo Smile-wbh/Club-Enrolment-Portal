@@ -10,6 +10,7 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-courses.js"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/mfms.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
@@ -719,6 +720,11 @@
         };
         return tryLoad(localStorage) || tryLoad(sessionStorage) || '';
       },
+      isBusinessLocalCacheDisabled() {
+        const service = window.clubLocalDataMigration || null;
+        const email = this.getSessionEmail();
+        return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+      },
       openLoginModal(text, payload, redirectUrl) {
         this.loginModalText = text || 'You need to log in before booking.';
         this.pendingPayload = payload || null;
@@ -767,6 +773,7 @@
       },
       syncLocalBookingMirror(record) {
         if (!record) return;
+        if (this.isBusinessLocalCacheDisabled()) return;
         let all = [];
         try {
           all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
@@ -786,6 +793,7 @@
       },
       syncLocalFavoriteCache(course) {
         if (!course) return;
+        if (this.isBusinessLocalCacheDisabled()) return;
         const email = this.getSessionEmail();
         if (!email) return;
         try {
@@ -970,6 +978,7 @@
         this.openActionModal('fav', course);
       },
       removeFavLocal(courseId) {
+        if (this.isBusinessLocalCacheDisabled()) return;
         const email = this.getSessionEmail();
         if (!email) return;
         const id = String(courseId);

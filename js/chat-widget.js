@@ -39,6 +39,11 @@
     };
     return tryLoad(localStorage) || tryLoad(sessionStorage) || '';
   }
+  function isBusinessCacheDisabled(){
+    const service = window.clubLocalDataMigration || null;
+    const email = readSession();
+    return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+  }
   function getUserId(){
     const email = readSession();
     if(email) return 'user:' + email;
@@ -50,6 +55,7 @@
     return uid;
   }
   function safeParse(key, fallback){
+    if(key === KEYS.messages && isBusinessCacheDisabled()) return fallback;
     try{
       const raw = localStorage.getItem(key);
       if(raw === null || raw === undefined || raw === '') return fallback;
@@ -57,6 +63,7 @@
     }catch(e){ return fallback; }
   }
   function save(key, value){
+    if(key === KEYS.messages && isBusinessCacheDisabled()) return;
     localStorage.setItem(key, JSON.stringify(value));
   }
   function escapeHtml(str){

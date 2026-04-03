@@ -1,38 +1,6 @@
 (function (window) {
   'use strict';
 
-  var DEMO_CLUB_SLUGS = {
-    football: true,
-    badminton: true,
-    swimming: true,
-    cycling: true,
-    programming: true,
-    tennis: true,
-    music: true,
-    running: true,
-    basketball: true,
-    golf: true,
-    rugby: true,
-    handball: true,
-    gymnastics: true
-  };
-
-  var DEMO_COURSE_SLUGS = {
-    'badminton-serve-fundamentals': true,
-    'football-passing-basics': true,
-    'swimming-breathing-and-stroke': true,
-    'cycling-route-planning': true,
-    'programming-html-css-foundations': true,
-    'tennis-serve-and-rally-basics': true,
-    'music-ensemble-rehearsal-skills': true,
-    'running-endurance-rhythm': true,
-    'basketball-shooting-and-spacing': true,
-    'golf-swing-basics': true,
-    'rugby-contact-and-shape': true,
-    'handball-attack-defense-core': true,
-    'gymnastics-core-movement-flexibility': true
-  };
-
   var LEGACY_AUTO_COVER_PATHS = {
     '../zp/zq.webp': true,
     '../zp/ymq.webp': true,
@@ -46,14 +14,6 @@
   function normalizeCoverValue(value) {
     var text = trimText(value);
     return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
-  }
-
-  function isDemoClubSlug(value) {
-    return !!DEMO_CLUB_SLUGS[trimText(value).toLowerCase()];
-  }
-
-  function isDemoCourseSlug(value) {
-    return !!DEMO_COURSE_SLUGS[trimText(value).toLowerCase()];
   }
 
   function normalizeEmail(value) {
@@ -298,8 +258,7 @@
 
     var clubs = (clubResult.data || [])
       .map(mapClubRow)
-      .filter(Boolean)
-      .filter(function (club) { return !isDemoClubSlug(club.slug); });
+      .filter(Boolean);
     var clubIds = clubs.map(function (club) { return trimText(club.id); }).filter(Boolean);
 
     if (!clubIds.length) {
@@ -340,7 +299,6 @@
       courses: (coursesResult.data || [])
         .map(mapCourseRow)
         .filter(Boolean)
-        .filter(function (course) { return !isDemoCourseSlug(course.slug); })
     };
   }
 

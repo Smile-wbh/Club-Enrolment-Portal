@@ -71,6 +71,11 @@
     return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
   }
 
+  function isBusinessCacheDisabled(email) {
+    var service = window.clubLocalDataMigration || null;
+    return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(normalizeEmail(email)));
+  }
+
   function readSession() {
     try {
       var local = JSON.parse(window.localStorage.getItem(KEYS.session) || 'null');
@@ -91,6 +96,10 @@
   }
 
   function readBookings() {
+    var session = readSession();
+    if (isBusinessCacheDisabled((session && session.email) || (state.order && state.order.userEmail))) {
+      return [];
+    }
     var bookings = readJson(KEYS.bookings, []);
     if (!Array.isArray(bookings)) return [];
     var changed = false;
@@ -384,6 +393,7 @@
 
   function syncLocalBookingMirror(record) {
     if (!record) return;
+    if (isBusinessCacheDisabled(trimText(record.userEmail) || trimText(state.order && state.order.userEmail))) return;
     var bookings = readBookings();
     var index = bookings.findIndex(function (item) {
       return trimText(item && item.id) === trimText(record.id);

@@ -11,6 +11,7 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-support.js"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/tzgg.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 
@@ -339,6 +340,10 @@
         const service = this.getSupportService();
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
       },
+      isBusinessLocalCacheDisabled(){
+        const service = window.clubLocalDataMigration || null;
+        return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(this.sessionEmail));
+      },
       loadSession(){
         const tryLoad = (store) => {
           try{
@@ -354,6 +359,7 @@
         this.sessionNickname = session && session.nickname ? String(session.nickname).trim() : '';
       },
       loadLocalConsultMessages(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try{
           const raw = localStorage.getItem('chat_messages_v1');
           const list = raw ? JSON.parse(raw) : [];
@@ -373,6 +379,7 @@
         this.consultMessages = this.loadLocalConsultMessages();
       },
       saveConsultMessages(){
+        if(this.isBusinessLocalCacheDisabled()) return;
         localStorage.setItem('chat_messages_v1', JSON.stringify(this.consultMessages));
       },
       handleConsultFiles(e){

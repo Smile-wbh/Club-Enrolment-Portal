@@ -9,6 +9,7 @@
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-storage.js?v=20260401-3"></script>
   <script src="../js/supabase-club-admin.js?v=20260401-1"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/club_management_dashboard.css">
 </head>
 <body>
@@ -787,7 +788,82 @@
         courses: 'mfms_courses_v1'
       };
 
+      function normalizeEmail(value){
+        return typeof value === 'string' ? value.trim().toLowerCase() : '';
+      }
+
+      function readSessionForBusinessCache(){
+        var stores = [localStorage, sessionStorage];
+        for(var i = 0; i < stores.length; i += 1){
+          try{
+            var raw = stores[i].getItem(KEYS.session);
+            if(!raw) continue;
+            var parsed = JSON.parse(raw);
+            if(parsed && parsed.email) return parsed;
+          }catch(e){}
+        }
+        return null;
+      }
+
+      function migrationService(){
+        return window.clubLocalDataMigration || null;
+      }
+
+      function currentBusinessCacheEmail(){
+        var stateEmail = normalizeEmail(state && state.sessionEmail);
+        if(stateEmail) return stateEmail;
+        var session = readSessionForBusinessCache();
+        return normalizeEmail(session && session.email);
+      }
+
+      function isBusinessKey(key){
+        return key === KEYS.clubs
+          || key === KEYS.members
+          || key === KEYS.bookings
+          || key === KEYS.courses;
+      }
+
+      function isBusinessCacheDisabled(){
+        var service = migrationService();
+        var email = currentBusinessCacheEmail();
+        return !!(service && email && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+      }
+
+      async function ensureDashboardLocalMigration(userId, email, nickname, avatar){
+        var service = migrationService();
+        var normalizedEmail = normalizeEmail(email);
+        if(!(service && typeof service.isTargetAccount === 'function' && service.isTargetAccount(normalizedEmail))) return;
+        var current = typeof service.readStatus === 'function' ? (service.readStatus(normalizedEmail) || {}) : {};
+        if(current && current.running) return;
+        var inspection = typeof service.inspectLocalData === 'function'
+          ? (service.inspectLocalData(normalizedEmail, {
+              nickname: nickname,
+              avatar: avatar
+            }) || {})
+          : {};
+        var currentTotal = Number(current && current.counts && current.counts.total || 0);
+        var inspectTotal = Number(inspection && inspection.total || 0);
+        if(current && current.completed && currentTotal > 0) return;
+        if(current && current.completed && currentTotal === 0 && inspectTotal <= 0) return;
+        if(inspectTotal <= 0) return;
+        try{
+          await service.runMigration({
+            userId: trimText(userId),
+            email: normalizedEmail,
+            profile: {
+              nickname: nickname,
+              avatar: avatar
+            }
+          });
+        }catch(error){
+          console.warn('Club dashboard local migration failed.', error);
+        }
+      }
+
       function safeParse(key, fallback){
+        if(isBusinessKey(key) && isBusinessCacheDisabled()){
+          return fallback;
+        }
         try{
           var raw = localStorage.getItem(key);
           return raw ? JSON.parse(raw) : fallback;
@@ -797,58 +873,17 @@
       }
 
       function saveData(key, value){
+        if(isBusinessKey(key) && isBusinessCacheDisabled()){
+          return;
+        }
         localStorage.setItem(key, JSON.stringify(value));
       }
-
-      function normalizeEmail(value){
-        return typeof value === 'string' ? value.trim().toLowerCase() : '';
-      }
-
-      var DEMO_CLUB_SLUGS = {
-        football: true,
-        badminton: true,
-        swimming: true,
-        cycling: true,
-        programming: true,
-        tennis: true,
-        music: true,
-        running: true,
-        basketball: true,
-        golf: true,
-        rugby: true,
-        handball: true,
-        gymnastics: true
-      };
-
-      var DEMO_COURSE_SLUGS = {
-        'badminton-serve-fundamentals': true,
-        'football-passing-basics': true,
-        'swimming-breathing-and-stroke': true,
-        'cycling-route-planning': true,
-        'programming-html-css-foundations': true,
-        'tennis-serve-and-rally-basics': true,
-        'music-ensemble-rehearsal-skills': true,
-        'running-endurance-rhythm': true,
-        'basketball-shooting-and-spacing': true,
-        'golf-swing-basics': true,
-        'rugby-contact-and-shape': true,
-        'handball-attack-defense-core': true,
-        'gymnastics-core-movement-flexibility': true
-      };
 
       var LEGACY_AUTO_COVER_PATHS = {
         '../zp/zq.webp': true,
         '../zp/ymq.webp': true,
         '../zp/gywm.webp': true
       };
-
-      function isDemoClub(value){
-        return !!DEMO_CLUB_SLUGS[String(value || '').trim().toLowerCase()];
-      }
-
-      function isDemoCourse(value){
-        return !!DEMO_COURSE_SLUGS[String(value || '').trim().toLowerCase()];
-      }
 
       function buildInitials(value){
         var source = String(value || '').replace(/\s+/g, '').trim();
@@ -904,7 +939,7 @@
 
         var normalizedLocal = localClubs
           .map(normalizeLocalClubForMigration)
-          .filter(function(club){ return club && !isDemoClub(club.slug); });
+          .filter(Boolean);
 
         if(!normalizedLocal.length){
           localStorage.removeItem(KEYS.clubs);
@@ -1557,6 +1592,8 @@
           avatar: sessionAvatar
         } : null);
 
+        await ensureDashboardLocalMigration(state.sessionUserId, state.sessionEmail, state.sessionNick, sessionAvatar);
+
         state.useCloudData = false;
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           try{
@@ -1589,7 +1626,6 @@
 
         state.myClubs = state.clubs.filter(function(c){
           if(!c) return false;
-          if(isDemoClub(c.slug)) return false;
           if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
           return !c.ownerEmail || c.ownerEmail === state.sessionEmail;
         });
@@ -1612,7 +1648,6 @@
 
         state.myCourses = state.courses.filter(function(c){
           if(!c) return false;
-          if(isDemoCourse(c.slug)) return false;
           if(state.sessionUserId && String(c.ownerId || '').trim() === state.sessionUserId) return true;
           return state.myClubIds.has(String(c.clubId || '').trim())
             || c.ownerEmail === state.sessionEmail

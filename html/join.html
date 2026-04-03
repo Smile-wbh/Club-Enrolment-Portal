@@ -11,6 +11,8 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-storage.js?v=20260401-2"></script>
+  <script src="../js/supabase-club-admin.js?v=20260403-2"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <script src="../js/supabase-bookings.js"></script>
   <script src="../js/supabase-courses.js"></script>
   <script src="../js/supabase-forum.js"></script>
@@ -413,6 +415,24 @@
                 <button class="custom-tab" type="button" @click="openProfileTab('club_bookings')">Member List</button>
                 <button class="custom-tab" type="button" @click="openProfileTab('consults')">Pending Requests</button>
               </div>
+
+              <article class="board-card" v-if="isTargetMigrationAccount">
+                <div class="board-head">
+                  <h4>Local Data Migration</h4>
+                  <span class="pill gray" v-if="localMigrationBusy">Running</span>
+                  <span class="pill gray" v-else-if="localMigrationStatus && localMigrationStatus.completed">Completed</span>
+                  <span class="pill gray" v-else>Pending</span>
+                </div>
+                <div class="profile-empty-note">{{ localMigrationSummaryText }}</div>
+                <div class="profile-empty-note" v-if="localMigrationCountSummary">{{ localMigrationCountSummary }}</div>
+                <button
+                  class="btn btn-blue profile-refresh-btn"
+                  type="button"
+                  @click="runBusinessLocalMigration(true)"
+                  :disabled="localMigrationBusy">
+                  {{ localMigrationBusy ? 'Syncing to Supabase…' : 'Re-run Local Import' }}
+                </button>
+              </article>
 
               <div class="overview-top-grid">
                 <article class="board-card ring-card">
@@ -1209,6 +1229,8 @@
         myBookings: [],
         myBookingHistory: [],
         showBookingHistory: false,
+        localMigrationStatus: null,
+        localMigrationProgress: '',
         
         // New Features Data
         myMaterials: [],
@@ -1304,6 +1326,43 @@
       },
       unreadNotificationCount(){
         return this.notificationFeedItems.filter(item => !item.read).length;
+      },
+      isTargetMigrationAccount(){
+        const service = this.getLocalMigrationService();
+        return !!(service && typeof service.isTargetAccount === 'function' && service.isTargetAccount(this.sessionEmail));
+      },
+      localMigrationBusy(){
+        return !!(this.localMigrationStatus && this.localMigrationStatus.running);
+      },
+      localMigrationCanRun(){
+        if(!this.isTargetMigrationAccount) return false;
+        if(this.localMigrationBusy) return false;
+        const counts = (this.localMigrationStatus && this.localMigrationStatus.counts) || null;
+        return Number(counts && counts.total) > 0 || !(this.localMigrationStatus && this.localMigrationStatus.completed);
+      },
+      localMigrationSummaryText(){
+        if(!this.isTargetMigrationAccount) return '';
+        if(this.localMigrationProgress) return this.localMigrationProgress;
+        const status = this.localMigrationStatus || {};
+        if(status.lastError) return status.lastError;
+        if(status.lastMessage) return status.lastMessage;
+        return 'Use this account to move browser-side club, booking, course, forum, and support data into Supabase.';
+      },
+      localMigrationCountSummary(){
+        const counts = (this.localMigrationStatus && this.localMigrationStatus.counts) || null;
+        if(!counts) return '';
+        return [
+          ['clubs', 'clubs'],
+          ['members', 'members'],
+          ['bookings', 'bookings'],
+          ['courses', 'courses'],
+          ['courseBookings', 'course bookings'],
+          ['favorites', 'favorites'],
+          ['posts', 'posts'],
+          ['comments', 'comments'],
+          ['supportMessages', 'support messages'],
+          ['messageBoard', 'message board items']
+        ].filter(item => Number(counts[item[0]]) > 0).map(item => counts[item[0]] + ' ' + item[1]).join(' · ');
       },
       profileDateText(){
         const d = new Date();
@@ -1526,7 +1585,7 @@
       this.bindSupabaseAuthListener();
       this.checkRecoveryEntry();
       if(this.isAuthed){
-        this.loadAuthedData();
+        await this.loadAuthedData();
       }
       this.loadProfileCoverState();
 
@@ -1831,6 +1890,9 @@
       getCourseService(){
         return window.clubCourseSupabase || null;
       },
+      getAdminService(){
+        return window.clubAdminSupabase || null;
+      },
       getForumService(){
         return window.clubForumSupabase || null;
       },
@@ -1839,6 +1901,13 @@
       },
       getSupportService(){
         return window.clubSupportSupabase || null;
+      },
+      getLocalMigrationService(){
+        return window.clubLocalDataMigration || null;
+      },
+      isBusinessLocalCacheDisabled(){
+        const service = this.getLocalMigrationService();
+        return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(this.sessionEmail));
       },
       hasSupabaseCoursesConfigured(){
         const service = this.getCourseService();
@@ -1858,6 +1927,96 @@
       },
       normalizeForumId(value){
         return String(value || '').trim();
+      },
+      refreshLocalMigrationState(){
+        const service = this.getLocalMigrationService();
+        if(!(service && typeof service.isTargetAccount === 'function' && service.isTargetAccount(this.sessionEmail))){
+          this.localMigrationStatus = null;
+          this.localMigrationProgress = '';
+          return null;
+        }
+        const status = typeof service.readStatus === 'function' ? (service.readStatus(this.sessionEmail) || {}) : {};
+        this.localMigrationStatus = status;
+        this.localMigrationProgress = String((status && status.lastMessage) || this.localMigrationProgress || '').trim();
+        return status;
+      },
+      async runBusinessLocalMigration(force){
+        const service = this.getLocalMigrationService();
+        if(!(service && typeof service.runMigration === 'function' && service.isTargetAccount(this.sessionEmail))){
+          this.localMigrationStatus = null;
+          this.localMigrationProgress = '';
+          return null;
+        }
+        const current = this.refreshLocalMigrationState() || {};
+        if(current.running) return current;
+        if(!force && current.completed) return current;
+        const inspection = typeof service.inspectLocalData === 'function'
+          ? (service.inspectLocalData(this.sessionEmail, this.profile) || {})
+          : {};
+        if(!force && !(Number(inspection.total) > 0)){
+          this.localMigrationStatus = Object.assign({}, current, {
+            counts: current.counts || inspection,
+            completed: !!current.completed,
+            lastMessage: String(current.lastMessage || '').trim() || 'No local business data was found to migrate.'
+          });
+          this.localMigrationProgress = this.localMigrationStatus.lastMessage;
+          return this.localMigrationStatus;
+        }
+        this.localMigrationStatus = Object.assign({}, current, {
+          running: true,
+          completed: false,
+          counts: inspection,
+          lastError: ''
+        });
+        this.localMigrationProgress = 'Preparing local business data import.';
+        try{
+          const next = await service.runMigration({
+            userId: this.sessionUserId,
+            email: this.sessionEmail,
+            profile: Object.assign({}, this.profile),
+            onProgress: (message) => {
+              this.localMigrationProgress = String(message || '').trim();
+              this.localMigrationStatus = Object.assign({}, this.localMigrationStatus || {}, {
+                running: true,
+                lastMessage: this.localMigrationProgress
+              });
+            }
+          });
+          this.localMigrationStatus = next || {};
+          this.localMigrationProgress = String((next && next.lastMessage) || '').trim();
+          return this.localMigrationStatus;
+        }catch(e){
+          const message = String((e && e.message) || '').trim() || 'Migration failed.';
+          this.localMigrationStatus = Object.assign({}, this.localMigrationStatus || {}, {
+            running: false,
+            completed: false,
+            lastError: message,
+            lastMessage: 'Local business data migration did not finish.'
+          });
+          this.localMigrationProgress = message;
+          return this.localMigrationStatus;
+        }
+      },
+      async ensureLocalBusinessMigration(force){
+        const service = this.getLocalMigrationService();
+        if(!(service && typeof service.isTargetAccount === 'function' && service.isTargetAccount(this.sessionEmail))){
+          this.localMigrationStatus = null;
+          this.localMigrationProgress = '';
+          return null;
+        }
+        const current = this.refreshLocalMigrationState() || {};
+        if(current.running) return current;
+        const inspection = typeof service.inspectLocalData === 'function'
+          ? (service.inspectLocalData(this.sessionEmail, this.profile) || {})
+          : {};
+        const currentTotal = Number(current && current.counts && current.counts.total || 0);
+        const inspectTotal = Number(inspection && inspection.total || 0);
+        if(current.completed && !force){
+          if(currentTotal > 0) return current;
+          if(inspectTotal <= 0) return current;
+          return this.runBusinessLocalMigration(true);
+        }
+        return this.runBusinessLocalMigration(!!force);
       },
       currentForumAuthorAliases(){
         const email = this.normalizeEmail(this.sessionEmail);
@@ -1906,6 +2065,7 @@
         return item;
       },
       loadLocalMyPosts(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try{
           const all = JSON.parse(localStorage.getItem('spjs_forum_posts_v1') || '[]');
           return (Array.isArray(all) ? all : [])
@@ -1932,12 +2092,14 @@
         return merged;
       },
       removeTeachingBookingLocalCache(id){
+        if(this.isBusinessLocalCacheDisabled()) return;
         let all = [];
         try { all = JSON.parse(localStorage.getItem('mfms_teaching_bookings_v1') || '[]'); } catch(e){}
         all = (Array.isArray(all) ? all : []).filter(item => String(item && item.id) !== String(id));
         localStorage.setItem('mfms_teaching_bookings_v1', JSON.stringify(all));
       },
       removeFavoriteLocalCache(courseId){
+        if(this.isBusinessLocalCacheDisabled()) return;
         let all = [];
         try { all = JSON.parse(localStorage.getItem('mfms_fav_courses_v1') || '[]'); } catch(e){}
         all = (Array.isArray(all) ? all : []).filter(item => !(String(item && item.ownerEmail || '') === String(this.sessionEmail || '') && String(item && item.courseId) === String(courseId)));
@@ -1950,6 +2112,7 @@
         localStorage.setItem(favKey, JSON.stringify(ids));
       },
       loadLocalTeachingBookings(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try {
           const all = JSON.parse(localStorage.getItem('mfms_teaching_bookings_v1') || '[]');
           return all.filter(t => t.ownerEmail === this.sessionEmail);
@@ -1972,6 +2135,7 @@
         return merged;
       },
       loadLocalFavoriteCourses(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try {
           const all = JSON.parse(localStorage.getItem('mfms_fav_courses_v1') || '[]');
           return all.filter(f => f.ownerEmail === this.sessionEmail);
@@ -2098,6 +2262,8 @@
           this.profile.hobbies = '';
           this.profile.avatar = '';
           this.profile.forumCoverUrl = '';
+          this.localMigrationStatus = null;
+          this.localMigrationProgress = '';
           return;
         }
         this.sessionUserId = String(user.id || '');
@@ -2114,9 +2280,11 @@
         this.profile.avatar = String(user.avatar || '').trim();
         this.profile.forumCoverUrl = String(user.forumCoverUrl || '').trim();
         this.loadNotificationSeenAt();
+        this.refreshLocalMigrationState();
       },
-      loadAuthedData(){
+      async loadAuthedData(){
         if(!this.isAuthed) return;
+        await this.ensureLocalBusinessMigration(false);
         this.loadNotificationSeenAt();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
@@ -2216,7 +2384,7 @@
           Promise.resolve(this.syncSessionFromSupabase(target)).then((resolved) => {
             if(!resolved) return;
             this.applyResolvedUser(resolved);
-            this.loadAuthedData();
+            return this.loadAuthedData();
           });
         });
         this.authStateSubscription = result && result.data ? result.data.subscription : null;
@@ -2265,6 +2433,7 @@
           return 'user_message_board_v1';
         },
         saveMessageBoardEntries(list){
+        if(this.isBusinessLocalCacheDisabled()) return true;
         try{
           localStorage.setItem(this.messageBoardKey(), JSON.stringify(Array.isArray(list) ? list : []));
           return true;
@@ -2275,7 +2444,8 @@
         securitySettingsKey(){
           return 'user_security_settings_v1';
         },
-        loadMessageBoardEntries(){
+      loadMessageBoardEntries(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try{
           const raw = localStorage.getItem(this.messageBoardKey());
           const parsed = raw ? JSON.parse(raw) : [];
@@ -2330,10 +2500,11 @@
           this.messageBoardItems = [];
           return;
         }
+        const useLocalFallback = !this.isBusinessLocalCacheDisabled();
         const email = this.normalizeEmail(this.sessionEmail);
         const userId = String(this.sessionUserId || '').trim();
         const aliases = this.currentMessageBoardAliases();
-        const fallback = this.loadMessageBoardEntries()
+        const fallback = useLocalFallback ? this.loadMessageBoardEntries()
           .filter(item => {
             const targetUserId = String((item && item.targetUserId) || '').trim();
             const targetEmail = this.normalizeEmail(item && item.targetEmail);
@@ -2348,7 +2519,7 @@
               || (email && fromEmail && email === fromEmail)
               || (!!fromName && aliases.includes(fromName));
             return isReceived || isSent;
-          });
+          }) : [];
         const service = this.getSupportService();
         if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
           service.fetchMyMessageBoard(this.sessionUserId)
@@ -2790,7 +2961,7 @@
         };
       },
       loadConsultMessages(){
-        const fallback = (() => {
+        const fallback = this.isBusinessLocalCacheDisabled() ? [] : (() => {
           try{
             const raw = localStorage.getItem('chat_messages_v1');
             const list = raw ? JSON.parse(raw) : [];
@@ -2826,7 +2997,9 @@
           service.clearMySupportThreads(this.sessionUserId)
             .then(() => {
               this.consultMessages = [];
-              localStorage.setItem('chat_messages_v1', JSON.stringify([]));
+              if(!this.isBusinessLocalCacheDisabled()){
+                localStorage.setItem('chat_messages_v1', JSON.stringify([]));
+              }
             })
             .catch((error) => {
               alert(service.mapSupportError(error));
@@ -2836,7 +3009,9 @@
         const uid = 'user:' + email;
         const next = this.consultMessages.filter(m => !(m.userEmail === email || m.userId === uid));
         this.consultMessages = next;
-        localStorage.setItem('chat_messages_v1', JSON.stringify(next));
+        if(!this.isBusinessLocalCacheDisabled()){
+          localStorage.setItem('chat_messages_v1', JSON.stringify(next));
+        }
       },
       
       // Auth
@@ -3310,6 +3485,11 @@
               this.sortMyBookingLists(mine);
             })
             .catch(() => {
+              if(this.isBusinessLocalCacheDisabled()){
+                this.myBookings = [];
+                this.myBookingHistory = [];
+                return;
+              }
               try {
                 const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
                 const mine = all.filter(b => this.normalizeEmail(b && b.userEmail) === this.normalizeEmail(this.sessionEmail)).slice();
@@ -3319,6 +3499,11 @@
                 this.myBookingHistory = [];
               }
             });
+          return;
+        }
+        if(this.isBusinessLocalCacheDisabled()){
+          this.myBookings = [];
+          this.myBookingHistory = [];
           return;
         }
         try {
@@ -3346,18 +3531,20 @@
           if(this.hasSupabaseConfigured() && b && b.id && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
             window.clubBookingSupabase.cancelBooking(b.id)
               .then((updated) => {
-                let all = [];
-                try { all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]'); } catch(e){}
-                const next = Object.assign({}, updated || {}, {
-                  userEmail: this.sessionEmail
-                });
-                const index = all.findIndex(item => String(item && item.id || '') === String(next.id || ''));
-                if(index > -1){
-                  all.splice(index, 1, next);
-                }else{
-                  all.unshift(next);
+                if(!this.isBusinessLocalCacheDisabled()){
+                  let all = [];
+                  try { all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]'); } catch(e){}
+                  const next = Object.assign({}, updated || {}, {
+                    userEmail: this.sessionEmail
+                  });
+                  const index = all.findIndex(item => String(item && item.id || '') === String(next.id || ''));
+                  if(index > -1){
+                    all.splice(index, 1, next);
+                  }else{
+                    all.unshift(next);
+                  }
+                  localStorage.setItem('specialty_bookings_v1', JSON.stringify(all));
                 }
-                localStorage.setItem('specialty_bookings_v1', JSON.stringify(all));
                 this.loadMyBookings();
               })
               .catch(() => {
@@ -3384,14 +3571,15 @@
         if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
           service.fetchMyTeachingBookings(this.sessionUserId, this.sessionEmail)
             .then((rows) => {
-              this.myTeachingBookings = this.mergeTeachingBookings(rows, this.loadLocalTeachingBookings());
+              const fallback = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalTeachingBookings();
+              this.myTeachingBookings = this.mergeTeachingBookings(rows, fallback);
             })
             .catch(() => {
-              this.myTeachingBookings = this.loadLocalTeachingBookings();
+              this.myTeachingBookings = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalTeachingBookings();
             });
           return;
         }
-        this.myTeachingBookings = this.loadLocalTeachingBookings();
+        this.myTeachingBookings = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalTeachingBookings();
       },
       cancelTeachingBooking(id){
          if(confirm('Cancel this course booking?')){
@@ -3637,16 +3825,16 @@
          if(this.hasSupabaseForumConfigured() && this.sessionUserId && service){
            service.fetchMyPosts(this.sessionUserId, this.sessionEmail)
              .then((rows) => {
-               this.myPosts = this.mergeMyForumPosts(rows, []);
+               this.myPosts = this.mergeMyForumPosts(rows, this.isBusinessLocalCacheDisabled() ? [] : []);
                this.closeForumMenus();
              })
              .catch(() => {
-               this.myPosts = this.loadLocalMyPosts();
+               this.myPosts = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalMyPosts();
                this.closeForumMenus();
              });
            return;
          }
-         this.myPosts = this.loadLocalMyPosts();
+         this.myPosts = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalMyPosts();
          this.closeForumMenus();
       },
       async createPost(){
@@ -3725,14 +3913,15 @@
          if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
            service.fetchMyFavorites(this.sessionUserId, this.sessionEmail)
              .then((rows) => {
-               this.myFavs = this.mergeFavoriteCourses(rows, this.loadLocalFavoriteCourses());
+               const fallback = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalFavoriteCourses();
+               this.myFavs = this.mergeFavoriteCourses(rows, fallback);
              })
              .catch(() => {
-               this.myFavs = this.loadLocalFavoriteCourses();
+               this.myFavs = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalFavoriteCourses();
              });
            return;
          }
-         this.myFavs = this.loadLocalFavoriteCourses();
+         this.myFavs = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalFavoriteCourses();
       },
       removeFav(courseId){
          if(confirm('Remove this favorite?')){

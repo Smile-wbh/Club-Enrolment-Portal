@@ -13,6 +13,7 @@
   <script src="../js/supabase-storage.js?v=20260401-2"></script>
   <script src="../js/supabase-forum.js"></script>
   <script src="../js/supabase-support.js"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/spjs.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 
@@ -1447,11 +1448,17 @@
           return Number(comment.createdTs || 0) || this.parseTime(comment.time) || Number(comment.id) || 0;
         },
         syncLocalForumMirror(){
+          if(this.isBusinessLocalCacheDisabled()) return;
           try{
             localStorage.setItem(this.key(), JSON.stringify(this.posts || []));
           }catch(e){}
         },
         loadLocalForumData(){
+          if(this.isBusinessLocalCacheDisabled()){
+            this.posts = [];
+            this.useSupabaseForum = false;
+            return;
+          }
           this.load();
           this.useSupabaseForum = false;
         },
@@ -1476,6 +1483,10 @@
         },
         key(){ return 'spjs_forum_posts_v1'; },
         messageBoardKey(){ return 'user_message_board_v1'; },
+        isBusinessLocalCacheDisabled(){
+          const service = window.clubLocalDataMigration || null;
+          return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(this.sessionEmail));
+        },
         securitySettingsKey(){ return 'user_security_settings_v1'; },
         coverKey(){ return 'spjs_forum_profile_covers_v1'; },
         followKey(){ return 'spjs_forum_follow_authors_v1'; },
@@ -2948,6 +2959,7 @@
         alert('Your message has been sent to "' + (targetName || 'the recipient') + '".');
       },
       loadMessageBoardEntries(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
         try{
           const raw = localStorage.getItem(this.messageBoardKey());
           const parsed = raw ? JSON.parse(raw) : [];
@@ -2957,6 +2969,7 @@
         }
       },
       saveMessageBoardEntries(list){
+        if(this.isBusinessLocalCacheDisabled()) return true;
         try{
           localStorage.setItem(this.messageBoardKey(), JSON.stringify(Array.isArray(list) ? list : []));
           return true;
@@ -2967,6 +2980,10 @@
       },
 
       load(){
+        if(this.isBusinessLocalCacheDisabled()){
+          this.posts = [];
+          return;
+        }
         try{
           const raw = localStorage.getItem(this.key());
           const parsed = raw ? JSON.parse(raw) : [];
@@ -2976,6 +2993,7 @@
         }
       },
       save(){
+        if(this.isBusinessLocalCacheDisabled()) return true;
         try{
           localStorage.setItem(this.key(), JSON.stringify(this.posts));
           return true;

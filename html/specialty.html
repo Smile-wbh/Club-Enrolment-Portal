@@ -10,6 +10,7 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-bookings.js?v=20260401-2"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/specialty.css?v=20260401-2" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
@@ -744,6 +745,10 @@
         const service = this.getBookingService();
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
       },
+      isBusinessLocalCacheDisabled() {
+        const service = window.clubLocalDataMigration || null;
+        return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(this.sessionEmail));
+      },
       readSession() {
         const stores = [localStorage, sessionStorage];
         for (let i = 0; i < stores.length; i += 1) {
@@ -1144,6 +1149,7 @@
         return 'specialty_clubs_v1';
       },
       loadBookings() {
+        if (this.isBusinessLocalCacheDisabled()) return [];
         try {
           return JSON.parse(localStorage.getItem(this.bookingKey()) || '[]');
         } catch (error) {
@@ -1151,6 +1157,7 @@
         }
       },
       saveBookings(all) {
+        if (this.isBusinessLocalCacheDisabled()) return;
         localStorage.setItem(this.bookingKey(), JSON.stringify(all));
       },
       createPaymentOrderId() {
@@ -1206,6 +1213,7 @@
         location.href = 'specialty-payment.html';
       },
       loadRegistryClubs() {
+        if (this.isBusinessLocalCacheDisabled()) return [];
         try {
           return JSON.parse(localStorage.getItem(this.registryKey()) || '[]');
         } catch (error) {
@@ -1213,6 +1221,7 @@
         }
       },
       loadExtraClubs() {
+        if (this.isBusinessLocalCacheDisabled()) return [];
         try {
           return JSON.parse(localStorage.getItem(this.extraClubsKey()) || '[]');
         } catch (error) {

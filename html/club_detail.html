@@ -9,6 +9,7 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-bookings.js?v=20260403-1"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/yl.css">
   <link rel="stylesheet" href="../css/chat-widget.css">
 </head>
@@ -296,7 +297,25 @@
       },
       methods:{
         keyRegistry(){ return 'club_registry_v1'; },
+        isBusinessLocalCacheDisabled(){
+          const service = window.clubLocalDataMigration || null;
+          const stores = [localStorage, sessionStorage];
+          let email = '';
+          for(let i = 0; i < stores.length; i += 1){
+            try{
+              const raw = stores[i].getItem('user_session_v1');
+              if(!raw) continue;
+              const parsed = JSON.parse(raw);
+              if(parsed && parsed.email){
+                email = String(parsed.email).trim();
+                break;
+              }
+            }catch(e){}
+          }
+          return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+        },
         loadRegistry(){
+          if(this.isBusinessLocalCacheDisabled()) return [];
           try{
             const raw = localStorage.getItem(this.keyRegistry());
             const list = raw ? JSON.parse(raw) : [];

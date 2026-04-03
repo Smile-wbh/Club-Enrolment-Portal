@@ -6,6 +6,7 @@
   <title>Admin Dashboard</title>
   <script src="../js/vue.js"></script>
   <script src="../js/vue-router.js"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/join.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <style>
@@ -887,6 +888,34 @@
       this.loadChatData();
     },
     methods:{
+      currentBusinessCacheEmail(){
+        const stores = [localStorage, sessionStorage];
+        for(const store of stores){
+          try{
+            const raw = store.getItem('user_session_v1');
+            if(!raw) continue;
+            const parsed = JSON.parse(raw);
+            if(parsed && parsed.email) return String(parsed.email).trim().toLowerCase();
+          }catch(e){}
+        }
+        return '';
+      },
+      isBusinessCacheDisabled(){
+        const service = window.clubLocalDataMigration || null;
+        const email = this.currentBusinessCacheEmail();
+        return !!(service && email && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+      },
+      isBusinessKey(key){
+        return [
+          'club_registry_v1',
+          'club_members_v1',
+          'specialty_bookings_v1',
+          'mfms_teaching_bookings_v1',
+          'mfms_courses_v1',
+          'spjs_forum_posts_v1',
+          'chat_messages_v1'
+        ].includes(key);
+      },
       refreshAll(){
         this.registry = this.safeParse('club_registry_v1', []);
         this.members = this.safeParse('club_members_v1', []);
@@ -900,6 +929,7 @@
         this.loadChatData();
       },
       safeParse(key, fallback){
+        if(this.isBusinessKey(key) && this.isBusinessCacheDisabled()) return fallback;
         try{
           const raw = localStorage.getItem(key);
           if(raw === null || raw === undefined || raw === '') return fallback;
@@ -909,6 +939,7 @@
         }
       },
       persist(key, value){
+        if(this.isBusinessKey(key) && this.isBusinessCacheDisabled()) return;
         localStorage.setItem(key, JSON.stringify(value));
       },
       statusClass(status){

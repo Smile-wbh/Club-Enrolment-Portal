@@ -10,6 +10,7 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-bookings.js"></script>
+  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <link rel="stylesheet" href="../css/msjs.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
@@ -468,6 +469,26 @@
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
       },
 
+      isBusinessLocalCacheDisabled() {
+        const service = window.clubLocalDataMigration || null;
+        const session = this.readSession();
+        const email = session && session.email ? String(session.email).trim() : '';
+        return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
+      },
+
+      readSession() {
+        const stores = [localStorage, sessionStorage];
+        for (let i = 0; i < stores.length; i += 1) {
+          try {
+            const raw = stores[i].getItem('user_session_v1');
+            if (!raw) continue;
+            const parsed = JSON.parse(raw);
+            if (parsed && parsed.email) return parsed;
+          } catch (error) {}
+        }
+        return null;
+      },
+
       bookingRange(days = 42) {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
@@ -546,6 +567,7 @@
       },
 
       loadRegistry() {
+        if (this.isBusinessLocalCacheDisabled()) return [];
         try {
           const raw = localStorage.getItem(this.keyRegistry());
           return raw ? JSON.parse(raw) : [];
