@@ -983,26 +983,17 @@
                 <div class="page-title">Message Board</div>
                 <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
                   <button class="btn btn-blue" style="min-width:auto;" @click="loadMyMessageBoard">Refresh List</button>
+                  <a href="messages.html" class="btn ghost" style="min-width:auto; text-decoration:none;">Open Full Messages</a>
                   <a href="spjs.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Main Forum</a>
                 </div>
               </div>
               <div class="content-card message-reply-card" style="min-height:0; margin-bottom:16px;">
                 <div class="message-reply-head">
                   <div>
-                    <div class="message-reply-title">{{ messageReplyTarget ? 'Reply to ' + messageReplyTarget.targetName : 'Quick Reply' }}</div>
-                    <div class="message-reply-sub">{{ messageReplyTarget ? ('Click Send to reply directly to this message thread.') : 'Click any message below to reply directly to that user.' }}</div>
+                    <div class="message-reply-title">Open chat in the new Messages page</div>
+                    <div class="message-reply-sub">Click any message below to open a dedicated conversation page with that user. The left side shows all your conversations, and the right side is for direct chat.</div>
                   </div>
-                  <button class="btn ghost" style="min-width:auto;" type="button" v-if="messageReplyTarget" @click="clearMessageBoardReply">Clear</button>
-                </div>
-                <div class="message-reply-target" v-if="messageReplyTarget">
-                  <span class="pill">{{ messageReplyTarget.direction }}</span>
-                  <span>{{ messageReplyTarget.targetName }}</span>
-                  <span class="message-reply-target-email" v-if="messageReplyTarget.targetEmail">{{ messageReplyTarget.targetEmail }}</span>
-                </div>
-                <textarea ref="messageReplyTextarea" class="message-reply-textarea" v-model.trim="messageReplyText" placeholder="Type your reply here..." :disabled="!messageReplyTarget"></textarea>
-                <div class="message-reply-actions">
-                  <span class="hint" v-if="messageReplyStatus">{{ messageReplyStatus }}</span>
-                  <button class="btn btn-blue" type="button" :disabled="!messageReplyTarget || !messageReplyText" @click="sendMessageBoardReply">Send Reply</button>
+                  <a href="messages.html" class="btn ghost" style="min-width:auto; text-decoration:none;">Go Now</a>
                 </div>
               </div>
               <div class="content-card">
@@ -1024,7 +1015,7 @@
                       <td>{{ item.text || 'No content' }}</td>
                       <td>{{ messageBoardSourceText(item) }}</td>
                       <td>{{ item.createdAt || '-' }}</td>
-                      <td><button class="btn ghost" style="min-width:auto;" type="button" @click.stop="openMessageBoardReply(item)">Reply</button></td>
+                      <td><button class="btn ghost" style="min-width:auto;" type="button" @click.stop="openMessageBoardReply(item)">Open Chat</button></td>
                     </tr>
                     <tr v-if="messageBoardItems.length === 0">
                       <td colspan="6" style="text-align:center; padding:40px; color:#999">No message-board activity yet. Messages you receive and messages you leave from forum profile pages will both appear here.</td>
@@ -2494,6 +2485,23 @@
         ].map(value => String(value || '').trim().toLowerCase()).filter(Boolean);
         return Array.from(new Set(aliases));
       },
+      buildMessagesPageUrl(target, backUrl){
+        const params = new URLSearchParams();
+        const row = target || {};
+        const targetUserId = String(row.targetUserId || row.userId || '').trim();
+        const targetEmail = String(row.targetEmail || row.email || '').trim();
+        const targetName = String(row.targetName || row.name || '').trim();
+        if(targetUserId) params.set('target_user_id', targetUserId);
+        if(targetEmail) params.set('target_email', targetEmail);
+        if(targetName) params.set('target_name', targetName);
+        if(backUrl) params.set('back', backUrl);
+        params.set('back_label', 'Back');
+        return 'messages.html?' + params.toString();
+      },
+      openMessagesPage(target, backUrl){
+        const url = this.buildMessagesPageUrl(target, backUrl);
+        location.href = url;
+      },
       loadMyMessageBoard(){
         if(!this.isAuthed){
           this.messageBoardItems = [];
@@ -2591,13 +2599,7 @@
       openMessageBoardReply(item){
         const target = this.resolveMessageBoardReplyTarget(item);
         if(!target || (!target.targetUserId && !target.targetEmail && !target.targetName)) return;
-        this.messageReplyTarget = target;
-        this.messageReplyText = '';
-        this.messageReplyStatus = '';
-        this.$nextTick(() => {
-          const area = this.$refs.messageReplyTextarea;
-          if(area && typeof area.focus === 'function') area.focus();
-        });
+        this.openMessagesPage(target, 'join.html?tab=message_board');
       },
       clearMessageBoardReply(){
         this.messageReplyTarget = null;
@@ -2656,10 +2658,11 @@
       openMessageCenterItem(item){
         const row = item || {};
         if(row.kind === 'message' && row.messageItem){
-          this.openProfileTab('message_board');
-          this.$nextTick(() => {
-            this.openMessageBoardReply(row.messageItem);
-          });
+          const target = this.resolveMessageBoardReplyTarget(row.messageItem);
+          if(target){
+            this.openMessagesPage(target, 'join.html?tab=messages');
+            return;
+          }
           return;
         }
         if(row.kind === 'booking'){

@@ -154,7 +154,7 @@
   }
 
   function isMessagesPage() {
-    return /\/html\/join\.html$/.test(window.location.pathname) && /(?:\?|&)tab=messages(?:&|$)/.test(window.location.search);
+    return /\/html\/messages\.html$/.test(window.location.pathname);
   }
 
   function resolveProfile(session, pagePrefix) {
@@ -205,7 +205,7 @@
 
     items.push({
       label: 'Messages',
-      href: pagePrefix + 'join.html?tab=messages',
+      href: pagePrefix + 'messages.html',
       active: isMessagesPage(),
       unreadCount: 0
     });

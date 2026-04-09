@@ -50,6 +50,11 @@
       "source": "/settings",
       "destination": "/html/settings.html",
       "permanent": false
+    },
+    {
+      "source": "/messages",
+      "destination": "/html/messages.html",
+      "permanent": false
     }
   ]
 }

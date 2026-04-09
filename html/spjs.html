@@ -2887,6 +2887,19 @@
           prompt('Copy profile link', url);
         }
       },
+      buildMessagesPageUrl(target, backUrl){
+        const params = new URLSearchParams();
+        const row = target || {};
+        const targetUserId = this.normalizeId(row.targetUserId || row.userId || '');
+        const targetEmail = String(row.targetEmail || row.email || '').trim();
+        const targetName = String(row.targetName || row.name || '').trim();
+        if(targetUserId) params.set('target_user_id', targetUserId);
+        if(targetEmail) params.set('target_email', targetEmail);
+        if(targetName) params.set('target_name', targetName);
+        if(backUrl) params.set('back', backUrl);
+        params.set('back_label', 'Back');
+        return 'messages.html?' + params.toString();
+      },
       openLatestProfilePost(){
         if(!this.profileLatestPost) return;
         this.openPost(this.profileLatestPost.id);
@@ -2922,40 +2935,12 @@
           alert('This user has disabled messages on their forum profile.');
           return;
         }
-        const text = prompt('Enter the message to send to this user\'s board');
-        const content = String(text || '').trim();
-        if(!content) return;
-        const supportService = this.getSupportService();
-        if(this.hasSupabaseSupportConfigured() && this.sessionUserId && supportService){
-          try{
-            await supportService.sendMessageBoardEntry({
-              targetUserId: targetId,
-              targetEmail: targetEmail,
-              targetName: targetName,
-              text: content,
-              source: 'forum-profile'
-            });
-            alert('Your message has been sent to "' + (targetName || 'the recipient') + '".');
-            return;
-          }catch(e){
-            alert(supportService.mapSupportError(e));
-            return;
-          }
-        }
-        const list = this.loadMessageBoardEntries();
-        list.unshift({
-          id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+        const backUrl = location.pathname + location.search + location.hash;
+        location.href = this.buildMessagesPageUrl({
+          targetUserId: targetId,
           targetEmail: targetEmail,
-          targetName: targetName,
-          fromEmail: String(this.sessionEmail || '').trim(),
-          fromName: String(this.sessionDisplayName || '').trim() || 'User',
-          text: content,
-          source: 'forum-profile',
-          createdAt: new Date().toLocaleString(),
-          createdTs: Date.now()
-        });
-        if(!this.saveMessageBoardEntries(list)) return;
-        alert('Your message has been sent to "' + (targetName || 'the recipient') + '".');
+          targetName: targetName
+        }, backUrl);
       },
       loadMessageBoardEntries(){
         if(this.isBusinessLocalCacheDisabled()) return [];

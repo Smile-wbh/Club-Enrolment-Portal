@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Messages - Club Enrollment Portal</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-support.js"></script>
+  <link rel="stylesheet" href="../css/messages.css" />
+</head>
+<body>
+  <header class="portal-header">
+    <div class="container">
+      <a class="brand" href="index1.html">
+        <span class="brand-mark">
+          <img src="../zp/gywm.webp" alt="Platform logo" />
+        </span>
+        <span class="brand-text">
+          <strong>Club Enrollment Portal</strong>
+          <em>Booking platform for campus and community clubs</em>
+        </span>
+      </a>
+
+      <nav class="top-nav" aria-label="Primary navigation">
+        <a href="index1.html">Home</a>
+        <a href="msjs.html">Club Preview</a>
+        <a href="specialty.html">Club Booking</a>
+        <a href="mfms.html">Club Courses</a>
+        <a href="spjs.html">Club Forum</a>
+        <a href="tzgg.html">Support Center</a>
+      </nav>
+
+      <div class="top-actions">
+        <a class="top-btn light" href="join.html">Log in</a>
+        <a class="top-btn accent" href="join.html">Sign up</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="messages-main">
+    <div class="container">
+      <section class="messages-shell" aria-label="Direct messages">
+        <aside class="messages-sidebar">
+          <div class="messages-sidebar-top">
+            <button class="messages-back-btn" type="button" id="messagesBackBtn">← Back</button>
+            <div class="messages-self-card" id="messagesSelfCard"></div>
+            <label class="messages-search">
+              <span class="messages-search-icon" aria-hidden="true">⌕</span>
+              <input id="conversationSearchInput" type="search" placeholder="Search contacts or messages" autocomplete="off" />
+            </label>
+          </div>
+          <div class="messages-conversation-list" id="conversationList"></div>
+        </aside>
+
+        <section class="messages-panel">
+          <div class="messages-panel-head" id="messagesPanelHead"></div>
+          <div class="messages-thread" id="messagesThread"></div>
+          <form class="messages-compose" id="messagesComposeForm">
+            <div class="messages-compose-tools">
+              <span>🙂</span>
+              <span>🖼️</span>
+              <span>📎</span>
+            </div>
+            <div class="messages-compose-box">
+              <textarea id="messagesComposeInput" placeholder="Type a message..." rows="1"></textarea>
+              <button type="submit" id="messagesSendBtn">Send</button>
+            </div>
+            <div class="messages-compose-status" id="messagesComposeStatus"></div>
+          </form>
+        </section>
+      </section>
+    </div>
+  </main>
+
+  <script src="../js/portal-header-auth.js"></script>
+  <script src="../js/messages.js"></script>
+</body>
+</html>
