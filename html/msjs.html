@@ -239,6 +239,8 @@
 </div>
 
 <script>
+  const DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
+
   const previewApp = new Vue({
     el: '#app',
     data() {
@@ -603,7 +605,7 @@
           fee: c && c.fee ? c.fee : '£0',
           cover,
           heroSub: c && c.heroSub,
-          mapLink: c && c.mapLink,
+          mapLink: c && c.mapLink ? c.mapLink : DEFAULT_CLUB_PREVIEW_MAP_LINK,
           onlineLink: c && c.onlineLink,
           venueInfo: c && c.venueInfo,
           whatWeDo: c && c.whatWeDo,
@@ -615,7 +617,8 @@
       },
 
       refreshRegistryState() {
-        const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []));
+        const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []))
+          .map((c) => this.mapRegistryClub(c));
         const supabase = (this.supabaseClubs || [])
           .map((c) => this.mapRegistryClub(c))
           .filter((c) => c.slug);

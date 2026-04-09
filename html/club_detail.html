@@ -37,7 +37,7 @@
           </div>
           <div class="chips">
             <span class="chip">📍 Venue: {{ club.location }}</span>
-            <a v-if="club.mapLink" class="chip chip-link" :href="toExternalUrl(club.mapLink)" target="_blank" rel="noopener">🗺 Map Link</a>
+            <a v-if="club.mapLink" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
             <a v-if="club.onlineLink" class="chip chip-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">💻 Online Room</a>
           </div>
         </div>
@@ -133,7 +133,7 @@
         </div>
         <div class="infoRow" v-if="club.mapLink">
           <div class="k">Map Link</div>
-          <div class="v"><a class="info-link" :href="toExternalUrl(club.mapLink)" target="_blank" rel="noopener">Open Map</a></div>
+          <div class="v"><a class="info-link" :href="mapOpenUrl" target="_blank" rel="noopener">Open Map</a></div>
         </div>
         <div class="infoRow" v-if="club.onlineLink">
           <div class="k">Room Link</div>
@@ -187,12 +187,15 @@
   </div>
 
   <script>
+    const DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
+
     new Vue({
       el:'#app',
       data(){
         return{
           club: null,
-          resolvedMapLink: ''
+          resolvedMapLink: '',
+          mapResolvePending: false
         }
       },
       computed:{
@@ -263,6 +266,11 @@
           return true;
         },
         mapEmbedUrl(){
+          if(this.club && this.club.mapLink){
+            const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
+            if(embedFromLink) return embedFromLink;
+            return '';
+          }
           const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
           if(embedFromLink) return embedFromLink;
           const query = this.mapQueryText || this.fallbackMapQuery;
@@ -271,7 +279,13 @@
         },
         mapOpenUrl(){
           if(!this.club) return '#';
-          if(this.club.mapLink) return this.toExternalUrl(this.club.mapLink);
+          if(this.club.mapLink){
+            if(this.resolvedMapLink) return this.toExternalUrl(this.resolvedMapLink);
+            const query = this.fallbackMapQuery;
+            return query
+              ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
+              : this.toExternalUrl(this.club.mapLink);
+          }
           const query = this.mapQueryText;
           return query
             ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
@@ -344,7 +358,7 @@
             desc: c && c.desc ? c.desc : '',
             heroSub: c && c.heroSub ? c.heroSub : '',
             cover: this.normalizeCoverValue(c && c.cover ? c.cover : ''),
-            mapLink: c && c.mapLink ? c.mapLink : '',
+            mapLink: c && c.mapLink ? c.mapLink : DEFAULT_CLUB_PREVIEW_MAP_LINK,
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
             venueInfo: c && c.venueInfo ? c.venueInfo : '',
             whatWeDo: c && c.whatWeDo ? c.whatWeDo : '',
@@ -498,6 +512,7 @@
         async resolveMapLinkForEmbed(){
           this.resolvedMapLink = '';
           if(!this.club || !this.club.mapLink) return;
+          this.mapResolvePending = true;
           const raw = this.toExternalUrl(this.club.mapLink);
           try{
             const parsed = new URL(raw);
@@ -510,6 +525,7 @@
                 const payload = await resolver.json();
                 const finalUrl = String(payload && payload.finalUrl || '').trim();
                 this.resolvedMapLink = finalUrl || raw;
+                this.mapResolvePending = false;
                 return;
               }
             }
@@ -527,6 +543,8 @@
             this.resolvedMapLink = finalUrl || raw;
           }catch(error){
             this.resolvedMapLink = raw;
+          }finally{
+            this.mapResolvePending = false;
           }
         },
         buildMapEmbedFromLink(value){
