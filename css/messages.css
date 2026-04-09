@@ -10,11 +10,15 @@
 
 html,
 body {
+  height: 100%;
   min-height: 100%;
 }
 
 body {
   margin: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   background:
     radial-gradient(circle at top left, rgba(118, 176, 255, 0.16), transparent 28%),
@@ -28,13 +32,20 @@ body {
 }
 
 .messages-main {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 26px 0 34px;
+}
+
+.messages-main .container {
+  height: 100%;
 }
 
 .messages-shell {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  min-height: calc(100vh - 150px);
+  height: 100%;
+  min-height: 0;
   border-radius: 28px;
   overflow: hidden;
   border: 1px solid rgba(48, 78, 120, 0.1);
@@ -47,6 +58,8 @@ body {
 .messages-sidebar {
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
   background:
     linear-gradient(180deg, rgba(17, 24, 39, 0.96), rgba(34, 40, 53, 0.96)),
     linear-gradient(180deg, #151b25, #2b313d);
@@ -178,7 +191,9 @@ body {
 
 .messages-conversation-list {
   flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 10px 0;
 }
 
@@ -248,8 +263,10 @@ body {
 
 .messages-panel {
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
   background: rgba(255, 255, 255, 0.78);
 }
 
@@ -277,8 +294,9 @@ body {
 
 .messages-thread {
   flex: 1 1 auto;
-  min-height: 400px;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   padding: 18px 28px 26px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.68), rgba(247, 250, 255, 0.94));
@@ -448,17 +466,34 @@ body {
 }
 
 @media (max-width: 860px) {
+  body {
+    overflow: auto;
+  }
+
   .messages-main {
+    flex: 0 0 auto;
+    min-height: auto;
     padding: 16px 0 24px;
+  }
+
+  .messages-main .container {
+    height: auto;
   }
 
   .messages-shell {
     grid-template-columns: 1fr;
+    height: auto;
     min-height: auto;
   }
 
   .messages-sidebar {
     min-height: 280px;
+    overflow: hidden;
+  }
+
+  .messages-panel {
+    min-height: 280px;
+    overflow: hidden;
   }
 
   .messages-thread {
