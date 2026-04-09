@@ -15,7 +15,10 @@
     search: '',
     backUrl: 'join.html?tab=message_board',
     backLabel: 'Back',
-    queryTarget: null
+    queryTarget: null,
+    pollTimer: 0,
+    reloadTimer: 0,
+    realtimeChannels: []
   };
 
   function trimText(value) {
@@ -484,6 +487,77 @@
     renderThread();
   }
 
+  function scheduleReload(preferredKey) {
+    window.clearTimeout(state.reloadTimer);
+    state.reloadTimer = window.setTimeout(function () {
+      reloadConversations(preferredKey || state.selectedKey);
+    }, 160);
+  }
+
+  function stopLiveSync() {
+    if (state.pollTimer) {
+      window.clearInterval(state.pollTimer);
+      state.pollTimer = 0;
+    }
+    if (state.reloadTimer) {
+      window.clearTimeout(state.reloadTimer);
+      state.reloadTimer = 0;
+    }
+    state.realtimeChannels.forEach(function (channel) {
+      try {
+        if (channel && typeof channel.unsubscribe === 'function') {
+          channel.unsubscribe();
+        }
+      } catch (error) {}
+    });
+    state.realtimeChannels = [];
+  }
+
+  function startPollingFallback() {
+    if (state.pollTimer) return;
+    state.pollTimer = window.setInterval(function () {
+      reloadConversations(state.selectedKey);
+    }, 4000);
+  }
+
+  function startLiveSync() {
+    stopLiveSync();
+
+    var client = getSupabaseClientSafe();
+    var currentUserId = normalizeId(state.currentUser && state.currentUser.userId);
+    if (!client || !currentUserId || !hasSupabaseSupportConfigured()) {
+      startPollingFallback();
+      return;
+    }
+
+    var channel = client.channel('messages-live-' + currentUserId);
+    channel
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'message_board_entries',
+        filter: 'target_user_id=eq.' + currentUserId
+      }, function () {
+        scheduleReload(state.selectedKey);
+      })
+      .on('postgres_changes', {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'message_board_entries',
+        filter: 'from_user_id=eq.' + currentUserId
+      }, function () {
+        scheduleReload(state.selectedKey);
+      })
+      .subscribe(function (status) {
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          startPollingFallback();
+        }
+      });
+
+    state.realtimeChannels.push(channel);
+    startPollingFallback();
+  }
+
   function buildLocalMessage(payload) {
     return normalizeRow({
       id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
@@ -606,6 +680,8 @@
     window.addEventListener('pageshow', function () {
       reloadConversations(state.selectedKey);
     });
+
+    window.addEventListener('beforeunload', stopLiveSync);
   }
 
   async function init() {
@@ -623,6 +699,7 @@
     renderSelfCard();
     bindEvents();
     await reloadConversations(state.queryTarget ? conversationKey(state.queryTarget) : '');
+    startLiveSync();
   }
 
   if (document.readyState === 'loading') {
