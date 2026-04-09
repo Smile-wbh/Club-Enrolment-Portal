@@ -36,19 +36,23 @@ body {
   min-height: 0;
   display: flex;
   align-items: center;
-  padding: 18px 0;
+  padding: 18px 0 22px;
 }
 
 .messages-main .container {
+  width: 100%;
   height: 100%;
+  margin: 0 auto;
+  padding: 0 28px;
   display: flex;
   align-items: center;
+  justify-content: center;
 }
 
 .messages-shell {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  width: 100%;
+  width: min(100%, 1460px);
   height: min(calc(100vh - 116px), 860px);
   max-height: 100%;
   min-height: 0;
@@ -485,12 +489,15 @@ body {
   }
 
   .messages-main .container {
+    width: auto;
     height: auto;
+    padding: 0 16px;
     display: block;
   }
 
   .messages-shell {
     grid-template-columns: 1fr;
+    width: 100%;
     height: auto;
     min-height: auto;
   }
