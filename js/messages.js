@@ -1001,7 +1001,6 @@
   }
 
   function bindEvents() {
-    var backBtn = document.getElementById('messagesBackBtn');
     var search = document.getElementById('conversationSearchInput');
     var form = document.getElementById('messagesComposeForm');
     var input = document.getElementById('messagesComposeInput');
@@ -1016,13 +1015,6 @@
     var attachmentPreview = document.getElementById('messagesComposeAttachments');
     var videoModal = document.getElementById('messagesVideoModal');
     var videoModalClose = document.getElementById('messagesVideoModalClose');
-
-    if (backBtn) {
-      backBtn.textContent = '← ' + state.backLabel;
-      backBtn.addEventListener('click', function () {
-        window.location.href = state.backUrl;
-      });
-    }
 
     if (search) {
       search.addEventListener('input', function () {

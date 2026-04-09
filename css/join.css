@@ -1282,13 +1282,14 @@ img{
 .user-top-actions .header-user-identity{
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 60px;
-  padding: 5px 16px 5px 5px;
+  gap: 10px;
+  min-height: 54px;
+  padding: 4px 14px 4px 4px;
   border-radius: 999px;
   background: linear-gradient(135deg, rgba(255,255,255,0.18), rgba(255,255,255,0.1));
   border: 1px solid rgba(255,255,255,0.22);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  max-width: min(292px, 30vw);
 }
 
 .user-top-actions .header-user-identity:hover{
@@ -1296,16 +1297,16 @@ img{
 }
 
 .user-top-actions .header-user-avatar{
-  width: 48px;
-  height: 48px;
+  width: 44px;
+  height: 44px;
   border-width: 3px;
   border-color: rgba(255,255,255,0.34);
 }
 
 .user-top-actions .header-user-meta{
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  justify-content: center;
   min-width: 0;
 }
 
@@ -1313,18 +1314,11 @@ img{
   color: #fff;
   font-size: 18px;
   font-weight: 800;
-  line-height: 1.1;
-  white-space: nowrap;
-}
-
-.user-top-actions .header-user-sub{
-  color: rgba(255,255,255,0.86);
-  font-size: 14px;
-  line-height: 1.2;
+  line-height: 1;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 220px;
+  max-width: 180px;
 }
 
 .user-top-actions .header-user-arrow{
@@ -3567,9 +3561,6 @@ img{
   .user-top-actions{
     justify-content: flex-start;
   }
-  .user-top-actions .header-user-sub{
-    max-width: 260px;
-  }
   .profile-kpi-grid{
     grid-template-columns: 1fr 1fr;
   }
@@ -3583,7 +3574,7 @@ img{
     max-width: 260px;
     font-size: 18px;
   }
-  .header-user-avatar{ width: 48px; height: 48px; }
+  .header-user-avatar{ width: 44px; height: 44px; }
 }
 @media (max-width: 992px){
   .user-notice-frame{

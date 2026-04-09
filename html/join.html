@@ -324,7 +324,6 @@
               </span>
               <span class="header-user-meta">
                 <span class="header-user-name">{{ profile.nickname || (sessionEmail ? sessionEmail.split('@')[0] : 'User') }}</span>
-                <span class="header-user-sub">{{ sessionEmail || 'Not logged in' }}</span>
               </span>
               <span class="header-message-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
               <span class="header-user-arrow" :class="{open: headerProfileOpen}">▼</span>
@@ -348,43 +347,28 @@
         <div class="dashboard-layout">
       
       <div class="sidebar">
-        <div class="sidebar-header">
-          <span>User Dashboard</span>
-        </div>
         <div class="sidebar-menu">
-          <div class="menu-item" @click="myOpen = !myOpen">
-            <i class="icon">👤</i> Personal Center
-            <span style="margin-left:auto; font-size:12px;">{{ myOpen ? '▼' : '▶' }}</span>
+          <div class="menu-item" :class="{active: dashboardTab==='home'}" @click="dashboardTab='home'">
+            <i class="icon">🏠</i> Home Overview
           </div>
-          <div class="submenu" v-if="myOpen">
-            <div class="menu-item" :class="{active: dashboardTab==='home'}" @click="dashboardTab='home'">
-              <i class="icon"></i> Home Overview
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='profile'}" @click="dashboardTab='profile'">
-              <i class="icon"></i> Profile
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='club_bookings'}" @click="dashboardTab='club_bookings'">
-              <i class="icon"></i> Club Booking
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='teaching_bookings'}" @click="dashboardTab='teaching_bookings'">
-              <i class="icon"></i> Course Bookings
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='forum'}" @click="dashboardTab='forum'">
-              <i class="icon"></i> My Forum
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='consults'}" @click="dashboardTab='consults'">
-              <i class="icon"></i> My Support
-            </div>
-            <div class="menu-item" :class="{active: dashboardTab==='favs'}" @click="dashboardTab='favs'">
-              <i class="icon"></i> My Favorites
-            </div>
+          <div class="menu-item" :class="{active: dashboardTab==='profile'}" @click="dashboardTab='profile'">
+            <i class="icon">👤</i> Profile
           </div>
-          
-          <div class="menu-item" :class="{active: dashboardTab==='messages'}" @click="openProfileTab('messages')">
-            <i class="icon">🔔</i> Messages
-            <span class="menu-item-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
+          <div class="menu-item" :class="{active: dashboardTab==='club_bookings'}" @click="dashboardTab='club_bookings'">
+            <i class="icon">📅</i> Club Booking
           </div>
-          <div class="menu-item" :class="{active: dashboardTab==='message_board'}" @click="openProfileTab('message_board')"><i class="icon">💬</i> Message Board</div>
+          <div class="menu-item" :class="{active: dashboardTab==='teaching_bookings'}" @click="dashboardTab='teaching_bookings'">
+            <i class="icon">🎓</i> Course Bookings
+          </div>
+          <div class="menu-item" :class="{active: dashboardTab==='forum'}" @click="dashboardTab='forum'">
+            <i class="icon">📝</i> My Forum
+          </div>
+          <div class="menu-item" :class="{active: dashboardTab==='consults'}" @click="dashboardTab='consults'">
+            <i class="icon">🛎️</i> My Support
+          </div>
+          <div class="menu-item" :class="{active: dashboardTab==='favs'}" @click="dashboardTab='favs'">
+            <i class="icon">⭐</i> My Favorites
+          </div>
         </div>
       </div>
 
@@ -413,24 +397,6 @@
                 <button class="custom-tab" type="button" @click="openProfileTab('club_bookings')">Member List</button>
                 <button class="custom-tab" type="button" @click="openProfileTab('consults')">Pending Requests</button>
               </div>
-
-              <article class="board-card" v-if="isTargetMigrationAccount">
-                <div class="board-head">
-                  <h4>Local Data Migration</h4>
-                  <span class="pill gray" v-if="localMigrationBusy">Running</span>
-                  <span class="pill gray" v-else-if="localMigrationStatus && localMigrationStatus.completed">Completed</span>
-                  <span class="pill gray" v-else>Pending</span>
-                </div>
-                <div class="profile-empty-note">{{ localMigrationSummaryText }}</div>
-                <div class="profile-empty-note" v-if="localMigrationCountSummary">{{ localMigrationCountSummary }}</div>
-                <button
-                  class="btn btn-blue profile-refresh-btn"
-                  type="button"
-                  @click="runBusinessLocalMigration(true)"
-                  :disabled="localMigrationBusy">
-                  {{ localMigrationBusy ? 'Syncing to Supabase…' : 'Re-run Local Import' }}
-                </button>
-              </article>
 
               <div class="overview-top-grid">
                 <article class="board-card ring-card">
@@ -977,88 +943,6 @@
               </div>
             </div>
 
-            <div v-if="dashboardTab === 'message_board'">
-              <div class="page-header">
-                <div class="page-title">Message Board</div>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                  <button class="btn btn-blue" style="min-width:auto;" @click="loadMyMessageBoard">Refresh List</button>
-                  <a href="messages.html" class="btn ghost" style="min-width:auto; text-decoration:none;">Open Full Messages</a>
-                  <a href="spjs.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Main Forum</a>
-                </div>
-              </div>
-              <div class="content-card message-reply-card" style="min-height:0; margin-bottom:16px;">
-                <div class="message-reply-head">
-                  <div>
-                    <div class="message-reply-title">Open chat in the new Messages page</div>
-                    <div class="message-reply-sub">Click any message below to open a dedicated conversation page with that user. The left side shows all your conversations, and the right side is for direct chat.</div>
-                  </div>
-                  <a href="messages.html" class="btn ghost" style="min-width:auto; text-decoration:none;">Go Now</a>
-                </div>
-              </div>
-              <div class="content-card">
-                <table class="data-table">
-                  <thead>
-                    <tr>
-                      <th>Type</th>
-                      <th>User</th>
-                      <th>Content</th>
-                      <th>Source</th>
-                      <th>Time</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in messageBoardItems" :key="item.id" class="message-board-row" @click="openMessageBoardReply(item)">
-                      <td>{{ messageBoardDirectionText(item) }}</td>
-                      <td>{{ messageBoardSenderText(item) }}</td>
-                      <td>{{ item.text || 'No content' }}</td>
-                      <td>{{ messageBoardSourceText(item) }}</td>
-                      <td>{{ item.createdAt || '-' }}</td>
-                      <td><button class="btn ghost" style="min-width:auto;" type="button" @click.stop="openMessageBoardReply(item)">Open Chat</button></td>
-                    </tr>
-                    <tr v-if="messageBoardItems.length === 0">
-                      <td colspan="6" style="text-align:center; padding:40px; color:#999">No message-board activity yet. Messages you receive and messages you leave from forum profile pages will both appear here.</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            <div v-if="dashboardTab === 'messages'">
-              <div class="page-header">
-                <div class="page-title">Messages</div>
-                <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-                  <span class="pill gray">{{ unreadNotificationCount }} unread</span>
-                  <button class="btn btn-blue" style="min-width:auto;" @click="refreshMessageCenter">Refresh Messages</button>
-                  <button class="btn ghost" style="min-width:auto;" @click="markNotificationsSeen">Mark All Read</button>
-                </div>
-              </div>
-              <div class="content-card">
-                <div v-if="notificationFeedItems.length" class="message-center-list">
-                  <button
-                    v-for="item in notificationFeedItems"
-                    :key="item.id"
-                    class="message-center-item"
-                    :class="{ unread: !item.read }"
-                    type="button"
-                    @click="openMessageCenterItem(item)"
-                  >
-                    <div class="message-center-icon">{{ item.icon }}</div>
-                    <div class="message-center-copy">
-                      <div class="message-center-topline">
-                        <strong>{{ item.title }}</strong>
-                        <span class="message-center-time">{{ item.createdAt || '-' }}</span>
-                      </div>
-                      <div class="message-center-body">{{ item.body }}</div>
-                    </div>
-                    <span class="message-center-pill" :class="item.kind">{{ item.label }}</span>
-                  </button>
-                </div>
-                <div v-else class="message-center-empty">No new messages yet. Replies from other users and booking confirmations will appear here.</div>
-              </div>
-            </div>
-
-            
             <div v-if="dashboardTab === 'favs'">
               <div class="page-header">
                 <div class="page-title">My Favorites</div>
@@ -1210,7 +1094,7 @@
         authStateSubscription: null,
         
         // Dashboard
-        myOpen: true,
+        myOpen: false,
         headerProfileOpen: false,
         dashboardTab: 'home', // default tab
 
@@ -1560,11 +1444,6 @@
         if(val === 'club_bookings') this.loadMyBookings();
         if(val === 'teaching_bookings') this.loadMyTeachingBookings();
         if(val === 'forum') this.loadMyPosts();
-        if(val === 'messages'){
-          this.refreshMessageCenter();
-          this.markNotificationsSeen();
-        }
-        if(val === 'message_board') this.loadMyMessageBoard();
         if(val === 'consults') this.loadConsultMessages();
         if(val === 'favs') this.loadMyFavs();
       }
@@ -1581,7 +1460,11 @@
       // Handle query params
       const params = new URLSearchParams(location.search);
       const tab = params.get('tab');
-      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','messages','message_board','consults','favs'].includes(tab)){
+      if(tab === 'messages' || tab === 'message_board'){
+        location.replace('messages.html');
+        return;
+      }
+      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','consults','favs'].includes(tab)){
         this.dashboardTab = tab;
       }
       window.addEventListener('storage', this.handleStorageEvent);
@@ -1694,8 +1577,11 @@
         }catch(e){}
       },
       openProfileTab(tab){
+        if(tab === 'messages' || tab === 'message_board'){
+          location.href = 'messages.html';
+          return;
+        }
         this.dashboardTab = tab;
-        this.myOpen = true;
         this.headerProfileOpen = false;
         this.closeForumMenus();
       },
@@ -2404,8 +2290,11 @@
         return text || fallback || 'Something went wrong. Please try again.';
       },
       openProfileFromHeader(tab){
+        if(tab === 'messages' || tab === 'message_board'){
+          location.href = 'messages.html';
+          return;
+        }
         this.dashboardTab = tab;
-        this.myOpen = true;
         this.headerProfileOpen = false;
         this.closeForumMenus();
       },

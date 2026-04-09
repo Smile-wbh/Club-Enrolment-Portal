@@ -80,35 +80,14 @@ body {
 }
 
 .messages-sidebar-top {
-  padding: 22px 18px 16px;
+  padding: 18px 18px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.messages-back-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.messages-back-btn:hover {
-  background: rgba(255, 255, 255, 0.14);
 }
 
 .messages-self-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-top: 18px;
   padding: 12px;
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.08);
