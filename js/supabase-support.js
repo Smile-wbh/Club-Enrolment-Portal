@@ -45,12 +45,89 @@
       var row = item || {};
       return {
         id: trimText(row.id) || ('att-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+        kind: trimText(row.kind),
+        title: trimText(row.title),
         name: trimText(row.name),
         type: trimText(row.type),
         size: Number(row.size || 0),
-        dataUrl: trimText(row.dataUrl)
+        dataUrl: trimText(row.dataUrl),
+        url: trimText(row.url)
       };
     }) : [];
+  }
+
+  function attachmentKind(item) {
+    var row = item || {};
+    var kind = trimText(row.kind).toLowerCase();
+    if (kind) return kind;
+    var type = trimText(row.type).toLowerCase();
+    if (type.indexOf('image/') === 0) return 'image';
+    if (type.indexOf('video/') === 0) return 'video';
+    if (trimText(row.url || row.dataUrl)) return 'link';
+    return 'file';
+  }
+
+  function attachmentSummary(value) {
+    var items = cloneAttachments(value);
+    if (!items.length) return '';
+    var labels = items.map(function (item) {
+      var kind = attachmentKind(item);
+      if (kind === 'image') return 'Image';
+      if (kind === 'video') return 'Video';
+      if (kind === 'link') return 'Link';
+      return 'Attachment';
+    });
+    return labels.length === 1 ? labels[0] : (labels[0] + ' +' + (labels.length - 1));
+  }
+
+  function parseMessagePayload(value, fallbackAttachments) {
+    var raw = trimText(value);
+    var attachments = cloneAttachments(fallbackAttachments);
+    if (!raw) {
+      return {
+        text: '',
+        attachments: attachments
+      };
+    }
+
+    if (raw.charAt(0) === '{') {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && (parsed.format === 'portal-message-v1' || Array.isArray(parsed.attachments))) {
+          return {
+            text: trimText(parsed.text),
+            attachments: cloneAttachments(parsed.attachments)
+          };
+        }
+      } catch (error) {}
+    }
+
+    return {
+      text: raw,
+      attachments: attachments
+    };
+  }
+
+  function serializeMessagePayload(text, attachments) {
+    var cleanText = trimText(text);
+    var cleanAttachments = cloneAttachments(attachments);
+    if (!cleanAttachments.length) return cleanText;
+    return JSON.stringify({
+      format: 'portal-message-v1',
+      text: cleanText,
+      attachments: cleanAttachments.map(function (item) {
+        return {
+          id: item.id,
+          kind: attachmentKind(item),
+          title: trimText(item.title),
+          name: trimText(item.name),
+          type: trimText(item.type),
+          size: Number(item.size || 0),
+          url: trimText(item.url),
+          dataUrl: trimText(item.dataUrl)
+        };
+      })
+    });
   }
 
   function supportUserKey(email) {
@@ -79,6 +156,9 @@
 
   function mapMessageBoardRow(row) {
     var item = row || {};
+    var parsed = parseMessagePayload(item.message_text, item.attachments);
+    var text = trimText(parsed.text);
+    var attachments = cloneAttachments(parsed.attachments);
     return {
       id: normalizeId(item.id),
       targetUserId: normalizeId(item.target_user_id),
@@ -87,7 +167,8 @@
       fromUserId: normalizeId(item.from_user_id),
       fromEmail: normalizeEmail(item.from_email),
       fromName: trimText(item.from_name),
-      text: trimText(item.message_text),
+      text: text || attachmentSummary(attachments),
+      attachments: attachments,
       source: trimText(item.source) || 'forum-profile',
       createdAt: formatTime(item.created_at),
       createdTs: timeValue(item.created_at)
@@ -295,6 +376,10 @@
   async function sendMessageBoardEntry(payload) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var text = trimText(payload && payload.text);
+    var attachments = cloneAttachments(payload && payload.attachments);
+    if (!text && !attachments.length) throw new Error('missing_message_text');
+    var serialized = serializeMessagePayload(text, attachments);
 
     var targetUserId = normalizeId(payload && payload.targetUserId);
     var result;
@@ -303,7 +388,7 @@
       result = await client.rpc('create_message_board_entry_by_user', {
         p_target_user_id: targetUserId,
         p_target_name: trimText(payload && payload.targetName) || null,
-        p_message_text: trimText(payload && payload.text),
+        p_message_text: serialized,
         p_source: trimText(payload && payload.source) || 'forum-profile'
       });
       if (result.error && /create_message_board_entry_by_user/i.test(trimText(result.error.message))) {
@@ -317,7 +402,7 @@
       result = await client.rpc('create_message_board_entry', {
         p_target_email: trimText(payload && payload.targetEmail) || null,
         p_target_name: trimText(payload && payload.targetName) || null,
-        p_message_text: trimText(payload && payload.text),
+        p_message_text: serialized,
         p_source: trimText(payload && payload.source) || 'forum-profile'
       });
     }
@@ -332,7 +417,7 @@
     if (text.indexOf('profile_not_found') > -1) return 'Your profile could not be found in Supabase yet.';
     if (text.indexOf('message_target_not_found') > -1) return 'This recipient could not be matched to a registered account.';
     if (text.indexOf('self_message_not_allowed') > -1) return 'You cannot send a message to yourself.';
-    if (text.indexOf('missing_message_text') > -1) return 'Please enter a message before sending.';
+    if (text.indexOf('missing_message_text') > -1) return 'Please enter a message, add a link, or attach a file before sending.';
     if (text.indexOf('missing_support_content') > -1) return 'Please enter a message or attach a file before sending.';
     return trimText(error && error.message) || 'Unable to sync this support action to Supabase right now.';
   }

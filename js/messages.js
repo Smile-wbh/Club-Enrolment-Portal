@@ -13,6 +13,8 @@
     conversations: [],
     selectedKey: '',
     search: '',
+    selectedEmojiCategory: 'faces',
+    composeAttachments: [],
     backUrl: 'join.html?tab=message_board',
     backLabel: 'Back',
     queryTarget: null,
@@ -41,6 +43,51 @@
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#39;');
   }
+
+  var EMOJI_CATEGORIES = [
+    {
+      key: 'faces',
+      label: 'emoji表情',
+      icon: '😀',
+      emojis: ['😀','😁','😂','😃','😄','😅','😆','😉','😊','😋','😎','😍','😘','😗','😙','😚','☺','😇','😐','😑','😶','😏','😣','😥','😮','😯','😪','😫','😴','😌','😛','😜','😝','😒','😓','😔','😕','😲','😷','😖','😞','😟','😤','😢','😭','😦','😧','😨','😬','😰','😱','😳','😵','😡','😠','🌹','🍀','🍎','💰','📱','🌙','🍁','🍂','🍃','🌷','💎','🔪','🔫','🏀','⚽','⚡','👄','👍','🔥']
+    },
+    {
+      key: 'people',
+      label: 'emoji人物',
+      icon: '👦',
+      emojis: ['👦','👧','👨','👩','👴','👵','👶','👱','👮','👲','👳','👷','👸','💂','🎅','👰','👼','💆','💇','🙍','🙎','🙅','🙆','💁','🙋','🙇','🙌','🙏','👤','👥','🚶','🏃','👯','💃','👫','👬','👭','💏','💑','👪']
+    },
+    {
+      key: 'gestures',
+      label: 'emoji手势',
+      icon: '✋',
+      emojis: ['💪','👈','👉','☝','👆','👇','✌','✋','👌','👍','👎','✊','👊','👋','👏','👐','✍']
+    },
+    {
+      key: 'daily',
+      label: 'emoji日常',
+      icon: '👔',
+      emojis: ['👣','👀','👂','👃','👅','👄','💋','👓','👔','👕','👖','👗','👘','👙','👚','👛','👜','👝','🎒','💼','👞','👟','👠','👡','👢','👑','👒','🎩','🎓','💄','💅','💍','🌂']
+    },
+    {
+      key: 'phone',
+      label: 'emoji手机',
+      icon: '📱',
+      emojis: ['📱','📲','📶','📳','📴','☎','📞','📟','📠']
+    },
+    {
+      key: 'public',
+      label: 'emoji公共',
+      icon: '⚠',
+      emojis: ['♻','🏧','🚮','🚰','♿','🚹','🚺','🚻','🚼','🚾','⚠','🚸','⛔','🚫','🚳','🚭','🚯','🚱','🚷','🔞','💈']
+    },
+    {
+      key: 'animals',
+      label: 'emoji动物',
+      icon: '🐶',
+      emojis: ['🙈','🙉','🙊','🐵','🐒','🐶','🐕','🐩','🐺','🐱','😺','😸','😹','😻','😼','😽','🙀','😿','😾','🐈','🐯','🐅','🐆','🐴','🐎','🐮','🐂','🐃','🐄','🐷','🐖','🐗','🐽','🐏','🐑','🐐','🐪','🐫','🐘','🐭','🐁','🐀','🐹','🐰','🐇','🐻','🐨','🐼','🐾','🐔','🐓','🐣','🐤','🐥','🐦','🐧','🐸','🐊','🐢','🐍','🐲','🐉','🐳','🐋','🐬','🐟','🐠','🐡','🐙','🐚','🐌','🐛','🐜','🐝','🐞','🦋']
+    }
+  ];
 
   function initials(value) {
     var text = trimText(value).replace(/\s+/g, '');
@@ -79,6 +126,73 @@
     if (!area) return;
     area.style.height = 'auto';
     area.style.height = Math.min(area.scrollHeight, 180) + 'px';
+  }
+
+  function getStorageService() {
+    return window.clubStorageSupabase || null;
+  }
+
+  function normalizeAttachment(item) {
+    var row = item || {};
+    var type = trimText(row.type).toLowerCase();
+    var kind = trimText(row.kind).toLowerCase();
+    if (!kind) {
+      if (type.indexOf('image/') === 0) kind = 'image';
+      else if (type.indexOf('video/') === 0) kind = 'video';
+      else if (trimText(row.url || row.dataUrl)) kind = 'link';
+      else kind = 'file';
+    }
+    return {
+      id: normalizeId(row.id) || ('att-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
+      kind: kind,
+      name: trimText(row.name),
+      title: trimText(row.title),
+      type: trimText(row.type),
+      size: Number(row.size || 0),
+      url: trimText(row.url),
+      dataUrl: trimText(row.dataUrl)
+    };
+  }
+
+  function normalizeAttachments(value) {
+    return Array.isArray(value) ? value.map(normalizeAttachment).filter(function (item) {
+      return !!(item.url || item.dataUrl || item.name || item.title);
+    }) : [];
+  }
+
+  function attachmentSrc(item) {
+    return trimText(item && (item.url || item.dataUrl));
+  }
+
+  function attachmentLabel(item) {
+    var row = normalizeAttachment(item);
+    if (row.kind === 'image') return 'Image';
+    if (row.kind === 'video') return 'Video';
+    if (row.kind === 'link') return 'Link';
+    return 'Attachment';
+  }
+
+  function attachmentSummary(items) {
+    var list = normalizeAttachments(items);
+    if (!list.length) return '';
+    var first = attachmentLabel(list[0]);
+    return list.length === 1 ? first : (first + ' +' + (list.length - 1));
+  }
+
+  function formatBytes(size) {
+    var value = Number(size || 0);
+    if (!value || value < 1024) return value ? (value + ' B') : '';
+    if (value < 1024 * 1024) return (value / 1024).toFixed(1).replace(/\.0$/, '') + ' KB';
+    return (value / (1024 * 1024)).toFixed(1).replace(/\.0$/, '') + ' MB';
+  }
+
+  function readFileAsDataUrl(file) {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () { resolve(String(reader.result || '')); };
+      reader.onerror = function () { reject(new Error('file_read_failed')); };
+      reader.readAsDataURL(file);
+    });
   }
 
   function readJsonArray(key) {
@@ -150,6 +264,8 @@
 
   function normalizeRow(item) {
     var row = item || {};
+    var attachments = normalizeAttachments(row.attachments);
+    var text = trimText(row.text || row.message_text);
     return {
       id: normalizeId(row.id) || ('msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8)),
       targetUserId: normalizeId(row.targetUserId || row.target_user_id),
@@ -158,7 +274,9 @@
       fromUserId: normalizeId(row.fromUserId || row.from_user_id),
       fromEmail: normalizeEmail(row.fromEmail || row.from_email),
       fromName: trimText(row.fromName || row.from_name),
-      text: trimText(row.text || row.message_text),
+      text: text,
+      attachments: attachments,
+      previewText: text || trimText(row.previewText || row.preview_text) || attachmentSummary(attachments),
       source: trimText(row.source) || 'forum-profile',
       createdAt: formatThreadTime(row.createdAt || row.created_at),
       createdTs: Number(row.createdTs || 0) || timeValue(row.createdAt || row.created_at)
@@ -293,6 +411,8 @@
       grouped[key].messages.push({
         id: row.id,
         text: row.text,
+        previewText: row.previewText,
+        attachments: normalizeAttachments(row.attachments),
         source: row.source,
         createdAt: row.createdAt,
         createdTs: row.createdTs,
@@ -323,7 +443,7 @@
         return (a.createdTs || 0) - (b.createdTs || 0);
       });
       var last = item.messages[item.messages.length - 1] || null;
-      item.lastMessage = last ? last.text : 'No messages yet. Start the conversation from the right panel.';
+      item.lastMessage = last ? (last.previewText || last.text) : 'No messages yet. Start the conversation from the right panel.';
       item.lastTime = last ? last.createdAt : '';
       item.lastTs = last ? last.createdTs : 0;
       item.preview = trimText(item.lastMessage);
@@ -346,6 +466,100 @@
       '</span>';
     }
     return '<span class="messages-avatar' + (large ? ' is-large' : '') + '">' + escapeHtml(initialsText) + '</span>';
+  }
+
+  function renderBubbleAttachments(items) {
+    var attachments = normalizeAttachments(items);
+    if (!attachments.length) return '';
+
+    return '<div class="messages-bubble-attachments">' + attachments.map(function (item) {
+      var src = attachmentSrc(item);
+      if (item.kind === 'image' && src) {
+        return (
+          '<a class="messages-bubble-attachment" href="' + escapeHtml(src) + '" target="_blank" rel="noopener noreferrer">' +
+            '<img src="' + escapeHtml(src) + '" alt="' + escapeHtml(item.name || 'Image attachment') + '">' +
+          '</a>'
+        );
+      }
+      if (item.kind === 'video' && src) {
+        return (
+          '<div class="messages-bubble-attachment">' +
+            '<video src="' + escapeHtml(src) + '" controls preload="metadata"></video>' +
+          '</div>'
+        );
+      }
+      if (src) {
+        return (
+          '<a class="messages-bubble-attachment messages-bubble-link" href="' + escapeHtml(src) + '" target="_blank" rel="noopener noreferrer">' +
+            '<span class="messages-bubble-link-label">' + escapeHtml(item.title || item.name || 'Open link') + '</span>' +
+            '<span class="messages-bubble-link-url">' + escapeHtml(src) + '</span>' +
+          '</a>'
+        );
+      }
+      return '';
+    }).join('') + '</div>';
+  }
+
+  function renderComposeAttachments() {
+    var el = document.getElementById('messagesComposeAttachments');
+    if (!el) return;
+    var attachments = normalizeAttachments(state.composeAttachments);
+    state.composeAttachments = attachments;
+    if (!attachments.length) {
+      el.innerHTML = '';
+      return;
+    }
+    el.innerHTML = attachments.map(function (item) {
+      var src = attachmentSrc(item);
+      var preview = '';
+      if (item.kind === 'image' && src) {
+        preview = '<img src="' + escapeHtml(src) + '" alt="' + escapeHtml(item.name || 'Image attachment') + '">';
+      } else if (item.kind === 'video' && src) {
+        preview = '<video src="' + escapeHtml(src) + '" preload="metadata" muted></video>';
+      }
+      return (
+        '<div class="messages-compose-attachment' + (item.kind === 'link' ? ' is-link' : '') + '" data-attachment-id="' + escapeHtml(item.id) + '">' +
+          '<button class="messages-compose-attachment-remove" type="button" data-remove-attachment="' + escapeHtml(item.id) + '" aria-label="Remove attachment">✕</button>' +
+          preview +
+          '<div class="messages-compose-attachment-copy">' +
+            '<div class="messages-compose-attachment-name">' + escapeHtml(item.title || item.name || attachmentLabel(item)) + '</div>' +
+            '<div class="messages-compose-attachment-meta">' + escapeHtml(item.kind === 'link' ? (src || '') : [attachmentLabel(item), formatBytes(item.size)].filter(Boolean).join(' · ')) + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }).join('');
+  }
+
+  function renderEmojiPicker() {
+    var picker = document.getElementById('messagesEmojiPicker');
+    if (!picker) return;
+    var active = EMOJI_CATEGORIES.find(function (item) {
+      return item.key === state.selectedEmojiCategory;
+    }) || EMOJI_CATEGORIES[0];
+    state.selectedEmojiCategory = active.key;
+
+    picker.innerHTML =
+      '<div class="messages-emoji-panel">' +
+        '<div class="messages-emoji-header">' +
+          '<div class="messages-emoji-title">' + escapeHtml(active.label) + '</div>' +
+        '</div>' +
+        '<div class="messages-emoji-body">' +
+          '<div class="messages-emoji-grid">' +
+            active.emojis.map(function (emoji) {
+              return '<button class="messages-emoji-btn" type="button" data-emoji="' + escapeHtml(emoji) + '">' + escapeHtml(emoji) + '</button>';
+            }).join('') +
+          '</div>' +
+        '</div>' +
+        '<div class="messages-emoji-tabs">' +
+          EMOJI_CATEGORIES.map(function (item) {
+            return (
+              '<button class="messages-emoji-tab' + (item.key === active.key ? ' is-active' : '') + '" type="button" data-emoji-category="' + escapeHtml(item.key) + '" aria-label="' + escapeHtml(item.label) + '" title="' + escapeHtml(item.label) + '">' +
+                '<span class="messages-emoji-tab-icon">' + escapeHtml(item.icon) + '</span>' +
+              '</button>'
+            );
+          }).join('') +
+        '</div>' +
+      '</div>';
   }
 
   function renderSelfCard() {
@@ -448,11 +662,13 @@
     }
 
     var stream = conversation.messages.map(function (message) {
+      var bodyText = trimText(message.text);
       return (
         '<div class="messages-row ' + (message.outgoing ? 'outgoing' : 'incoming') + '">' +
           '<div class="messages-bubble">' +
             '<div class="messages-bubble-author">' + escapeHtml(message.outgoing ? 'You' : conversation.targetName) + '</div>' +
-            '<div class="messages-bubble-text">' + escapeHtml(message.text || '') + '</div>' +
+            (bodyText ? ('<div class="messages-bubble-text">' + escapeHtml(bodyText) + '</div>') : '') +
+            renderBubbleAttachments(message.attachments) +
             '<div class="messages-bubble-time">' + escapeHtml(message.createdAt || '') + '</div>' +
           '</div>' +
         '</div>'
@@ -558,6 +774,130 @@
     startPollingFallback();
   }
 
+  async function uploadComposeAttachment(file, kind) {
+    var normalizedKind = trimText(kind).toLowerCase();
+    var fileType = trimText(file && file.type).toLowerCase();
+    if (normalizedKind === 'image' && fileType.indexOf('image/') !== 0) {
+      throw new Error('Please choose an image file.');
+    }
+    if (normalizedKind === 'video' && fileType.indexOf('video/') !== 0) {
+      throw new Error('Please choose a video file.');
+    }
+
+    var storage = getStorageService();
+    var userId = normalizeId(state.currentUser && state.currentUser.userId);
+    if (storage && typeof storage.isConfigured === 'function' && storage.isConfigured() && userId) {
+      var uploaded = normalizedKind === 'video'
+        ? await storage.uploadMessageVideo(file, userId)
+        : await storage.uploadMessageImage(file, userId);
+      return normalizeAttachment({
+        kind: normalizedKind,
+        name: trimText(file && file.name),
+        type: trimText(file && file.type),
+        size: Number(file && file.size || 0),
+        url: trimText(uploaded && uploaded.publicUrl)
+      });
+    }
+
+    var dataUrl = await readFileAsDataUrl(file);
+    return normalizeAttachment({
+      kind: normalizedKind,
+      name: trimText(file && file.name),
+      type: trimText(file && file.type),
+      size: Number(file && file.size || 0),
+      dataUrl: dataUrl
+    });
+  }
+
+  async function handleComposeFiles(files, kind) {
+    var list = Array.prototype.slice.call(files || []);
+    if (!list.length) return;
+
+    try {
+      setComposeStatus('Uploading ' + (kind === 'video' ? 'video' : 'image') + (list.length > 1 ? 's' : '') + '...', '');
+      for (var i = 0; i < list.length; i += 1) {
+        var attachment = await uploadComposeAttachment(list[i], kind);
+        state.composeAttachments.push(attachment);
+      }
+      renderComposeAttachments();
+      setComposeStatus('Attachment ready to send.', 'success');
+    } catch (error) {
+      var storage = getStorageService();
+      if (storage && typeof storage.mapStorageError === 'function') {
+        setComposeStatus(storage.mapStorageError(error), 'error');
+      } else {
+        setComposeStatus(trimText(error && error.message) || 'Unable to process that file right now.', 'error');
+      }
+    }
+  }
+
+  function addComposeLink() {
+    var raw = window.prompt('Paste the link you want to send');
+    if (raw === null) return;
+    var text = trimText(raw);
+    if (!text) {
+      setComposeStatus('Please enter a valid link.', 'error');
+      return;
+    }
+    if (!/^https?:\/\//i.test(text)) {
+      text = 'https://' + text;
+    }
+    try {
+      var parsed = new URL(text);
+      state.composeAttachments.push(normalizeAttachment({
+        kind: 'link',
+        title: parsed.hostname,
+        name: parsed.hostname,
+        type: 'text/uri-list',
+        url: parsed.toString()
+      }));
+      renderComposeAttachments();
+      setComposeStatus('Link attached.', 'success');
+    } catch (error) {
+      setComposeStatus('Please enter a valid link.', 'error');
+    }
+  }
+
+  function insertEmoji(emoji) {
+    var input = document.getElementById('messagesComposeInput');
+    if (!input) return;
+    var token = String(emoji || '');
+    if (!token) return;
+
+    var start = Number(input.selectionStart || 0);
+    var end = Number(input.selectionEnd || 0);
+    var current = String(input.value || '');
+    input.value = current.slice(0, start) + token + current.slice(end);
+    input.focus();
+    input.selectionStart = input.selectionEnd = start + token.length;
+    autoGrowTextarea(input);
+  }
+
+  function toggleEmojiPicker(forceOpen) {
+    var picker = document.getElementById('messagesEmojiPicker');
+    var emojiBtn = document.getElementById('messagesEmojiBtn');
+    if (!picker) return;
+    var shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : picker.hidden;
+    if (shouldOpen) {
+      renderEmojiPicker();
+    }
+    picker.hidden = !shouldOpen;
+    if (emojiBtn) {
+      emojiBtn.classList.toggle('is-open', shouldOpen);
+    }
+  }
+
+  function setEmojiCategory(key) {
+    var target = trimText(key);
+    if (!target) return;
+    var exists = EMOJI_CATEGORIES.some(function (item) {
+      return item.key === target;
+    });
+    if (!exists) return;
+    state.selectedEmojiCategory = target;
+    renderEmojiPicker();
+  }
+
   function buildLocalMessage(payload) {
     return normalizeRow({
       id: 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
@@ -568,6 +908,7 @@
       fromEmail: state.currentUser.email,
       fromName: state.currentUser.nickname,
       text: payload.text,
+      attachments: payload.attachments,
       source: payload.source,
       createdAt: new Date().toISOString(),
       createdTs: Date.now()
@@ -581,8 +922,9 @@
     if (!conversation || !input) return;
 
     var text = trimText(input.value);
-    if (!text) {
-      setComposeStatus('Please enter a message first.', 'error');
+    var attachments = normalizeAttachments(state.composeAttachments);
+    if (!text && !attachments.length) {
+      setComposeStatus('Please enter a message, add a link, or attach a file first.', 'error');
       return;
     }
 
@@ -591,6 +933,7 @@
       targetEmail: conversation.targetEmail,
       targetName: conversation.targetName,
       text: text,
+      attachments: attachments,
       source: 'messages-page'
     };
 
@@ -606,6 +949,9 @@
         state.rows = localRows.map(normalizeRow);
       }
       input.value = '';
+      state.composeAttachments = [];
+      renderComposeAttachments();
+      toggleEmojiPicker(false);
       autoGrowTextarea(input);
       setComposeStatus('Message sent.', 'success');
       await reloadConversations(conversation.key);
@@ -632,6 +978,14 @@
     var form = document.getElementById('messagesComposeForm');
     var input = document.getElementById('messagesComposeInput');
     var list = document.getElementById('conversationList');
+    var emojiBtn = document.getElementById('messagesEmojiBtn');
+    var emojiPicker = document.getElementById('messagesEmojiPicker');
+    var imageTrigger = document.getElementById('messagesImageTrigger');
+    var imageInput = document.getElementById('messagesImageInput');
+    var videoTrigger = document.getElementById('messagesVideoTrigger');
+    var videoInput = document.getElementById('messagesVideoInput');
+    var linkBtn = document.getElementById('messagesLinkBtn');
+    var attachmentPreview = document.getElementById('messagesComposeAttachments');
 
     if (backBtn) {
       backBtn.textContent = '← ' + state.backLabel;
@@ -672,6 +1026,71 @@
       form.addEventListener('submit', sendCurrentMessage);
     }
 
+    if (emojiBtn) {
+      emojiBtn.addEventListener('click', function () {
+        toggleEmojiPicker();
+      });
+    }
+
+    if (emojiPicker) {
+      emojiPicker.addEventListener('click', function (event) {
+        var categoryButton = event.target.closest('[data-emoji-category]');
+        if (categoryButton) {
+          setEmojiCategory(categoryButton.getAttribute('data-emoji-category'));
+          return;
+        }
+        var button = event.target.closest('[data-emoji]');
+        if (!button) return;
+        insertEmoji(button.getAttribute('data-emoji'));
+        toggleEmojiPicker(false);
+      });
+    }
+
+    if (imageTrigger) {
+      imageTrigger.addEventListener('click', function () {
+        toggleEmojiPicker(false);
+      });
+    }
+
+    if (imageInput) {
+      imageInput.addEventListener('change', function () {
+        handleComposeFiles(imageInput.files, 'image');
+        imageInput.value = '';
+      });
+    }
+
+    if (videoTrigger) {
+      videoTrigger.addEventListener('click', function () {
+        toggleEmojiPicker(false);
+      });
+    }
+
+    if (videoInput) {
+      videoInput.addEventListener('change', function () {
+        handleComposeFiles(videoInput.files, 'video');
+        videoInput.value = '';
+      });
+    }
+
+    if (linkBtn) {
+      linkBtn.addEventListener('click', function () {
+        toggleEmojiPicker(false);
+        addComposeLink();
+      });
+    }
+
+    if (attachmentPreview) {
+      attachmentPreview.addEventListener('click', function (event) {
+        var button = event.target.closest('[data-remove-attachment]');
+        if (!button) return;
+        var attachmentId = button.getAttribute('data-remove-attachment');
+        state.composeAttachments = state.composeAttachments.filter(function (item) {
+          return normalizeId(item && item.id) !== normalizeId(attachmentId);
+        });
+        renderComposeAttachments();
+      });
+    }
+
     window.addEventListener('storage', function (event) {
       if (!event || event.key !== KEYS.board) return;
       reloadConversations(state.selectedKey);
@@ -680,6 +1099,12 @@
     window.addEventListener('pageshow', function () {
       reloadConversations(state.selectedKey);
     });
+
+    document.addEventListener('pointerdown', function (event) {
+      if (!emojiPicker || emojiPicker.hidden) return;
+      if ((emojiBtn && emojiBtn.contains(event.target)) || emojiPicker.contains(event.target)) return;
+      toggleEmojiPicker(false);
+    }, true);
 
     window.addEventListener('beforeunload', stopLiveSync);
   }
@@ -697,6 +1122,8 @@
     state.backLabel = query.backLabel;
 
     renderSelfCard();
+    renderEmojiPicker();
+    renderComposeAttachments();
     bindEvents();
     await reloadConversations(state.queryTarget ? conversationKey(state.queryTarget) : '');
     startLiveSync();

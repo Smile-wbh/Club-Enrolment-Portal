@@ -107,6 +107,12 @@
     uploadForumCommentImage: function (file, userId) {
       return uploadAsset(file, userId, 'forum-comments');
     },
+    uploadMessageImage: function (file, userId) {
+      return uploadAsset(file, userId, 'message-images');
+    },
+    uploadMessageVideo: function (file, userId) {
+      return uploadAsset(file, userId, 'message-videos');
+    },
     uploadClubCoverImage: function (file, userId) {
       return uploadAsset(file, userId, 'club-covers');
     },
