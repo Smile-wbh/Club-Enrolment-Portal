@@ -483,9 +483,11 @@
       }
       if (item.kind === 'video' && src) {
         return (
-          '<div class="messages-bubble-attachment">' +
-            '<video src="' + escapeHtml(src) + '" controls preload="metadata"></video>' +
-          '</div>'
+          '<button class="messages-bubble-attachment messages-bubble-video-trigger" type="button" data-open-video="' + escapeHtml(src) + '" aria-label="Open video preview">' +
+            '<div class="messages-bubble-video-preview">' +
+              '<span class="messages-bubble-video-play" aria-hidden="true"></span>' +
+            '</div>' +
+          '</button>'
         );
       }
       if (src) {
@@ -570,7 +572,6 @@
       renderAvatar(user.avatar, user.initials, true) +
       '<div class="messages-self-copy">' +
         '<div class="messages-self-name">' + escapeHtml(user.nickname || 'User') + '</div>' +
-        '<div class="messages-self-email">' + escapeHtml(user.email || '') + '</div>' +
       '</div>';
   }
 
@@ -684,6 +685,33 @@
     if (!el) return;
     el.className = 'messages-compose-status' + (type ? (' is-' + type) : '');
     el.textContent = trimText(text);
+  }
+
+  function closeVideoModal() {
+    var modal = document.getElementById('messagesVideoModal');
+    var player = document.getElementById('messagesVideoModalPlayer');
+    if (!modal || !player) return;
+    try {
+      player.pause();
+    } catch (error) {}
+    player.removeAttribute('src');
+    player.load();
+    modal.hidden = true;
+  }
+
+  function openVideoModal(src) {
+    var url = trimText(src);
+    var modal = document.getElementById('messagesVideoModal');
+    var player = document.getElementById('messagesVideoModalPlayer');
+    if (!url || !modal || !player) return;
+    modal.hidden = false;
+    player.src = url;
+    player.currentTime = 0;
+    player.load();
+    var playPromise = player.play();
+    if (playPromise && typeof playPromise.catch === 'function') {
+      playPromise.catch(function () {});
+    }
   }
 
   async function reloadConversations(preferredKey) {
@@ -986,6 +1014,8 @@
     var videoInput = document.getElementById('messagesVideoInput');
     var linkBtn = document.getElementById('messagesLinkBtn');
     var attachmentPreview = document.getElementById('messagesComposeAttachments');
+    var videoModal = document.getElementById('messagesVideoModal');
+    var videoModalClose = document.getElementById('messagesVideoModalClose');
 
     if (backBtn) {
       backBtn.textContent = '← ' + state.backLabel;
@@ -1091,12 +1121,37 @@
       });
     }
 
+    var thread = document.getElementById('messagesThread');
+    if (thread) {
+      thread.addEventListener('click', function (event) {
+        var trigger = event.target.closest('[data-open-video]');
+        if (!trigger) return;
+        openVideoModal(trigger.getAttribute('data-open-video'));
+      });
+    }
+
+    if (videoModal) {
+      videoModal.addEventListener('click', function (event) {
+        if (event.target && event.target.hasAttribute('data-close-video-modal')) {
+          closeVideoModal();
+        }
+      });
+    }
+
+    if (videoModalClose) {
+      videoModalClose.addEventListener('click', function () {
+        closeVideoModal();
+      });
+    }
+
     window.addEventListener('storage', function (event) {
       if (!event || event.key !== KEYS.board) return;
       reloadConversations(state.selectedKey);
     });
 
     window.addEventListener('pageshow', function () {
+      closeVideoModal();
+      toggleEmojiPicker(false);
       reloadConversations(state.selectedKey);
     });
 
@@ -1105,6 +1160,13 @@
       if ((emojiBtn && emojiBtn.contains(event.target)) || emojiPicker.contains(event.target)) return;
       toggleEmojiPicker(false);
     }, true);
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') {
+        toggleEmojiPicker(false);
+        closeVideoModal();
+      }
+    });
 
     window.addEventListener('beforeunload', stopLiveSync);
   }
@@ -1121,6 +1183,8 @@
     state.backUrl = query.backUrl;
     state.backLabel = query.backLabel;
 
+    closeVideoModal();
+    toggleEmojiPicker(false);
     renderSelfCard();
     renderEmojiPicker();
     renderComposeAttachments();

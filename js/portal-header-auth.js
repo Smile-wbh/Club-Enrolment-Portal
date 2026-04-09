@@ -314,7 +314,6 @@
               avatarHtml +
               '<span class="portal-user-meta">' +
                 '<span class="portal-user-name">' + escapeHtml(profile.nickname) + '</span>' +
-                '<span class="portal-user-sub">' + escapeHtml(profile.email) + '</span>' +
               '</span>' +
               (unreadCount > 0 ? '<span class="portal-user-alert-badge">' + escapeHtml(unreadCount > 99 ? '99+' : String(unreadCount)) + '</span>' : '') +
               '<span class="portal-user-arrow" aria-hidden="true">▼</span>' +

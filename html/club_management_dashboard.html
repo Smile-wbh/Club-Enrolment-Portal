@@ -46,7 +46,6 @@
             </span>
             <div>
               <div class="user-chip-name" id="sidebarName">User</div>
-              <div class="user-chip-sub" id="sidebarEmail">Not logged in</div>
             </div>
             <span class="header-user-alert-badge" id="topMessageBadge" hidden>0</span>
             <span class="header-user-arrow" id="topProfileArrow">▼</span>
@@ -1735,7 +1734,6 @@
 
       function renderProfile(){
         var displayName = (state.user && state.user.nickname) || state.sessionNick || 'User';
-        var displayEmail = state.sessionEmail || 'Not logged in';
         var avatar = String((state.user && state.user.avatar) || '').trim();
         var initials = buildInitials(displayName);
         var unreadCount = countUnreadNotifications(state.session, state.user);
@@ -1743,9 +1741,6 @@
 
         document.querySelectorAll('#sidebarName').forEach(function(el){
           el.textContent = displayName;
-        });
-        document.querySelectorAll('#sidebarEmail').forEach(function(el){
-          el.textContent = displayEmail;
         });
         document.querySelectorAll('#sidebarAvatar').forEach(function(el){
           if(avatar){

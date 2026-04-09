@@ -142,7 +142,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
+  min-height: 50px;
   padding: 4px 14px 4px 4px;
   border: none;
   border-radius: 999px;
@@ -204,7 +204,8 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
+  justify-content: center;
 }
 
 .top-actions .portal-user-alert-badge,

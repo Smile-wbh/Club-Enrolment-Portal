@@ -396,7 +396,7 @@ body {
 
 .messages-bubble-attachment {
   display: block;
-  width: min(100%, 360px);
+  width: min(100%, 420px);
   border-radius: 16px;
   overflow: hidden;
   text-decoration: none;
@@ -407,6 +407,12 @@ body {
 .messages-row.outgoing .messages-bubble-attachment {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.2);
+}
+
+.messages-bubble-attachment.messages-bubble-video-trigger {
+  position: relative;
+  padding: 0;
+  cursor: pointer;
 }
 
 .messages-bubble-attachment img,
@@ -421,6 +427,59 @@ body {
 .messages-bubble-attachment video {
   object-fit: contain;
   background: rgba(15, 23, 42, 0.9);
+}
+
+.messages-bubble-video-preview {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1.55 / 1;
+  min-height: 186px;
+  background:
+    radial-gradient(circle at top left, rgba(103, 145, 224, 0.28), transparent 38%),
+    linear-gradient(135deg, #0f172a, #1e293b 60%, #1f467d);
+}
+
+.messages-row.outgoing .messages-bubble-video-preview {
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 38%),
+    linear-gradient(135deg, rgba(18, 34, 64, 0.94), rgba(31, 70, 125, 0.98));
+}
+
+.messages-bubble-video-play {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.22);
+  position: relative;
+}
+
+.messages-bubble-video-play::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-38%, -50%);
+  width: 0;
+  height: 0;
+  border-top: 14px solid transparent;
+  border-bottom: 14px solid transparent;
+  border-left: 22px solid #2b66d6;
+}
+
+.messages-bubble-video-caption {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.4;
+  color: rgba(255, 255, 255, 0.86);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .messages-bubble-link {
@@ -764,6 +823,74 @@ body {
 
 .messages-compose-status.is-success {
   color: #2f8b57;
+}
+
+.messages-video-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.messages-video-modal[hidden] {
+  display: none;
+}
+
+.messages-video-modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 12, 23, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.messages-video-modal-dialog {
+  position: relative;
+  z-index: 1;
+  width: min(92vw, 1080px);
+  max-height: 88vh;
+  border-radius: 24px;
+  overflow: hidden;
+  background: rgba(8, 13, 23, 0.96);
+  box-shadow: 0 28px 54px rgba(5, 10, 20, 0.34);
+}
+
+.messages-video-modal-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: min(78vh, 720px);
+  padding: 36px 28px 28px;
+  background: #050913;
+}
+
+.messages-video-modal-stage video {
+  width: 100%;
+  max-height: calc(88vh - 64px);
+  border-radius: 18px;
+  background: #000;
+}
+
+.messages-video-modal-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.messages-video-modal-close:hover {
+  background: rgba(255, 255, 255, 0.22);
 }
 
 @media (max-width: 1100px) {

@@ -115,6 +115,16 @@
     </div>
   </main>
 
+  <div class="messages-video-modal" id="messagesVideoModal" hidden>
+    <div class="messages-video-modal-backdrop" data-close-video-modal></div>
+    <div class="messages-video-modal-dialog" role="dialog" aria-modal="true" aria-label="Video preview">
+      <button class="messages-video-modal-close" type="button" id="messagesVideoModalClose" aria-label="Close video preview">✕</button>
+      <div class="messages-video-modal-stage">
+        <video id="messagesVideoModalPlayer" controls playsinline preload="auto"></video>
+      </div>
+    </div>
+  </div>
+
   <script src="../js/portal-header-auth.js"></script>
   <script src="../js/messages.js"></script>
 </body>

@@ -170,7 +170,7 @@ body{
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 54px;
+  min-height: 50px;
   min-width: 0;
   padding: 4px 14px 4px 4px;
   border: none;
@@ -218,7 +218,7 @@ body{
 
 .header-user-chip .user-chip-name{
   color: #fff;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 800;
 }
 
