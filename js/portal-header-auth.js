@@ -194,10 +194,6 @@
     return /\/html\/club_management_dashboard\.html$/.test(window.location.pathname);
   }
 
-  function isSettingsPage() {
-    return /\/html\/settings\.html$/.test(window.location.pathname);
-  }
-
   function getUserCenterItems(pagePrefix, session) {
     var items = [
       { label: 'User Dashboard', href: pagePrefix + 'join.html?tab=home', active: isUserCenterPage() }
@@ -217,12 +213,6 @@
         active: isClubDashboardPage()
         });
       }
-
-    items.push({
-      label: 'Settings',
-      href: pagePrefix + 'settings.html',
-      active: isSettingsPage()
-    });
 
     return items;
   }

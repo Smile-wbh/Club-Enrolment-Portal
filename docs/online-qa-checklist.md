@@ -26,7 +26,6 @@ Checks:
 3. Log in successfully.
 4. Log out successfully.
 5. Use forgot password and confirm the reset flow returns to `join.html`.
-6. Open `settings.html` and change password once.
 
 Pass result:
 

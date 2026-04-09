@@ -49,7 +49,6 @@ This repo already includes [vercel.json](/Users/wbh/Desktop/俱乐部管理系�
 - `/courses` opens `/html/mfms.html`
 - `/forum` opens `/html/spjs.html`
 - `/support` opens `/html/tzgg.html`
-- `/settings` opens `/html/settings.html`
 
 ## Supabase Auth URLs
 
