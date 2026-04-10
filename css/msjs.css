@@ -785,6 +785,7 @@ select {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
+  gap: 14px;
   padding: 20px;
 }
 
@@ -793,7 +794,7 @@ select {
   align-items: flex-start;
   justify-content: space-between;
   gap: 10px;
-  margin: 0 0 12px;
+  margin: 0;
   color: #1f4274;
   font-size: 23px;
 }
@@ -828,7 +829,7 @@ select {
   flex-wrap: wrap;
   gap: 8px;
   min-height: 38px;
-  margin-top: 14px;
+  margin-top: 0;
 }
 
 .club-tag-pill {
@@ -844,7 +845,7 @@ select {
 .club-meta {
   display: grid;
   gap: 8px;
-  margin-top: 14px;
+  margin-top: auto;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 16px;
