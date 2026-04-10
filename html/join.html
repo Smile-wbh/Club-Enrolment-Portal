@@ -16,6 +16,7 @@
   <script src="../js/supabase-courses.js"></script>
   <script src="../js/supabase-forum.js"></script>
   <script src="../js/supabase-support.js"></script>
+  <script src="../js/custom-dialogs.js"></script>
   <link rel="stylesheet" href="../css/join.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <style>
@@ -2878,22 +2879,28 @@
         if(role === 'bot') return 'Bot';
         return 'User';
       },
-      clearMyConsults(){
+      async clearMyConsults(){
         const email = this.sessionEmail;
         if(!email) return;
-        if(!confirm('Clear the support history for this account?')) return;
+        const shouldClear = window.portalConfirm
+          ? await window.portalConfirm('Clear the support history for this account?', {
+            title: 'Clear Support History',
+            confirmText: 'Clear',
+            cancelText: 'Keep'
+          })
+          : confirm('Clear the support history for this account?');
+        if(!shouldClear) return;
         const service = this.getSupportService();
         if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
-          service.clearMySupportThreads(this.sessionUserId)
-            .then(() => {
-              this.consultMessages = [];
-              if(!this.isBusinessLocalCacheDisabled()){
-                localStorage.setItem('chat_messages_v1', JSON.stringify([]));
-              }
-            })
-            .catch((error) => {
-              alert(service.mapSupportError(error));
-            });
+          try{
+            await service.clearMySupportThreads(this.sessionUserId);
+            this.consultMessages = [];
+            if(!this.isBusinessLocalCacheDisabled()){
+              localStorage.setItem('chat_messages_v1', JSON.stringify([]));
+            }
+          }catch(error){
+            alert(service.mapSupportError(error));
+          }
           return;
         }
         const uid = 'user:' + email;
@@ -3407,7 +3414,7 @@
           this.myBookingHistory = [];
         }
       },
-      cancelBooking(b){
+      async cancelBooking(b){
         const bookingTime = new Date(b.dayIso + ' ' + b.slotTime.split('-')[0]);
         const now = new Date();
         const diffHours = (bookingTime - now) / (1000 * 60 * 60);
@@ -3417,7 +3424,14 @@
           return;
         }
 
-        if(confirm('Cancel this booking?')){
+        const shouldCancel = window.portalConfirm
+          ? await window.portalConfirm('Cancel this booking?', {
+            title: 'Cancel Booking',
+            confirmText: 'Cancel Booking',
+            cancelText: 'Keep'
+          })
+          : confirm('Cancel this booking?');
+        if(shouldCancel){
           if(this.hasSupabaseConfigured() && b && b.id && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
             window.clubBookingSupabase.cancelBooking(b.id)
               .then((updated) => {
@@ -3471,8 +3485,15 @@
         }
         this.myTeachingBookings = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalTeachingBookings();
       },
-      cancelTeachingBooking(id){
-         if(confirm('Cancel this course booking?')){
+      async cancelTeachingBooking(id){
+         const shouldCancel = window.portalConfirm
+           ? await window.portalConfirm('Cancel this course booking?', {
+             title: 'Cancel Course Booking',
+             confirmText: 'Cancel Booking',
+             cancelText: 'Keep'
+           })
+           : confirm('Cancel this course booking?');
+         if(shouldCancel){
            const service = this.getCourseService();
            if(this.hasSupabaseCoursesConfigured() && service){
              service.cancelCourseBooking(id)
@@ -3680,7 +3701,15 @@
       },
       async openForumCommentComposer(post){
         if(!post) return;
-        const text = prompt('Enter your message');
+        const text = window.portalPrompt
+          ? await window.portalPrompt('Enter your message.', '', {
+            title: 'Leave a Message',
+            fieldLabel: 'Message',
+            placeholder: 'Type your message here',
+            confirmText: 'Send',
+            cancelText: 'Close'
+          })
+          : prompt('Enter your message');
         const content = String(text || '').trim();
         if(!content) return;
         const service = this.getForumService();
@@ -3779,7 +3808,14 @@
       async deletePost(id){
          const postId = this.normalizeForumId(id);
          if(!postId) return;
-         if(confirm('Delete this post?')){
+         const shouldDelete = window.portalConfirm
+           ? await window.portalConfirm('Delete this post?', {
+             title: 'Delete Post',
+             confirmText: 'Delete',
+             cancelText: 'Keep'
+           })
+           : confirm('Delete this post?');
+         if(shouldDelete){
            const target = (this.myPosts || []).find(p => this.normalizeForumId(p && p.id) === postId) || null;
            const service = this.getForumService();
            if(target && target.source === 'supabase' && this.hasSupabaseForumConfigured() && service){
@@ -3813,8 +3849,15 @@
          }
          this.myFavs = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalFavoriteCourses();
       },
-      removeFav(courseId){
-         if(confirm('Remove this favorite?')){
+      async removeFav(courseId){
+         const shouldRemove = window.portalConfirm
+           ? await window.portalConfirm('Remove this favorite?', {
+             title: 'Remove Favorite',
+             confirmText: 'Remove',
+             cancelText: 'Keep'
+           })
+           : confirm('Remove this favorite?');
+         if(shouldRemove){
            const service = this.getCourseService();
            if(this.hasSupabaseCoursesConfigured() && this.sessionUserId && service){
              service.removeFavorite(this.sessionUserId, courseId)

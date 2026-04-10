@@ -13,6 +13,7 @@
   <script src="../js/supabase-forum.js"></script>
   <script src="../js/supabase-support.js"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
+  <script src="../js/custom-dialogs.js"></script>
   <link rel="stylesheet" href="../css/spjs.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 
@@ -3079,10 +3080,20 @@
           navigator.clipboard.writeText(url).then(()=>{
             alert('The post link for this comment has been copied.');
           }).catch(()=>{
-            prompt('Copy link', url);
+            if(window.portalCopyDialog){
+              window.portalCopyDialog('Copy link', url, {
+                message: 'Select the link below and copy it.',
+                helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+              });
+            }
           });
         }else{
-          prompt('Copy link', url);
+          if(window.portalCopyDialog){
+            window.portalCopyDialog('Copy link', url, {
+              message: 'Select the link below and copy it.',
+              helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+            });
+          }
         }
       },
       sharePost(p){
@@ -3093,10 +3104,20 @@
           navigator.clipboard.writeText(url).then(()=>{
             alert('Link copied.');
           }).catch(()=>{
-            prompt('Copy link', url);
+            if(window.portalCopyDialog){
+              window.portalCopyDialog('Copy link', url, {
+                message: 'Select the link below and copy it.',
+                helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+              });
+            }
           });
         }else{
-          prompt('Copy link', url);
+          if(window.portalCopyDialog){
+            window.portalCopyDialog('Copy link', url, {
+              message: 'Select the link below and copy it.',
+              helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+            });
+          }
         }
       },
       shareCurrentProfile(){
@@ -3107,10 +3128,20 @@
           navigator.clipboard.writeText(url).then(()=>{
             alert('Profile link copied.');
           }).catch(()=>{
-            prompt('Copy profile link', url);
+            if(window.portalCopyDialog){
+              window.portalCopyDialog('Copy profile link', url, {
+                message: 'Select the profile link below and copy it.',
+                helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+              });
+            }
           });
         }else{
-          prompt('Copy profile link', url);
+          if(window.portalCopyDialog){
+            window.portalCopyDialog('Copy profile link', url, {
+              message: 'Select the profile link below and copy it.',
+              helperText: 'Use Ctrl/Cmd + C if the browser does not copy it automatically.'
+            });
+          }
         }
       },
       buildMessagesPageUrl(target, backUrl){

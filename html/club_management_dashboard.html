@@ -10,6 +10,7 @@
   <script src="../js/supabase-storage.js?v=20260401-3"></script>
   <script src="../js/supabase-club-admin.js?v=20260401-1"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
+  <script src="../js/custom-dialogs.js"></script>
   <link rel="stylesheet" href="../css/club_management_dashboard.css">
 </head>
 <body>
@@ -3028,7 +3029,13 @@
             }
 
             if(action === 'remove-club'){
-              if(!confirm('Delete this club?')) return;
+              if(!(window.portalConfirm
+                ? await window.portalConfirm('Delete this club?', {
+                  title: 'Delete Club',
+                  confirmText: 'Delete',
+                  cancelText: 'Keep'
+                })
+                : confirm('Delete this club?'))) return;
               await service.deleteClub(id);
             }
 
@@ -3050,7 +3057,13 @@
         }
 
         if(action === 'remove-club'){
-          if(!confirm('Delete this club?')) return;
+          if(!(window.portalConfirm
+            ? await window.portalConfirm('Delete this club?', {
+              title: 'Delete Club',
+              confirmText: 'Delete',
+              cancelText: 'Keep'
+            })
+            : confirm('Delete this club?'))) return;
           state.clubs.splice(idx, 1);
         }
 
@@ -3095,7 +3108,13 @@
         }
 
         if(action !== 'remove-club') return;
-        if(!confirm('Delete this club?')) return;
+        if(!(window.portalConfirm
+          ? await window.portalConfirm('Delete this club?', {
+            title: 'Delete Club',
+            confirmText: 'Delete',
+            cancelText: 'Keep'
+          })
+          : confirm('Delete this club?'))) return;
 
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           var service = getAdminService();
@@ -3128,7 +3147,13 @@
       async function handleMemberActions(e){
         var btn = e.target.closest('button[data-action="remove-member"]');
         if(!btn) return;
-        if(!confirm('Remove this member?')) return;
+        if(!(window.portalConfirm
+          ? await window.portalConfirm('Remove this member?', {
+            title: 'Remove Member',
+            confirmText: 'Remove',
+            cancelText: 'Keep'
+          })
+          : confirm('Remove this member?'))) return;
 
         var memberId = String(btn.getAttribute('data-id') || '').trim();
         if(hasCloudDashboardConfigured() && state.sessionUserId && memberId){
@@ -3226,7 +3251,13 @@
         }
 
         if(action !== 'remove-course') return;
-        if(!confirm('Delete this course?')) return;
+        if(!(window.portalConfirm
+          ? await window.portalConfirm('Delete this course?', {
+            title: 'Delete Course',
+            confirmText: 'Delete',
+            cancelText: 'Keep'
+          })
+          : confirm('Delete this course?'))) return;
 
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           var service = getAdminService();

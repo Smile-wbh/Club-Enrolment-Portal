@@ -859,8 +859,16 @@
     }
   }
 
-  function addComposeLink() {
-    var raw = window.prompt('Paste the link you want to send');
+  async function addComposeLink() {
+    var raw = window.portalPrompt
+      ? await window.portalPrompt('Paste the link you want to send.', '', {
+        title: 'Add Link',
+        fieldLabel: 'Link URL',
+        placeholder: 'https://example.com',
+        confirmText: 'Attach',
+        cancelText: 'Close'
+      })
+      : window.prompt('Paste the link you want to send');
     if (raw === null) return;
     var text = trimText(raw);
     if (!text) {
@@ -1097,7 +1105,7 @@
     if (linkBtn) {
       linkBtn.addEventListener('click', function () {
         toggleEmojiPicker(false);
-        addComposeLink();
+        void addComposeLink();
       });
     }
 
