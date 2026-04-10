@@ -260,7 +260,7 @@
       time: 'Sat (see booking page)',
       seats: 18,
       fee: '£0',
-      cover: '../zp/hb1.webp',
+      cover: '../zp/bq.webp',
       tags: ['Throwing & Catching', 'Batting Practice', 'Base Running']
     }
   ];
@@ -378,7 +378,7 @@
     handball: '../zp/sj.webp',
     gymnastics: '../zp/tc.webp',
     pingpong: '../zp/ppq.webp',
-    baseball: '../zp/hb1.webp',
+    baseball: '../zp/bq.webp',
     volleyball: '../zp/pq.webp',
     pickleball: '../zp/pkq.webp'
   };
@@ -391,7 +391,8 @@
     gymnastics: true,
     pingpong: true,
     volleyball: true,
-    pickleball: true
+    pickleball: true,
+    baseball: true
   };
 
   var LEGACY_GENERIC_COVER_SET = {

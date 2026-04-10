@@ -781,19 +781,6 @@ select {
   transform: scale(1.03);
 }
 
-.club-tag {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: rgba(15, 37, 68, 0.78);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-}
-
 .club-body {
   display: flex;
   flex: 1 1 auto;

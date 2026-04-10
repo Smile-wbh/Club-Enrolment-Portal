@@ -38,7 +38,7 @@
     handball: '../zp/sj.webp',
     gymnastics: '../zp/tc.webp',
     pingpong: '../zp/ppq.webp',
-    baseball: '../zp/hb1.webp',
+    baseball: '../zp/bq.webp',
     volleyball: '../zp/pq.webp',
     pickleball: '../zp/pkq.webp'
   };
@@ -51,7 +51,8 @@
     gymnastics: true,
     pingpong: true,
     volleyball: true,
-    pickleball: true
+    pickleball: true,
+    baseball: true
   };
 
   var LEGACY_GENERIC_COVER_SET = {
