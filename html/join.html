@@ -2279,7 +2279,7 @@
         const text = String((error && error.message) || '').trim();
         const lower = text.toLowerCase();
         if(lower.includes('invalid login credentials')) return 'Incorrect email or password.';
-        if(lower.includes('email not confirmed')) return 'Please confirm your email before logging in.';
+        if(lower.includes('email not confirmed')) return 'Unable to log in with this account right now.';
         if(lower.includes('user already registered')) return 'This email address is already registered.';
         if(lower.includes('password should be at least')) return 'Password must be at least 6 characters.';
         if(lower.includes('unable to validate email address')) return 'Enter a valid email address.';
@@ -3058,7 +3058,6 @@
             email,
             password: this.signup.password,
             options: {
-              emailRedirectTo: this.buildJoinRedirectUrl(),
               data: {
                 nickname: String(this.signup.nickname || '').trim(),
                 role: this.signup.withClubManagement ? 'club_manager' : 'member'
@@ -3096,7 +3095,7 @@
             }
             return;
           }
-          this.signupStatus = 'Account created successfully. Check your email to confirm the account before logging in.';
+          this.signupStatus = 'Account created successfully. Please log in.';
         }catch(e){
           this.signupStatus = 'Unable to create the account right now.';
         }
