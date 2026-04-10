@@ -160,10 +160,6 @@
                   <div class="field">
                     <input v-model.trim="signup.email" class="auth-input" placeholder="Email">
                   </div>
-                  <div class="field email-verify-field">
-                    <input v-model.trim="signup.emailCodeInput" class="auth-input" placeholder="Email verification code">
-                    <button class="btn ghost mini-btn" @click="sendSignupCode">Send code</button>
-                  </div>
                   <div class="field">
                     <input type="password" v-model.trim="signup.password" class="auth-input" placeholder="Password (at least 6 characters)">
                   </div>
@@ -1076,7 +1072,7 @@
         remember:true,
         authView:'login',
 
-        signup:{ nickname:'', favoriteClub:'', email:'', emailCode:'', emailCodeInput:'', password:'', password2:'', withClubManagement:false },
+        signup:{ nickname:'', favoriteClub:'', email:'', password:'', password2:'', withClubManagement:false },
         login:{ email:'', password:'' },
         signupStatus:'',
         loginStatus:'',
@@ -3033,20 +3029,6 @@
       },
       openSignup(){ this.authView = 'signup'; this.loginStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
       openLogin(){ this.authView = 'login'; this.signupStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
-      sendSignupCode(){
-        const email = this.normalizeEmail(this.signup.email);
-        if(!email){
-          this.signupStatus = 'Enter your email address.'; return;
-        }
-        if(!this.isValidEmail(email)){
-          this.signupStatus = 'Enter a valid email address.'; return;
-        }
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        this.signup.emailCode = code;
-        this.signupStatus = this.hasSupabaseConfigured()
-          ? ('Verification code sent for this browser session: ' + code + '. Account confirmation will still use your Supabase email settings.')
-          : ('Verification code sent for this browser: ' + code);
-      },
       async doSignup(){
         if(this.hasSupabaseConfigured()){
           return this.doSignupWithSupabase();
@@ -3060,9 +3042,6 @@
         }
         if(!this.isValidEmail(email)){
           this.signupStatus = 'Enter a valid email address.'; return;
-        }
-        if(!this.signup.emailCode || this.signup.emailCodeInput !== this.signup.emailCode){
-          this.signupStatus = 'Enter the correct email verification code'; return;
         }
         if(this.signup.password.length < 6){
           this.signupStatus = 'Password must be at least 6 characters.'; return;
@@ -3129,9 +3108,6 @@
         }
         if(!this.isValidEmail(email)){
           this.signupStatus = 'Enter a valid email address.'; return;
-        }
-        if(!this.signup.emailCode || this.signup.emailCodeInput !== this.signup.emailCode){
-          this.signupStatus = 'Enter the correct email verification code'; return;
         }
         if(this.signup.password.length < 6){
           this.signupStatus = 'Password must be at least 6 characters.'; return;
@@ -3260,7 +3236,7 @@
         }
       },
       resetSignup(){
-        this.signup = { nickname:'', favoriteClub:'', email:'', emailCode:'', emailCodeInput:'', password:'', password2:'', withClubManagement:false };
+        this.signup = { nickname:'', favoriteClub:'', email:'', password:'', password2:'', withClubManagement:false };
         this.signupStatus = '';
       },
       async onProfileAvatarChange(e){
