@@ -56,6 +56,7 @@
     .system-picker-desc { color: #4b5563; line-height: 1.7; margin-bottom: 16px; }
     .system-picker-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .system-picker-actions .btn { min-width: 180px; }
+    .guest-auth-box { scroll-margin-top: 24px; }
   </style>
 
 </head>
@@ -123,7 +124,7 @@
               </div>
             </div>
 
-            <div class="auth-box card guest-auth-box">
+            <div id="auth-entry" ref="authEntry" class="auth-box card guest-auth-box">
               <div class="auth-head">
                 <div class="auth-title">{{ authView === 'login' ? 'Account Login' : 'Create an Account' }}</div>
               </div>
@@ -1457,6 +1458,8 @@
       // Handle query params
       const params = new URLSearchParams(location.search);
       const view = String(params.get('view') || '').trim().toLowerCase();
+      const hash = String(location.hash || '').trim().toLowerCase();
+      const shouldJumpToAuth = view === 'signup' || view === 'register' || hash === '#auth-entry' || hash === '#signup';
       if(view === 'signup' || view === 'register'){
         this.authView = 'signup';
       }else if(view === 'login'){
@@ -1469,6 +1472,11 @@
       }
       if(tab && ['home','profile','club_bookings','teaching_bookings','forum','consults','favs'].includes(tab)){
         this.dashboardTab = tab;
+      }
+      if(!this.isAuthed && shouldJumpToAuth){
+        this.$nextTick(() => {
+          this.scrollToAuthEntry();
+        });
       }
       window.addEventListener('storage', this.handleStorageEvent);
       window.addEventListener('pageshow', this.handlePageShow);
@@ -1498,6 +1506,15 @@
       }
     },
     methods:{
+      scrollToAuthEntry(){
+        const target = this.$refs.authEntry || document.getElementById('auth-entry');
+        if(!target || typeof target.scrollIntoView !== 'function') return;
+        try{
+          target.scrollIntoView({ block: 'start', behavior: 'smooth' });
+        }catch(e){
+          target.scrollIntoView(true);
+        }
+      },
       refreshProfileOverview(){
         this.loadMyBookings();
         this.loadMyTeachingBookings();

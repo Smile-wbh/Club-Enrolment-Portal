@@ -116,7 +116,7 @@
         '</nav>' +
         '<div class="top-actions">' +
           '<a class="top-btn light" href="' + prefix + 'join.html">Log in</a>' +
-          '<a class="top-btn accent" href="' + prefix + 'join.html">Sign up</a>' +
+          '<a class="top-btn accent" href="' + prefix + 'join.html?view=signup#auth-entry">Sign up</a>' +
         '</div>' +
       '</div>'
     );

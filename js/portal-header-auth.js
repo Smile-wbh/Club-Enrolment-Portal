@@ -328,7 +328,7 @@
 
       actions.innerHTML =
         '<a class="top-btn light" href="' + pagePrefix + 'join.html">Log in</a>' +
-        '<a class="top-btn accent" href="' + pagePrefix + 'join.html">Sign up</a>';
+        '<a class="top-btn accent" href="' + pagePrefix + 'join.html?view=signup#auth-entry">Sign up</a>';
     });
   }
 
