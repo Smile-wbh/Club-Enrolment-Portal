@@ -748,6 +748,7 @@ textarea {
 .course-list-card {
   display: flex;
   flex-direction: column;
+  height: 100%;
   gap: 0;
   padding: 18px;
   border: 1px solid #dbe4f0;
@@ -782,6 +783,7 @@ textarea {
   display: flex;
   flex-direction: column;
   flex: 1;
+  gap: 12px;
   min-width: 0;
   padding-top: 18px;
 }
@@ -794,7 +796,7 @@ textarea {
 }
 
 .course-list-desc {
-  margin: 12px 0 0;
+  margin: 0;
   color: #5b708b;
   line-height: 1.8;
   display: -webkit-box;
@@ -804,7 +806,7 @@ textarea {
 }
 
 .course-list-time {
-  margin-top: 18px;
+  margin-top: auto;
   display: inline-flex;
   align-items: center;
   width: fit-content;
