@@ -992,13 +992,14 @@
           ? club.slotsByDay[dayIso].slice()
           : [];
         const template = this.clubSlotTemplate(club);
+        const isSupabaseClub = String(club.source || '').trim() === 'supabase';
         if (!template.length) {
           if (!actual.length) return Array.isArray(club.slots) ? club.slots : [];
           return actual.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
         }
 
         if (!actual.length) {
-          if (this.useSupabaseBookings || String(club.source || '').trim() === 'supabase') {
+          if (isSupabaseClub) {
             return template.map((templateSlot, index) => this.buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index));
           }
           return Array.isArray(club.slots) ? club.slots : [];
