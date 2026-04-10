@@ -1456,6 +1456,12 @@
 
       // Handle query params
       const params = new URLSearchParams(location.search);
+      const view = String(params.get('view') || '').trim().toLowerCase();
+      if(view === 'signup' || view === 'register'){
+        this.authView = 'signup';
+      }else if(view === 'login'){
+        this.authView = 'login';
+      }
       const tab = params.get('tab');
       if(tab === 'messages' || tab === 'message_board'){
         location.replace('messages.html');
