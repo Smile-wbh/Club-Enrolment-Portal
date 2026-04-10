@@ -295,6 +295,40 @@
 </div>
 
 <script>
+  const CLUB_COVER_MAP = Object.freeze({
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  });
+  const CLUB_CUSTOM_COVER_SLUGS = Object.freeze({
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  });
+  const LEGACY_GENERIC_COVER_SET = Object.freeze({
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  });
   const teachingApp = new Vue({
     el: '#app',
     data() {
@@ -643,29 +677,34 @@
         this.mode = '';
         this.sortBy = 'hot';
       },
+      normalizeCoverValue(value) {
+        return String(value || '').trim();
+      },
+      resolveClubCover(slug, value) {
+        const normalizedSlug = String(slug || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[_\s]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/-(club|society)$/g, '');
+        const text = this.normalizeCoverValue(value);
+        const fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+        if (!fallbackCover) return text;
+        if (!text) return fallbackCover;
+        if (text === fallbackCover) return text;
+        if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+          return fallbackCover;
+        }
+        return text;
+      },
       courseCover(course) {
-        if (course && course.cover) return course.cover;
-        if (course && course.clubCover) return course.clubCover;
-        const key = String(course && (course.clubCategory || course.club || course.slug) || '').toLowerCase();
-        const map = {
-          badminton: '../zp/ymq.webp',
-          football: '../zp/zq.webp',
-          swimming: '../zp/yy1.webp',
-          tennis: '../zp/wq.webp',
-          programming: '../zp/bc.webp',
-          music: '../zp/yy.webp',
-          cycling: '../zp/qx.webp',
-          basketball: '../zp/hb1.webp',
-          Badminton: '../zp/ymq.webp',
-          Football: '../zp/zq.webp',
-          Swimming: '../zp/yy1.webp',
-          Tennis: '../zp/wq.webp',
-          Programming: '../zp/bc.webp',
-          Music: '../zp/yy.webp',
-          Cycling: '../zp/qx.webp',
-          basketball: '../zp/hb1.webp'
-        };
-        return map[key] || '../zp/gywm.webp';
+        const slug = String(course && (course.clubSlug || course.clubCategory || course.club || course.slug) || '').trim();
+        const cover = this.resolveClubCover(slug, course && course.cover);
+        if (cover) return cover;
+        const clubCover = this.resolveClubCover(slug, course && course.clubCover);
+        if (clubCover) return clubCover;
+        return this.resolveClubCover(slug, '') || '../zp/gywm.webp';
       },
       openCourse(course) {
         const courseId = course && course.id !== undefined && course.id !== null ? String(course.id) : '';

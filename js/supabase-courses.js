@@ -23,6 +23,65 @@
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
   }
 
+  var CLUB_COVER_MAP = {
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  };
+
+  var CLUB_CUSTOM_COVER_SLUGS = {
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  };
+
+  var LEGACY_GENERIC_COVER_SET = {
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  };
+
+  function normalizeClubCoverSlug(value) {
+    return trimText(value)
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-(club|society)$/g, '');
+  }
+
+  function resolveClubCover(slug, value) {
+    var normalizedSlug = normalizeClubCoverSlug(slug);
+    var text = trimText(value);
+    var fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+    if (!fallbackCover) return text;
+    if (!text) return fallbackCover;
+    if (text === fallbackCover) return text;
+    if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+      return fallbackCover;
+    }
+    return text;
+  }
+
   function getSupabaseClientSafe() {
     try {
       return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
@@ -88,13 +147,16 @@
     var description = trimText(row.description) || trimText(row.lead) || trimText(row.detail);
     var detail = trimText(row.detail) || description || 'Open the detail page to review this course.';
     var clubName = trimText(club.name) || titleFromSlug(club.slug) || 'Unnamed Club';
+    var clubSlug = trimText(club.slug);
+    var resolvedClubCover = resolveClubCover(clubSlug || clubName, club.cover_url);
+    var resolvedCourseCover = resolveClubCover(clubSlug || row.slug || clubName, trimText(row.cover_url) || resolvedClubCover);
     return {
       id: trimText(row.id),
       dbId: trimText(row.id),
       source: 'supabase',
       slug: trimText(row.slug),
       clubId: trimText(row.club_id),
-      clubSlug: trimText(club.slug),
+      clubSlug: clubSlug,
       club: clubName,
       clubCategory: trimText(club.category) || clubName,
       englishClub: englishClubFromRow(row, club),
@@ -112,7 +174,8 @@
       bookedCount: reserved,
       fee: trimText(row.fee_text) || 'Free',
       feeText: trimText(row.fee_text) || 'Free',
-      cover: trimText(row.cover_url) || trimText(club.cover_url),
+      clubCover: resolvedClubCover,
+      cover: resolvedCourseCover,
       popularity: Math.max(0, toNumber(row.popularity, 0)),
       createdAt: trimText(row.created_at),
       updatedAt: trimText(row.updated_at),

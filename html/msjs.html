@@ -126,7 +126,6 @@
               <option value="Sports">Sports</option>
               <option value="Academic">Academic</option>
               <option value="Arts">Arts</option>
-              <option value="Social">Social</option>
             </select>
           </label>
 
@@ -159,7 +158,6 @@
           <button type="button" class="quick-pill sports" :class="{ active: category === 'Sports' }" @click="category = 'Sports'">Sports</button>
           <button type="button" class="quick-pill academic" :class="{ active: category === 'Academic' }" @click="category = 'Academic'">Academic</button>
           <button type="button" class="quick-pill arts" :class="{ active: category === 'Arts' }" @click="category = 'Arts'">Arts</button>
-          <button type="button" class="quick-pill social" :class="{ active: category === 'Social' }" @click="category = 'Social'">Social</button>
         </div>
       </div>
     </div>
@@ -240,6 +238,40 @@
 
 <script>
   const DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
+  const CLUB_COVER_MAP = Object.freeze({
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  });
+  const CLUB_CUSTOM_COVER_SLUGS = Object.freeze({
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  });
+  const LEGACY_GENERIC_COVER_SET = Object.freeze({
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  });
 
   const previewApp = new Vue({
     el: '#app',
@@ -259,7 +291,7 @@
         cloudClubCatalogEnabled: cloudClubCatalogEnabled,
         detailPageSlugs: [
           'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
-          'basketball', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
+          'basketball', 'golf', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
         ],
         clubs: [
           {
@@ -349,8 +381,18 @@
             time: 'Wed/Sat 18:00-20:00',
             seats: 18,
             fee: '£0 (Free)',
-            cover: '../zp/hb1.webp',
+            cover: '../zp/lq.webp',
             tags: ['League Sign-up', 'Tactical Training', 'Scrimmages']
+          },
+          {
+            id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
+            desc: 'Swing practice and weekend experience sessions for beginners and casual players, with guided technique tips and range-based routines.',
+            location: 'Practice Ground E (In-person)',
+            time: 'Sun 09:30-11:30',
+            seats: 12,
+            fee: '£5/session (Optional)',
+            cover: '../zp/grf.webp',
+            tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome']
           },
           {
             id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
@@ -359,7 +401,7 @@
             time: 'Tue/Thu 16:30-18:00',
             seats: 22,
             fee: '£0',
-            cover: '../zp/hb3.webp',
+            cover: '../zp/glq.webp',
             tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training']
           },
           {
@@ -369,7 +411,7 @@
             time: 'Mon 18:30-20:00',
             seats: 16,
             fee: '£0',
-            cover: '../zp/hb2.webp',
+            cover: '../zp/sj.webp',
             tags: ['Team Coordination', 'Grouped Practice', 'Event Sign-up']
           },
           {
@@ -379,8 +421,48 @@
             time: 'Fri 17:00-18:30',
             seats: 14,
             fee: '£0',
-            cover: '../zp/hb1.webp',
+            cover: '../zp/tc.webp',
             tags: ['Flexibility Training', 'Strength Growth', 'Movement Demonstration']
+          },
+          {
+            id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
+            desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
+            location: 'Multi-Sport Hall I (In-person)',
+            time: 'Wed/Sun (see booking page)',
+            seats: 20,
+            fee: '£0',
+            cover: '../zp/ppq.webp',
+            tags: ['Foundations Coaching', 'Footwork Drills', 'Serve & Receive']
+          },
+          {
+            id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
+            location: 'Sports Hall J (In-person)',
+            time: 'Tue/Sat (see booking page)',
+            seats: 22,
+            fee: '£0',
+            cover: '../zp/pq.webp',
+            tags: ['Passing Basics', 'Serve & Set', 'Team Rotation']
+          },
+          {
+            id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
+            location: 'Multi-Purpose Hall K (In-person)',
+            time: 'Thu (see booking page)',
+            seats: 24,
+            fee: '£0',
+            cover: '../zp/pkq.webp',
+            tags: ['Beginner-Friendly', 'Serve & Return', 'Social Matches']
+          },
+          {
+            id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
+            location: 'Baseball Field L (In-person)',
+            time: 'Sat (see booking page)',
+            seats: 18,
+            fee: '£0',
+            cover: '../zp/hb1.webp',
+            tags: ['Throwing & Catching', 'Batting Practice', 'Base Running']
           }
         ]
       };
@@ -414,7 +496,7 @@
             Array.isArray(c.tags) ? c.tags.join(' ') : ''
           ].join(' ').toLowerCase();
           const matchQ = !q || searchText.includes(q);
-          const matchCat = !this.category || c.category === this.category;
+          const matchCat = !this.category || this.matchesCategoryFilter(c, this.category);
           const matchMode = !this.mode || c.mode === this.mode;
           return matchQ && matchCat && matchMode;
         });
@@ -535,12 +617,49 @@
         return 'club_registry_v1';
       },
 
+      normalizeCategoryFilter(value) {
+        const raw = String(value || '').trim().toLowerCase();
+        const categoryMap = {
+          sports: 'Sports',
+          academic: 'Academic',
+          arts: 'Arts'
+        };
+        return categoryMap[raw] || '';
+      },
+
+      matchesCategoryFilter(club, category) {
+        const target = this.normalizeCategoryFilter(category).toLowerCase();
+        const clubCategory = String(club && club.category || '').trim().toLowerCase();
+        const haystack = [
+          club && club.name,
+          club && club.desc,
+          club && club.category,
+          club && club.location,
+          Array.isArray(club && club.tags) ? club.tags.join(' ') : ''
+        ].join(' ').toLowerCase();
+
+        if (!target) return true;
+        return clubCategory === target;
+      },
+
       applyQueryFromUrl() {
         const params = new URLSearchParams(window.location.search);
         const q = params.get('q');
+        const category = params.get('category');
+        const mode = params.get('mode');
+        const sortBy = params.get('sortBy');
 
         if (q) {
           this.q = q;
+        }
+        if (category) {
+          this.category = this.normalizeCategoryFilter(category);
+        }
+        if (mode) {
+          this.mode = String(mode).trim();
+        }
+        if (sortBy === 'name' || sortBy === 'seats') {
+          this.sortBy = sortBy;
         }
       },
 
@@ -579,7 +698,26 @@
 
       normalizeCoverValue(value) {
         const text = String(value || '').trim();
-        return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
+        return text;
+      },
+
+      resolveClubCover(slug, value) {
+        const normalizedSlug = String(slug || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[_\s]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/-(club|society)$/g, '');
+        const text = this.normalizeCoverValue(value);
+        const fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+        if (!fallbackCover) return text;
+        if (!text) return fallbackCover;
+        if (text === fallbackCover) return text;
+        if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+          return fallbackCover;
+        }
+        return text;
       },
 
       mapRegistryClub(c) {
@@ -590,7 +728,7 @@
         const time = c && c.time
           ? c.time
           : slots.map((s) => s && s.time).filter(Boolean).slice(0, 2).join(' / ') || '—';
-        const cover = this.normalizeCoverValue(c && c.cover ? c.cover : '');
+        const cover = this.resolveClubCover(c && c.slug, c && c.cover ? c.cover : '');
 
         return {
           id: 'r-' + (c && c.id ? c.id : Date.now()),
@@ -616,19 +754,38 @@
         };
       },
 
+      buildClubMapBySlug(list) {
+        const out = {};
+        (Array.isArray(list) ? list : []).forEach((club) => {
+          if (!club || !club.slug || out[club.slug]) return;
+          out[club.slug] = club;
+        });
+        return out;
+      },
+
+      applyFallbackCover(list, fallbackBySlug) {
+        return (Array.isArray(list) ? list : []).map((club) => {
+          if (!club || !club.slug || String(club.cover || '').trim()) return club;
+          const fallback = fallbackBySlug && fallbackBySlug[club.slug];
+          if (!fallback || !String(fallback.cover || '').trim()) return club;
+          return Object.assign({}, club, { cover: fallback.cover });
+        });
+      },
+
       refreshRegistryState() {
         const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []))
           .map((c) => this.mapRegistryClub(c));
-        const supabase = (this.supabaseClubs || [])
-          .map((c) => this.mapRegistryClub(c))
-          .filter((c) => c.slug);
         const reg = this.loadRegistry();
         const mapped = reg
           .map((c) => this.mapRegistryClub(c))
           .filter((c) => c.slug);
+        const fallbackBySlug = this.buildClubMapBySlug(mapped.concat(base));
+        const supabase = this.applyFallbackCover((this.supabaseClubs || [])
+          .map((c) => this.mapRegistryClub(c))
+          .filter((c) => c.slug), fallbackBySlug);
         const seen = new Set();
         const next = [];
-        const catalog = this.cloudClubCatalogEnabled ? supabase : mapped.concat(base);
+        const catalog = this.cloudClubCatalogEnabled ? supabase.concat(mapped, base) : mapped.concat(base);
 
         catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;
@@ -679,6 +836,7 @@
       { url: 'club/volleyball.html', keywords: ['volleyball', 'volleyball club'] },
       { url: 'club/running.html', keywords: ['running', 'night run', 'running club'] },
       { url: 'club/cycling.html', keywords: ['cycling', 'cycling club'] },
+      { url: 'club/golf.html', keywords: ['golf', 'golf club'] },
       { url: 'club/baseball.html', keywords: ['baseball', 'baseball club'] },
       { url: 'club/pingpong.html', keywords: ['table tennis', 'ping pong', 'pingpong'] },
       { url: 'club/music.html', keywords: ['music', 'music club', 'music society'] },

@@ -1,5 +1,6 @@
 (function () {
   var DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
+  var DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL = 'https://www.google.com/maps/place/Hull+Sport/@53.7738999,-0.3687267,18z';
 
   function getPathPrefix() {
     return /\/html\/club\//.test(window.location.pathname) ? '../' : '';
@@ -47,6 +48,18 @@
     return '';
   }
 
+  function buildMapEmbedFromQuery(value) {
+    var query = String(value || '').trim();
+    if (!query) return '';
+    return 'https://www.google.com/maps?q=' + encodeURIComponent(query) + '&z=16&output=embed';
+  }
+
+  function buildMapSearchUrl(value) {
+    var query = String(value || '').trim();
+    if (!query) return '';
+    return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+  }
+
   async function resolveMapLink(raw) {
     var value = toExternalUrl(raw);
     try {
@@ -61,9 +74,18 @@
           var finalUrl = String(payload && payload.finalUrl || '').trim();
           return finalUrl || value;
         }
+        if (value === DEFAULT_CLUB_PREVIEW_MAP_LINK) {
+          return DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL;
+        }
       }
     } catch (error) {
+      if (value === DEFAULT_CLUB_PREVIEW_MAP_LINK) {
+        return DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL;
+      }
       return value;
+    }
+    if (value === DEFAULT_CLUB_PREVIEW_MAP_LINK) {
+      return DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL;
     }
     return value;
   }
@@ -135,6 +157,7 @@
     var venueText = venueChip
       ? String(venueChip.textContent || '').replace(/^📍\s*Venue:\s*/i, '').trim()
       : titleText;
+    var fallbackMapQuery = Array.from(new Set([venueText, titleText].filter(Boolean))).join(' ');
 
     var actionRow = hero.querySelector('.chips:last-of-type') || hero.querySelector('.chips');
     var mapChip = null;
@@ -169,6 +192,10 @@
       var resolvedLink = await resolveMapLink(DEFAULT_CLUB_PREVIEW_MAP_LINK);
       var embedUrl = buildMapEmbedFromLink(resolvedLink);
       var openUrl = resolvedLink ? toExternalUrl(resolvedLink) : toExternalUrl(DEFAULT_CLUB_PREVIEW_MAP_LINK);
+      if (!embedUrl && fallbackMapQuery) {
+        embedUrl = buildMapEmbedFromQuery(fallbackMapQuery);
+        openUrl = buildMapSearchUrl(fallbackMapQuery) || openUrl;
+      }
       if (mapChip) {
         mapChip.href = openUrl;
       }

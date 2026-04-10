@@ -921,7 +921,7 @@
 
       function sanitizeClubCoverValue(value){
         var text = String(value || '').trim();
-        return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+        return text;
       }
 
       function isDemoClub(value){

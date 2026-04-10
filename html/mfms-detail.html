@@ -248,6 +248,40 @@
 </div>
 
 <script>
+  const CLUB_COVER_MAP = Object.freeze({
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  });
+  const CLUB_CUSTOM_COVER_SLUGS = Object.freeze({
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  });
+  const LEGACY_GENERIC_COVER_SET = Object.freeze({
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  });
   const teachingDetailApp = new Vue({
     el: '#app',
     data() {
@@ -271,6 +305,7 @@
         courseSyncError: '',
         coursesVersion: 0,
         favsVersion: 0,
+        recommendationSeed: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         selectedSchedule: '',
         courses: [
           {
@@ -422,12 +457,21 @@
       relatedCourses() {
         if (!this.course) return [];
         const currentId = String(this.course.id || '');
-        const currentGroup = String(this.course.clubCategory || this.course.club || '');
         const pool = this.coursesPool.filter((item) => String(item && item.id) !== currentId);
-        const sameClub = pool.filter((item) => String(item.clubCategory || item.club || '') === currentGroup);
-        const others = pool.filter((item) => String(item.clubCategory || item.club || '') !== currentGroup);
-        const sorted = sameClub.concat(others).sort((a, b) => Number(b.popularity || 0) - Number(a.popularity || 0));
-        return sorted.slice(0, 3);
+        const currentCategory = this.courseInterestCategory(this.course);
+        const currentClubKey = this.courseClubKey(this.course);
+        const sameCategoryOtherClubs = pool.filter((item) => {
+          return this.courseInterestCategory(item) === currentCategory && this.courseClubKey(item) !== currentClubKey;
+        });
+        const sameCategorySameClub = pool.filter((item) => {
+          return this.courseInterestCategory(item) === currentCategory && this.courseClubKey(item) === currentClubKey;
+        });
+        const others = pool.filter((item) => this.courseInterestCategory(item) !== currentCategory);
+        return this.uniqueCoursesById(
+          this.shuffleRecommendations(sameCategoryOtherClubs, 'same-category')
+            .concat(this.shuffleRecommendations(sameCategorySameClub, 'same-club'))
+            .concat(this.shuffleRecommendations(others, 'other'))
+        ).slice(0, 3);
       }
     },
     watch: {
@@ -537,6 +581,7 @@
           title: String(course.title || 'Untitled Course').trim(),
           club: clubName,
           clubCategory: clubCategory,
+          interestCategory: this.resolveInterestCategory(course),
           desc: desc,
           detail: detail,
           time: primaryTime,
@@ -555,6 +600,62 @@
         const params = new URLSearchParams(location.search || '');
         this.courseId = String(params.get('id') || '').trim();
         this.syncSelectedSchedule();
+      },
+      normalizeInterestCategory(value) {
+        const text = String(value || '').trim().toLowerCase();
+        if (text === 'arts' || text === 'art') return 'arts';
+        if (text === 'academic' || text === 'academics') return 'academic';
+        if (text === 'culture' || text === 'cultural') return 'culture';
+        if (text === 'tech' || text === 'technology') return 'tech';
+        if (text === 'social') return 'social';
+        if (text === 'sports' || text === 'sport') return 'sports';
+        return '';
+      },
+      courseClubKey(course) {
+        return String(course && (course.clubSlug || course.slug || course.club || course.clubName) || '')
+          .trim()
+          .toLowerCase();
+      },
+      resolveInterestCategory(course) {
+        const explicitCategory = this.normalizeInterestCategory(course && (course.interestCategory || course.category));
+        if (explicitCategory) return explicitCategory;
+        const directCategory = this.normalizeInterestCategory(course && course.clubCategory);
+        if (directCategory) return directCategory;
+        const slug = this.courseClubKey(course);
+        const map = {
+          programming: 'academic',
+          music: 'arts'
+        };
+        return map[slug] || 'sports';
+      },
+      courseInterestCategory(course) {
+        return this.resolveInterestCategory(course);
+      },
+      recommendationHash(text) {
+        const source = String(text || '');
+        let hash = 0;
+        for (let i = 0; i < source.length; i += 1) {
+          hash = ((hash << 5) - hash) + source.charCodeAt(i);
+          hash |= 0;
+        }
+        return Math.abs(hash);
+      },
+      shuffleRecommendations(list, scope) {
+        const seed = `${this.recommendationSeed}:${scope}`;
+        return (Array.isArray(list) ? list.slice() : []).sort((a, b) => {
+          const aKey = `${seed}:${a && (a.id || a.slug || a.title || '')}`;
+          const bKey = `${seed}:${b && (b.id || b.slug || b.title || '')}`;
+          return this.recommendationHash(aKey) - this.recommendationHash(bKey);
+        });
+      },
+      uniqueCoursesById(list) {
+        const seen = new Set();
+        return (Array.isArray(list) ? list : []).filter((item) => {
+          const key = String(item && (item.id || item.slug || item.title) || '');
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
       },
       clubEnglish(input) {
         const course = input && typeof input === 'object' ? input : null;
@@ -720,28 +821,34 @@
         const minutes = this.parseDurationMinutes(text);
         return minutes ? minutes + ' min' : 'To Be Confirmed';
       },
+      normalizeCoverValue(value) {
+        return String(value || '').trim();
+      },
+      resolveClubCover(slug, value) {
+        const normalizedSlug = String(slug || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[_\s]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/-(club|society)$/g, '');
+        const text = this.normalizeCoverValue(value);
+        const fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+        if (!fallbackCover) return text;
+        if (!text) return fallbackCover;
+        if (text === fallbackCover) return text;
+        if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+          return fallbackCover;
+        }
+        return text;
+      },
       courseCover(course) {
-        if (course && course.cover) return course.cover;
-        if (course && course.clubCover) return course.clubCover;
-        const key = String(course && (course.clubCategory || course.club || course.slug) || '').toLowerCase();
-        const map = {
-          badminton: '../zp/ymq.webp',
-          'Badminton': '../zp/ymq.webp',
-          football: '../zp/zq.webp',
-          'Football': '../zp/zq.webp',
-          swimming: '../zp/yy1.webp',
-          'Swimming': '../zp/yy1.webp',
-          tennis: '../zp/wq.webp',
-          'Tennis': '../zp/wq.webp',
-          programming: '../zp/bc.webp',
-          'Programming': '../zp/bc.webp',
-          music: '../zp/yy.webp',
-          'Music': '../zp/yy.webp',
-          cycling: '../zp/qx.webp',
-          'Cycling': '../zp/qx.webp',
-          basketball: '../zp/hb1.webp'
-        };
-        return map[key] || '../zp/gywm.webp';
+        const slug = String(course && (course.clubSlug || course.clubCategory || course.club || course.slug) || '').trim();
+        const cover = this.resolveClubCover(slug, course && course.cover);
+        if (cover) return cover;
+        const clubCover = this.resolveClubCover(slug, course && course.clubCover);
+        if (clubCover) return clubCover;
+        return this.resolveClubCover(slug, '') || '../zp/gywm.webp';
       },
       favKey() {
         const email = this.getSessionEmail();

@@ -14,7 +14,11 @@
     golf: true,
     rugby: true,
     handball: true,
-    gymnastics: true
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true,
+    baseball: true
   };
 
   var DEMO_COURSE_SLUGS = {
@@ -45,7 +49,7 @@
 
   function normalizeCoverValue(value) {
     var text = trimText(value);
-    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+    return text;
   }
 
   function normalizeEmail(value) {

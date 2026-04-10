@@ -1304,6 +1304,43 @@ textarea {
   transition: background-color 0.18s ease, color 0.18s ease;
 }
 
+.post-menu-label {
+  padding: 10px 14px 6px;
+  color: #7a8ea8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.group-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.menu-caret {
+  width: 10px;
+  height: 10px;
+  flex: 0 0 auto;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.18s ease;
+}
+
+.menu-caret.open {
+  transform: rotate(225deg);
+}
+
+.post-menu-group-panel,
+.profile-follow-menu-group-panel {
+  display: grid;
+  gap: 6px;
+  padding: 6px 0 4px;
+}
+
 .post-menu-item:hover,
 .post-menu-item.active {
   background: #f2f6ff;
@@ -3183,7 +3220,17 @@ textarea {
   padding: 0 34px;
 }
 
-.profile-follow-menu-item:hover {
+.profile-follow-menu-label {
+  padding: 10px 34px 6px;
+  color: #7a8ea8;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.profile-follow-menu-item:hover,
+.profile-follow-menu-item.active {
   background: #f8fbff;
 }
 

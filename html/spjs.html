@@ -97,17 +97,18 @@
             </div>
             <div class="card-body">
               <ul class="side-nav">
-                <li class="active"><a href="spjs.html">All</a></li>
-                <li><a href="spjs.html">Latest Posts</a></li>
-                <li><a href="spjs.html">Following</a></li>
-                <li><a href="spjs.html">Friend Circle</a></li>
+                <li :class="{ active: isForumFeedActive('all') }"><a href="spjs.html" @click.prevent="setForumFeed('all')">All</a></li>
+                <li :class="{ active: isForumFeedActive('latest') }"><a href="spjs.html" @click.prevent="setForumFeed('latest')">Latest Posts</a></li>
+                <li :class="{ active: isForumFeedActive('following') }"><a href="spjs.html" @click.prevent="setForumFeed('following')">Following</a></li>
               </ul>
               <div class="group-head">
                 <div>Custom Groups</div>
                 <button class="group-manage-btn" @click="openGroupManage">Manage</button>
               </div>
               <ul class="side-nav" style="margin-top:8px;">
-                <li v-for="g in customGroups" :key="g"><a href="spjs.html">{{ g }}</a></li>
+                <li v-for="g in customGroups" :key="g" :class="{ active: isForumFeedActive('group', g) }">
+                  <a href="spjs.html" @click.prevent="setForumFeed('group', g)">{{ g }}</a>
+                </li>
               </ul>
             </div>
           </div>
@@ -301,6 +302,16 @@
                                     <template v-else>
                                       <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
                                       <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                      <template v-if="isAuthorFollowed(p) && customGroups.length">
+                                        <button class="post-menu-item group-toggle" :class="{ active: isPostGroupMenuOpen(p) }" type="button" @click.stop="togglePostGroupMenu(p)">
+                                          <span>Custom Groups</span>
+                                          <span class="menu-caret" :class="{ open: isPostGroupMenuOpen(p) }"></span>
+                                        </button>
+                                        <div class="post-menu-group-panel" v-if="isPostGroupMenuOpen(p)">
+                                          <button class="post-menu-item" v-for="g in customGroups" :key="'post-group-' + p.id + '-' + g" :class="{ active: authorGroupForTarget(p) === g }" type="button" @click.stop="assignAuthorToGroup(p, g)">{{ g }}</button>
+                                          <button class="post-menu-item" v-if="authorGroupForTarget(p)" type="button" @click.stop="clearAuthorGroup(p)">Ungroup</button>
+                                        </div>
+                                      </template>
                                       <button class="post-menu-item" type="button" @click.stop="hideAuthorForToday(p)">Hide This User Today</button>
                                       <button class="post-menu-item" type="button" @click.stop="blockAuthorFromPost(p)">Block This User</button>
                                       <button class="post-menu-item danger" type="button" @click.stop="reportAuthorFromPost(p)">Report</button>
@@ -527,21 +538,38 @@
                       <div class="profile-center-sub">Active in Club Forum · Most active club {{ profileMainClub }}</div>
                     </div>
                     <div class="profile-hero-actions">
-                      <div class="profile-follow-wrap">
+                      <div class="profile-follow-wrap" :class="{ 'menu-open': followMenuOpen }" @mouseleave="closeProfileFollowMenu" @click.stop>
                         <button
                           class="profile-hero-action"
-                          :class="{ primary: !isFollowingProfile, followed: isFollowingProfile, 'unfollow-intent': isProfileUnfollowIntent }"
+                          :class="{ primary: !isFollowingProfile, followed: isFollowingProfile }"
                           type="button"
-                          @click="handleFollowClick"
+                          @click.stop="handleFollowClick"
                           @mouseenter="setProfileFollowHover(true)"
                           @mouseleave="setProfileFollowHover(false)"
                         >
                           {{ profileFollowButtonText }}
                         </button>
+                        <div class="profile-follow-menu" v-if="isFollowingProfile && followMenuOpen">
+                          <button class="profile-follow-menu-item" type="button" @click="shareCurrentProfile">Share</button>
+                          <button class="profile-follow-menu-item" :class="{ active: true }" type="button" @click="openUnfollowConfirm(profileUserName)">Following</button>
+                          <template v-if="customGroups.length">
+                            <button class="profile-follow-menu-item group-toggle" :class="{ active: profileGroupMenuOpen }" type="button" @click="toggleProfileGroupMenu">
+                              <span>Custom Groups</span>
+                              <span class="menu-caret" :class="{ open: profileGroupMenuOpen }"></span>
+                            </button>
+                            <div class="profile-follow-menu-group-panel" v-if="profileGroupMenuOpen">
+                              <button class="profile-follow-menu-item" v-for="g in customGroups" :key="'profile-group-' + g" :class="{ active: authorGroupForTarget(profileUserName) === g }" type="button" @click="assignAuthorToGroup(profileUserName, g)">{{ g }}</button>
+                              <button class="profile-follow-menu-item" v-if="authorGroupForTarget(profileUserName)" type="button" @click="clearAuthorGroup(profileUserName)">Ungroup</button>
+                            </div>
+                          </template>
+                          <button class="profile-follow-menu-item" type="button" @click="hideAuthorForToday(profileUserName)">Hide This User Today</button>
+                          <button class="profile-follow-menu-item" type="button" @click="blockAuthorFromPost(profileUserName)">Block This User</button>
+                          <button class="profile-follow-menu-item danger" type="button" @click="reportAuthorFromPost(profileUserName)">Report</button>
+                        </div>
                       </div>
                       <button class="profile-hero-action" type="button" @click="openProfileMessage">Send Message</button>
-                      <div class="profile-more-wrap" :class="{ 'menu-open': moreMenuOpen }" @mouseleave="moreMenuOpen = false">
-                        <button class="profile-hero-more" type="button" @click="toggleMoreMenu">...</button>
+                      <div class="profile-more-wrap" :class="{ 'menu-open': moreMenuOpen }" @mouseleave="moreMenuOpen = false" @click.stop>
+                        <button class="profile-hero-more" type="button" @click.stop="toggleMoreMenu">...</button>
                         <div class="profile-more-menu">
                           <button class="profile-more-menu-item" type="button" @click="shareCurrentProfile">Share Profile</button>
                           <button class="profile-more-menu-item" type="button" @click="notifyMoreAction('Added to blocklist.')">Add to Blocklist</button>
@@ -627,6 +655,16 @@
                                   <template v-else>
                                     <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
                                     <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                    <template v-if="isAuthorFollowed(p) && customGroups.length">
+                                      <button class="post-menu-item group-toggle" :class="{ active: isPostGroupMenuOpen(p) }" type="button" @click.stop="togglePostGroupMenu(p)">
+                                        <span>Custom Groups</span>
+                                        <span class="menu-caret" :class="{ open: isPostGroupMenuOpen(p) }"></span>
+                                      </button>
+                                      <div class="post-menu-group-panel" v-if="isPostGroupMenuOpen(p)">
+                                        <button class="post-menu-item" v-for="g in customGroups" :key="'profile-post-group-' + p.id + '-' + g" :class="{ active: authorGroupForTarget(p) === g }" type="button" @click.stop="assignAuthorToGroup(p, g)">{{ g }}</button>
+                                        <button class="post-menu-item" v-if="authorGroupForTarget(p)" type="button" @click.stop="clearAuthorGroup(p)">Ungroup</button>
+                                      </div>
+                                    </template>
                                     <button class="post-menu-item" type="button" @click.stop="hideAuthorForToday(p)">Hide This User Today</button>
                                     <button class="post-menu-item" type="button" @click.stop="blockAuthorFromPost(p)">Block This User</button>
                                     <button class="post-menu-item danger" type="button" @click.stop="reportAuthorFromPost(p)">Report</button>
@@ -1005,11 +1043,13 @@
         profileUserName:'',
         profileTab:'Posts',
         followMenuOpen:false,
+        profileGroupMenuOpen:false,
         activePostFollowMenuId:null,
         hoveredPostFollowId:null,
         hoveredProfileFollow:false,
         moreMenuOpen:false,
         activePostMenuId:null,
+        activePostGroupMenuId:null,
         currentId:null,
         showImageViewer:false,
         imageViewerSrc:'',
@@ -1059,9 +1099,13 @@
         profileRemoteCoverFor:'',
         profileCoverLoading:false,
         profileSummaryRequestId:0,
+        forumFeedMode:'all',
+        activeCustomGroup:'',
         customGroups:['Colleagues','Classmates'],
+        groupEditBaseline:[],
         newGroupName:'',
         followedAuthors:[],
+        followedAuthorGroups:{},
         hiddenTodayAuthors:[],
         blockedAuthors:[],
         posts:[]
@@ -1097,7 +1141,7 @@
       },
       profileFollowButtonText(){
         if(!this.isFollowingProfile) return 'Follow';
-        return this.isProfileUnfollowIntent ? 'Unfollow' : 'Following';
+        return 'Following';
       },
       sessionDisplayName(){
         const nickname = String(this.sessionNickname || '').trim();
@@ -1135,6 +1179,9 @@
       baseVisiblePosts(){
         return (this.posts || []).filter(p=>this.canViewPost(p));
       },
+      feedScopedPosts(){
+        return this.baseVisiblePosts.filter(p => this.matchesForumFeed(p));
+      },
       filteredPosts(){
         const q = (this.q||'').toLowerCase();
         const adv = this.adv || {};
@@ -1144,7 +1191,7 @@
         const endTs = adv.endDate ? new Date(adv.endDate).setHours(23,59,59,999) : null;
         const minLikes = Number.isFinite(Number(adv.minLikes)) && adv.minLikes !== '' ? Number(adv.minLikes) : null;
         const minComments = Number.isFinite(Number(adv.minComments)) && adv.minComments !== '' ? Number(adv.minComments) : null;
-        let arr = this.baseVisiblePosts.filter(p=>{
+        let arr = this.feedScopedPosts.filter(p=>{
           const channel = p.channel || 'Community';
           const searchableText = [p.content, p.club, p.type, this.displayNameForEntity(p)].filter(Boolean).join(' ').toLowerCase();
           const matchQ = !q || searchableText.includes(q);
@@ -1174,7 +1221,7 @@
         return arr;
       },
       hotPosts(){
-        return this.baseVisiblePosts.slice().sort((a,b)=>{
+        return this.feedScopedPosts.slice().sort((a,b)=>{
           const diff = (b.likes || 0) - (a.likes || 0);
           return diff !== 0 ? diff : (this.postSortValue(b) - this.postSortValue(a));
         });
@@ -1183,17 +1230,17 @@
         return this.showAllHot ? this.hotPosts : this.hotPosts.slice(0, 10);
       },
       videoPostCount(){
-        return this.baseVisiblePosts.filter(p => (p.channel || 'Community') === 'Video').length;
+        return this.feedScopedPosts.filter(p => (p.channel || 'Community') === 'Video').length;
       },
       activeClubCount(){
-        return new Set(this.baseVisiblePosts.map(p => String(p.club || '').trim()).filter(Boolean)).size;
+        return new Set(this.feedScopedPosts.map(p => String(p.club || '').trim()).filter(Boolean)).size;
       },
       totalCommentCount(){
-        return this.baseVisiblePosts.reduce((sum, p) => sum + this.commentCount(p), 0);
+        return this.feedScopedPosts.reduce((sum, p) => sum + this.commentCount(p), 0);
       },
       recentComments(){
         const list = [];
-        this.baseVisiblePosts.forEach(p=>{
+        this.feedScopedPosts.forEach(p=>{
           this.collectPostComments(p).forEach(c=> list.push(c));
         });
         return list.sort((a,b)=> this.commentSortValue(b) - this.commentSortValue(a)).slice(0, 8);
@@ -1328,7 +1375,9 @@
       this.loadProfileCoverState();
       await this.loadForumData();
 
+      this.loadCustomGroupsState();
       this.loadFollowState();
+      this.loadFollowGroupState();
       this.loadHiddenTodayState();
       this.loadBlockedAuthors();
       this.syncProfileFromUrl();
@@ -1488,9 +1537,105 @@
         },
         securitySettingsKey(){ return 'user_security_settings_v1'; },
         coverKey(){ return 'spjs_forum_profile_covers_v1'; },
+        customGroupsKey(){ return 'spjs_forum_custom_groups_v1'; },
         followKey(){ return 'spjs_forum_follow_authors_v1'; },
+        followGroupKey(){ return 'spjs_forum_follow_group_map_v1'; },
         hiddenTodayKey(){ return 'spjs_forum_hidden_today_v1'; },
         blockedKey(){ return 'spjs_forum_blocked_authors_v1'; },
+        normalizeGroupName(value){
+          return String(value || '').trim();
+        },
+        sanitizeCustomGroups(list){
+          const seen = new Set();
+          return (Array.isArray(list) ? list : [])
+            .map(item => this.normalizeGroupName(item))
+            .filter(item => {
+              if(!item || seen.has(item)) return false;
+              seen.add(item);
+              return true;
+            });
+        },
+        normalizeAuthorTarget(target){
+          return typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        },
+        loadCustomGroupsState(){
+          try{
+            const raw = localStorage.getItem(this.customGroupsKey());
+            const parsed = raw ? JSON.parse(raw) : [];
+            const next = this.sanitizeCustomGroups(Array.isArray(parsed) && parsed.length ? parsed : this.customGroups);
+            this.customGroups = next.length ? next : ['Colleagues','Classmates'];
+          }catch(e){
+            this.customGroups = this.sanitizeCustomGroups(this.customGroups);
+          }
+          this.groupEditBaseline = this.customGroups.slice();
+        },
+        saveCustomGroupsState(){
+          localStorage.setItem(this.customGroupsKey(), JSON.stringify(this.customGroups));
+        },
+        loadFollowGroupState(){
+          try{
+            const raw = localStorage.getItem(this.followGroupKey());
+            const parsed = raw ? JSON.parse(raw) : {};
+            const allowed = new Set(this.customGroups);
+            const followed = new Set(this.followedAuthors);
+            const next = {};
+            if(parsed && typeof parsed === 'object' && !Array.isArray(parsed)){
+              Object.keys(parsed).forEach((author) => {
+                const name = this.normalizeAuthorTarget(author);
+                const group = this.normalizeGroupName(parsed[author]);
+                if(name && group && allowed.has(group) && followed.has(name)){
+                  next[name] = group;
+                }
+              });
+            }
+            this.followedAuthorGroups = next;
+          }catch(e){
+            this.followedAuthorGroups = {};
+          }
+        },
+        saveFollowGroupState(){
+          const followed = new Set(this.followedAuthors);
+          const allowed = new Set(this.customGroups);
+          const next = {};
+          Object.keys(this.followedAuthorGroups || {}).forEach((author) => {
+            const name = this.normalizeAuthorTarget(author);
+            const group = this.normalizeGroupName(this.followedAuthorGroups[author]);
+            if(name && group && followed.has(name) && allowed.has(group)){
+              next[name] = group;
+            }
+          });
+          this.followedAuthorGroups = next;
+          localStorage.setItem(this.followGroupKey(), JSON.stringify(next));
+        },
+        isForumFeedActive(mode, group=''){
+          if(mode === 'group'){
+            return this.forumFeedMode === 'group' && this.activeCustomGroup === this.normalizeGroupName(group);
+          }
+          return this.forumFeedMode === mode;
+        },
+        setForumFeed(mode, group=''){
+          this.forumFeedMode = String(mode || 'all').trim() || 'all';
+          this.activeCustomGroup = this.forumFeedMode === 'group' ? this.normalizeGroupName(group) : '';
+          if(this.forumFeedMode === 'latest'){
+            this.sortBy = 'new';
+          }
+          if(this.isProfileView){
+            this.closeUserProfile();
+          }else{
+            this.scrollToForumMain();
+          }
+        },
+        matchesForumFeed(post){
+          const mode = String(this.forumFeedMode || 'all').trim() || 'all';
+          const author = this.normalizeAuthorTarget(post);
+          if(mode === 'following' || mode === 'friends'){
+            return this.isAuthorFollowed(author);
+          }
+          if(mode === 'group'){
+            return !!this.activeCustomGroup && this.authorGroupForTarget(author) === this.activeCustomGroup;
+          }
+          return true;
+        },
         loadSecuritySettingsMap(){
           try{
             const raw = localStorage.getItem(this.securitySettingsKey());
@@ -1540,16 +1685,25 @@
         if(visibility === 'private') return 'Private';
         return 'Public';
       },
-      isAuthorFollowed(target){
-        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
-        return !!name && this.followedAuthors.includes(name);
+        isAuthorFollowed(target){
+          const name = this.normalizeAuthorTarget(target);
+          return !!name && this.followedAuthors.includes(name);
+        },
+      isPostGroupMenuOpen(target){
+        const id = this.normalizeId(target && target.id);
+        return !!id && this.activePostGroupMenuId === id;
+      },
+      authorGroupForTarget(target){
+        const name = this.normalizeAuthorTarget(target);
+        if(!name) return '';
+        return this.normalizeGroupName((this.followedAuthorGroups || {})[name]);
       },
       isAuthorHiddenToday(target){
-        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        const name = this.normalizeAuthorTarget(target);
         return !!name && this.hiddenTodayAuthors.includes(name);
       },
       isAuthorBlocked(target){
-        const name = typeof target === 'string' ? String(target || '').trim() : this.displayNameForEntity(target);
+        const name = this.normalizeAuthorTarget(target);
         return !!name && this.blockedAuthors.includes(name);
       },
       canViewPost(post){
@@ -1567,10 +1721,22 @@
         const id = this.normalizeId(postId);
         if(!id) return;
         this.closePostFollowMenu();
-        this.activePostMenuId = this.activePostMenuId === id ? null : id;
+        this.closeProfileFollowMenu();
+        if(this.activePostMenuId === id){
+          this.closePostMenu();
+          return;
+        }
+        this.activePostGroupMenuId = null;
+        this.activePostMenuId = id;
       },
       closePostMenu(){
         this.activePostMenuId = null;
+        this.activePostGroupMenuId = null;
+      },
+      togglePostGroupMenu(post){
+        const id = this.normalizeId(post && post.id);
+        if(!id) return;
+        this.activePostGroupMenuId = this.activePostGroupMenuId === id ? null : id;
       },
       openPostFollowMenu(post){
         if(!post || !this.isAuthorFollowed(post)) return;
@@ -1596,12 +1762,19 @@
       setProfileFollowHover(shouldHover){
         this.hoveredProfileFollow = !!shouldHover;
       },
+      toggleProfileGroupMenu(){
+        this.profileGroupMenuOpen = !this.profileGroupMenuOpen;
+      },
+      closeProfileFollowMenu(){
+        this.followMenuOpen = false;
+        this.profileGroupMenuOpen = false;
+      },
       openUnfollowConfirm(name){
         const targetName = String(name || '').trim();
         if(!targetName) return;
         this.unfollowConfirmName = targetName;
         this.showUnfollowConfirmModal = true;
-        this.followMenuOpen = false;
+        this.closeProfileFollowMenu();
         this.closePostFollowMenu();
       },
       closeUnfollowConfirm(){
@@ -1613,14 +1786,15 @@
       confirmUnfollow(){
         const name = String(this.unfollowConfirmName || '').trim();
         if(name){
-          this.followedAuthors = this.followedAuthors.filter(item => item !== name);
-          this.saveFollowState();
+          this.removeFollowedAuthor(name);
         }
         this.hoveredPostFollowId = null;
         this.hoveredProfileFollow = false;
         this.closeUnfollowConfirm();
       },
       handleWindowClick(){
+        this.closeProfileFollowMenu();
+        this.moreMenuOpen = false;
         this.closePostMenu();
         this.closePostFollowMenu();
       },
@@ -1704,13 +1878,9 @@
         this.openUnfollowConfirm(this.displayNameForEntity(post));
       },
       followAuthorFromPost(post){
-        const name = this.displayNameForEntity(post);
+        const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
-        this.closePostMenu();
-        if(!this.followedAuthors.includes(name)){
-          this.followedAuthors = this.followedAuthors.concat(name);
-          this.saveFollowState();
-        }
+        this.ensureAuthorFollowed(name);
         this.hoveredPostFollowId = null;
       },
       unfollowAuthorFromPost(post){
@@ -1723,8 +1893,9 @@
         alert(text);
       },
       hideAuthorForToday(post){
-        const name = this.displayNameForEntity(post);
+        const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
+        this.followMenuOpen = false;
         this.closePostFollowMenu();
         if(!this.hiddenTodayAuthors.includes(name)){
           this.hiddenTodayAuthors = this.hiddenTodayAuthors.concat(name);
@@ -1736,15 +1907,15 @@
         this.closePostMenu();
       },
       blockAuthorFromPost(post){
-        const name = this.displayNameForEntity(post);
+        const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
+        this.followMenuOpen = false;
         this.closePostFollowMenu();
         if(!this.blockedAuthors.includes(name)){
           this.blockedAuthors = this.blockedAuthors.concat(name);
           this.saveBlockedAuthors();
         }
-        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
-        this.saveFollowState();
+        this.removeFollowedAuthor(name);
         if(this.current && this.displayNameForEntity(this.current) === name){
           this.closeModal();
         }
@@ -1752,6 +1923,7 @@
       },
       reportAuthorFromPost(post){
         if(!post) return;
+        this.followMenuOpen = false;
         this.closePostMenu();
         alert('Report submitted.');
       },
@@ -2216,26 +2388,79 @@
         try{
           const raw = localStorage.getItem(this.followKey());
           const parsed = raw ? JSON.parse(raw) : [];
-          this.followedAuthors = Array.isArray(parsed) ? parsed.map(v => String(v || '').trim()).filter(Boolean) : [];
+          this.followedAuthors = Array.isArray(parsed)
+            ? Array.from(new Set(parsed.map(v => String(v || '').trim()).filter(Boolean)))
+            : [];
         }catch(e){
           this.followedAuthors = [];
         }
       },
       saveFollowState(){
+        this.followedAuthors = Array.from(new Set((this.followedAuthors || []).map(item => String(item || '').trim()).filter(Boolean)));
         localStorage.setItem(this.followKey(), JSON.stringify(this.followedAuthors));
+        this.saveFollowGroupState();
+      },
+      ensureAuthorFollowed(target){
+        const name = this.normalizeAuthorTarget(target);
+        if(!name) return '';
+        if(!this.followedAuthors.includes(name)){
+          this.followedAuthors = this.followedAuthors.concat(name);
+          this.saveFollowState();
+        }
+        return name;
+      },
+      removeFollowedAuthor(target){
+        const name = this.normalizeAuthorTarget(target);
+        if(!name) return;
+        let groupChanged = false;
+        this.followedAuthors = this.followedAuthors.filter(item => item !== name);
+        if(this.followedAuthorGroups && this.followedAuthorGroups[name]){
+          const nextMap = Object.assign({}, this.followedAuthorGroups);
+          delete nextMap[name];
+          this.followedAuthorGroups = nextMap;
+          groupChanged = true;
+        }
+        this.saveFollowState();
+        if(groupChanged) this.saveFollowGroupState();
+      },
+      assignAuthorToGroup(target, groupName){
+        const name = this.ensureAuthorFollowed(target);
+        const group = this.normalizeGroupName(groupName);
+        if(!name || !group || !this.customGroups.includes(group)) return;
+        this.followedAuthorGroups = Object.assign({}, this.followedAuthorGroups || {}, {
+          [name]: group
+        });
+        this.saveFollowGroupState();
+        this.closeProfileFollowMenu();
+        this.closePostMenu();
+      },
+      clearAuthorGroup(target){
+        const name = this.normalizeAuthorTarget(target);
+        if(!name || !this.followedAuthorGroups || !this.followedAuthorGroups[name]) return;
+        const nextMap = Object.assign({}, this.followedAuthorGroups);
+        delete nextMap[name];
+        this.followedAuthorGroups = nextMap;
+        this.saveFollowGroupState();
+        this.closeProfileFollowMenu();
+        this.closePostMenu();
       },
       handleFollowClick(){
         const name = String(this.profileUserName || '').trim();
         if(!name) return;
         this.moreMenuOpen = false;
         if(!this.isFollowingProfile){
-          this.followedAuthors = this.followedAuthors.concat(name);
-          this.saveFollowState();
+          this.ensureAuthorFollowed(name);
           this.hoveredProfileFollow = false;
-          this.followMenuOpen = false;
+          this.profileGroupMenuOpen = false;
+          this.followMenuOpen = true;
           return;
         }
-        this.openUnfollowConfirm(name);
+        if(this.followMenuOpen){
+          this.closeProfileFollowMenu();
+          return;
+        }
+        this.profileGroupMenuOpen = false;
+        this.followMenuOpen = !this.followMenuOpen;
       },
       unfollowProfile(){
         const name = String(this.profileUserName || '').trim();
@@ -2243,11 +2468,11 @@
         this.openUnfollowConfirm(name);
       },
       notifyFollowAction(text){
-        this.followMenuOpen = false;
+        this.closeProfileFollowMenu();
         alert(text);
       },
       toggleMoreMenu(){
-        this.followMenuOpen = false;
+        this.closeProfileFollowMenu();
         this.moreMenuOpen = !this.moreMenuOpen;
       },
       notifyMoreAction(text){
@@ -2875,6 +3100,7 @@
         }
       },
       shareCurrentProfile(){
+        this.followMenuOpen = false;
         this.moreMenuOpen = false;
         const url = location.href.split('#')[0];
         if(navigator.clipboard && navigator.clipboard.writeText){
@@ -3063,9 +3289,40 @@
         };
       },
       openGroupManage(){
+        this.groupEditBaseline = this.customGroups.slice();
         this.showGroupManage = true;
       },
       closeGroupManage(){
+        const previous = this.groupEditBaseline.slice();
+        const current = Array.isArray(this.customGroups) ? this.customGroups.slice() : [];
+        const nextGroups = this.sanitizeCustomGroups(current);
+        const allowed = new Set(nextGroups);
+        const renameMap = {};
+        const maxLength = Math.max(previous.length, current.length);
+        for(let i = 0; i < maxLength; i += 1){
+          const before = this.normalizeGroupName(previous[i]);
+          const after = this.normalizeGroupName(current[i]);
+          if(before && after && before !== after){
+            renameMap[before] = after;
+          }
+        }
+        const nextFollowMap = {};
+        Object.keys(this.followedAuthorGroups || {}).forEach((author) => {
+          let group = this.normalizeGroupName(this.followedAuthorGroups[author]);
+          if(renameMap[group]) group = renameMap[group];
+          if(group && allowed.has(group)){
+            nextFollowMap[author] = group;
+          }
+        });
+        this.customGroups = nextGroups.length ? nextGroups : ['Colleagues','Classmates'];
+        this.followedAuthorGroups = nextFollowMap;
+        if(this.forumFeedMode === 'group' && !this.customGroups.includes(this.activeCustomGroup)){
+          this.forumFeedMode = 'all';
+          this.activeCustomGroup = '';
+        }
+        this.saveCustomGroupsState();
+        this.saveFollowGroupState();
+        this.groupEditBaseline = this.customGroups.slice();
         this.showGroupManage = false;
         this.newGroupName = '';
       },
@@ -3074,6 +3331,7 @@
         if(!name) return;
         if(this.customGroups.includes(name)) return;
         this.customGroups.push(name);
+        this.saveCustomGroupsState();
         this.newGroupName = '';
       },
       removeGroup(idx){

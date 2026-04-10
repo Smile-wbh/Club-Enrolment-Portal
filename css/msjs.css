@@ -694,10 +694,6 @@ select {
   color: #7e4f92;
 }
 
-.quick-pill.social:not(.active) {
-  color: #0f8c7b;
-}
-
 .results-section {
   padding: 28px 0 42px;
 }

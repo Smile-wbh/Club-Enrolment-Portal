@@ -15,7 +15,66 @@
 
   function normalizeCoverValue(value) {
     var text = trimText(value);
-    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+    return text;
+  }
+
+  var CLUB_COVER_MAP = {
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  };
+
+  var CLUB_CUSTOM_COVER_SLUGS = {
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  };
+
+  var LEGACY_GENERIC_COVER_SET = {
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  };
+
+  function normalizeClubCoverSlug(value) {
+    return trimText(value)
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-(club|society)$/g, '');
+  }
+
+  function resolveClubCover(slug, value) {
+    var normalizedSlug = normalizeClubCoverSlug(slug);
+    var text = normalizeCoverValue(value);
+    var fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+    if (!fallbackCover) return text;
+    if (!text) return fallbackCover;
+    if (text === fallbackCover) return text;
+    if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+      return fallbackCover;
+    }
+    return text;
   }
 
   function normalizeEmail(value) {
@@ -236,7 +295,7 @@
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
         fee: trimText(club.fee_text) || '£0',
-        cover: normalizeCoverValue(club.cover_url),
+        cover: resolveClubCover(trimText(club.slug), club.cover_url),
         tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map(function (tag) { return trimText(tag); }) : [],
         desc: trimText(club.description || club.hero_sub),
         heroSub: trimText(club.hero_sub),

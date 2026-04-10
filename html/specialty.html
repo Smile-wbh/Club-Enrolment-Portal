@@ -393,6 +393,41 @@
 </div>
 
 <script>
+  const CLUB_COVER_MAP = Object.freeze({
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  });
+  const CLUB_CUSTOM_COVER_SLUGS = Object.freeze({
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  });
+  const LEGACY_GENERIC_COVER_SET = Object.freeze({
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  });
+
   const bookingApp = new Vue({
     el: '#app',
     data() {
@@ -481,31 +516,63 @@
             id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
             tags: ['Half-court Games', 'Shooting Practice', 'Teamwork'],
             location: 'Basketball Court D (In-person)',
-            seats: 18, fee: '£0 (Free)', cover: '../zp/hb1.webp', slots: []
+            seats: 18, fee: '£0 (Free)', cover: '../zp/lq.webp', slots: []
           },
           {
             id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
             tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome'],
             location: 'Practice Ground E (In-person)',
-            seats: 12, fee: '£5/session (Optional)', cover: '../zp/hb2.webp', slots: []
+            seats: 12, fee: '£5/session (Optional)', cover: '../zp/grf.webp', slots: []
           },
           {
             id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
             tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training'],
             location: 'Stadium F (In-person)',
-            seats: 22, fee: '£0', cover: '../zp/hb3.webp', slots: []
+            seats: 22, fee: '£0', cover: '../zp/glq.webp', slots: []
           },
           {
             id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
             tags: ['Attack and Defense', 'Core Coordination', 'Training Camp'],
             location: 'Sports Hall G (In-person)',
-            seats: 16, fee: '£0', cover: '../zp/hb2.webp', slots: []
+            seats: 16, fee: '£0', cover: '../zp/sj.webp', slots: []
           },
           {
             id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
             tags: ['Core Movements', 'Flexibility Training', 'Open Class'],
             location: 'Gym Hall H (In-person)',
-            seats: 14, fee: '£0', cover: '../zp/hb1.webp', slots: []
+            seats: 14, fee: '£0', cover: '../zp/tc.webp', slots: []
+          },
+          {
+            id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
+            desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
+            time: 'Wed/Sun (see booking page)',
+            tags: ['Foundations Coaching', 'Footwork Drills', 'Serve & Receive'],
+            location: 'Multi-Sport Hall I (In-person)',
+            seats: 20, fee: '£0', cover: '../zp/ppq.webp', slots: []
+          },
+          {
+            id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
+            time: 'Tue/Sat (see booking page)',
+            tags: ['Passing Basics', 'Serve & Set', 'Team Rotation'],
+            location: 'Sports Hall J (In-person)',
+            seats: 22, fee: '£0', cover: '../zp/pq.webp', slots: []
+          },
+          {
+            id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
+            time: 'Thu (see booking page)',
+            tags: ['Beginner-Friendly', 'Serve & Return', 'Social Matches'],
+            location: 'Multi-Purpose Hall K (In-person)',
+            seats: 24, fee: '£0', cover: '../zp/pkq.webp', slots: []
+          },
+          {
+            id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
+            desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
+            time: 'Sat (see booking page)',
+            tags: ['Throwing & Catching', 'Batting Practice', 'Base Running'],
+            location: 'Baseball Field L (In-person)',
+            seats: 18, fee: '£0', cover: '../zp/hb1.webp', slots: []
           }
         ]
       };
@@ -1286,7 +1353,7 @@
           time: String(club.time || '').trim(),
           seats: seats,
           fee: String(club.fee || '£0').trim(),
-          cover: this.normalizeCoverValue(club.cover || ''),
+          cover: this.resolveClubCover(slug, club.cover || ''),
           tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map((tag) => String(tag).trim()) : [],
           slots: slots,
           slotsByDay: slotsByDay
@@ -1294,12 +1361,43 @@
       },
       normalizeCoverValue(value) {
         const text = String(value || '').trim();
-        return ['../zp/zq.webp', '../zp/ymq.webp', '../zp/gywm.webp'].includes(text) ? '' : text;
+        return text;
+      },
+      resolveClubCover(slug, value) {
+        const normalizedSlug = String(slug || '')
+          .trim()
+          .toLowerCase()
+          .replace(/[_\s]+/g, '-')
+          .replace(/-+/g, '-')
+          .replace(/^-+|-+$/g, '')
+          .replace(/-(club|society)$/g, '');
+        const text = this.normalizeCoverValue(value);
+        const fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+        if (!fallbackCover) return text;
+        if (!text) return fallbackCover;
+        if (text === fallbackCover) return text;
+        if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+          return fallbackCover;
+        }
+        return text;
+      },
+      buildClubMapBySlug(list) {
+        const out = {};
+        (Array.isArray(list) ? list : []).forEach((club) => {
+          if (!club || !club.slug || out[club.slug]) return;
+          out[club.slug] = club;
+        });
+        return out;
+      },
+      applyFallbackCover(list, fallbackBySlug) {
+        return (Array.isArray(list) ? list : []).map((club) => {
+          if (!club || !club.slug || String(club.cover || '').trim()) return club;
+          const fallback = fallbackBySlug && fallbackBySlug[club.slug];
+          if (!fallback || !String(fallback.cover || '').trim()) return club;
+          return Object.assign({}, club, { cover: fallback.cover });
+        });
       },
       refreshClubPool() {
-        const supabase = (this.supabaseClubs || [])
-          .map((club) => this.normalizeStoredClub(club, 'supabase'))
-          .filter(Boolean);
         const base = (this.baseClubsSnapshot || [])
           .map((club) => this.normalizeStoredClub(club, 'base'))
           .filter(Boolean);
@@ -1309,10 +1407,14 @@
         const extra = this.loadExtraClubs()
           .map((club) => this.normalizeStoredClub(club, 'extra'))
           .filter(Boolean);
+        const fallbackBySlug = this.buildClubMapBySlug(registry.concat(extra, base));
+        const supabase = this.applyFallbackCover((this.supabaseClubs || [])
+          .map((club) => this.normalizeStoredClub(club, 'supabase'))
+          .filter(Boolean), fallbackBySlug);
         const seen = new Set();
         const next = [];
         const catalog = this.cloudBookingCatalogEnabled
-          ? supabase
+          ? supabase.concat(registry, extra, base)
           : registry.concat(extra, base);
 
         catalog.forEach((club) => {

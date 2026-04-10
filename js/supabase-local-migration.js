@@ -148,7 +148,7 @@
       time: 'Wed/Sat 18:00-20:00',
       seats: 18,
       fee: '£0 (Free)',
-      cover: '../zp/hb1.webp',
+      cover: '../zp/lq.webp',
       tags: ['League Sign-up', 'Tactical Training', 'Scrimmages']
     },
     {
@@ -162,7 +162,7 @@
       time: 'Sun 09:30-11:30',
       seats: 12,
       fee: '£5/session (Optional)',
-      cover: '../zp/hb2.webp',
+      cover: '../zp/grf.webp',
       tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome']
     },
     {
@@ -176,7 +176,7 @@
       time: 'Tue/Thu 16:30-18:00',
       seats: 22,
       fee: '£0',
-      cover: '../zp/hb3.webp',
+      cover: '../zp/glq.webp',
       tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training']
     },
     {
@@ -190,7 +190,7 @@
       time: 'Mon 18:30-20:00',
       seats: 16,
       fee: '£0',
-      cover: '../zp/hb2.webp',
+      cover: '../zp/sj.webp',
       tags: ['Team Coordination', 'Grouped Practice', 'Event Sign-up']
     },
     {
@@ -204,8 +204,64 @@
       time: 'Fri 17:00-18:30',
       seats: 14,
       fee: '£0',
-      cover: '../zp/hb1.webp',
+      cover: '../zp/tc.webp',
       tags: ['Flexibility Training', 'Strength Growth', 'Movement Demonstration']
+    },
+    {
+      id: 'embedded-pingpong',
+      slug: 'pingpong',
+      name: 'Table Tennis Club',
+      category: 'Sports',
+      mode: 'In-person',
+      desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
+      location: 'Multi-Sport Hall I (In-person)',
+      time: 'Wed/Sun (see booking page)',
+      seats: 20,
+      fee: '£0',
+      cover: '../zp/ppq.webp',
+      tags: ['Foundations Coaching', 'Footwork Drills', 'Serve & Receive']
+    },
+    {
+      id: 'embedded-volleyball',
+      slug: 'volleyball',
+      name: 'Volleyball Club',
+      category: 'Sports',
+      mode: 'In-person',
+      desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
+      location: 'Sports Hall J (In-person)',
+      time: 'Tue/Sat (see booking page)',
+      seats: 22,
+      fee: '£0',
+      cover: '../zp/pq.webp',
+      tags: ['Passing Basics', 'Serve & Set', 'Team Rotation']
+    },
+    {
+      id: 'embedded-pickleball',
+      slug: 'pickleball',
+      name: 'Pickleball Club',
+      category: 'Sports',
+      mode: 'In-person',
+      desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
+      location: 'Multi-Purpose Hall K (In-person)',
+      time: 'Thu (see booking page)',
+      seats: 24,
+      fee: '£0',
+      cover: '../zp/pkq.webp',
+      tags: ['Beginner-Friendly', 'Serve & Return', 'Social Matches']
+    },
+    {
+      id: 'embedded-baseball',
+      slug: 'baseball',
+      name: 'Baseball Club',
+      category: 'Sports',
+      mode: 'In-person',
+      desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
+      location: 'Baseball Field L (In-person)',
+      time: 'Sat (see booking page)',
+      seats: 18,
+      fee: '£0',
+      cover: '../zp/hb1.webp',
+      tags: ['Throwing & Catching', 'Batting Practice', 'Base Running']
     }
   ];
 
@@ -304,7 +360,66 @@
 
   function normalizeCoverValue(value) {
     var text = trimText(value);
-    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+    return text;
+  }
+
+  var CLUB_COVER_MAP = {
+    football: '../zp/zq.webp',
+    badminton: '../zp/ymq.webp',
+    swimming: '../zp/yy1.webp',
+    cycling: '../zp/qx.webp',
+    programming: '../zp/bc.webp',
+    tennis: '../zp/wq.webp',
+    music: '../zp/yy.webp',
+    running: '../zp/pb.webp',
+    basketball: '../zp/lq.webp',
+    golf: '../zp/grf.webp',
+    rugby: '../zp/glq.webp',
+    handball: '../zp/sj.webp',
+    gymnastics: '../zp/tc.webp',
+    pingpong: '../zp/ppq.webp',
+    baseball: '../zp/hb1.webp',
+    volleyball: '../zp/pq.webp',
+    pickleball: '../zp/pkq.webp'
+  };
+
+  var CLUB_CUSTOM_COVER_SLUGS = {
+    basketball: true,
+    golf: true,
+    rugby: true,
+    handball: true,
+    gymnastics: true,
+    pingpong: true,
+    volleyball: true,
+    pickleball: true
+  };
+
+  var LEGACY_GENERIC_COVER_SET = {
+    '../zp/hb1.webp': true,
+    '../zp/hb2.webp': true,
+    '../zp/hb3.webp': true
+  };
+
+  function normalizeClubCoverSlug(value) {
+    return trimText(value)
+      .toLowerCase()
+      .replace(/[_\s]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .replace(/-(club|society)$/g, '');
+  }
+
+  function resolveClubCover(slug, value) {
+    var normalizedSlug = normalizeClubCoverSlug(slug);
+    var text = normalizeCoverValue(value);
+    var fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
+    if (!fallbackCover) return text;
+    if (!text) return fallbackCover;
+    if (text === fallbackCover) return text;
+    if (CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]) {
+      return fallbackCover;
+    }
+    return text;
   }
 
   function slugify(value) {
@@ -471,7 +586,7 @@
       time: trimText(club.time || club.time_text),
       fee: trimText(club.fee || club.fee_text) || '£0',
       seats: seats,
-      cover: normalizeCoverValue(club.cover || club.cover_url),
+      cover: resolveClubCover(slug, club.cover || club.cover_url),
       tags: toArray(club.tags),
       desc: trimText(club.desc || club.description),
       heroSub: trimText(club.heroSub || club.hero_sub || club.desc || club.description),
@@ -532,7 +647,7 @@
       location: trimText(course.location),
       seats: Math.max(0, toNumber(course.seats, 0)),
       fee: trimText(course.fee || course.feeText || course.fee_text) || 'Free',
-      cover: normalizeCoverValue(course.cover || course.cover_url || course.clubCover),
+      cover: resolveClubCover(course.clubSlug || course.clubCategory || course.club || course.clubName, course.cover || course.cover_url || course.clubCover),
       desc: trimText(course.desc || course.description),
       lead: trimText(course.lead),
       detail: trimText(course.detail),
