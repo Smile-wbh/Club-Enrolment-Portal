@@ -9,145 +9,442 @@
   <link rel="stylesheet" href="../css/join.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <style>
+    body.admin-page{
+      min-height: 100vh;
+      padding-bottom: 40px;
+      background:
+        radial-gradient(circle at top left, rgba(86, 142, 223, 0.22), transparent 26%),
+        radial-gradient(circle at top right, rgba(255, 192, 120, 0.18), transparent 24%),
+        linear-gradient(180deg, #eef4ff 0%, #f6f9ff 48%, #fbfcff 100%);
+    }
+    #app{
+      padding: 28px 24px 0;
+    }
+    .dashboard-layout{
+      display: grid;
+      grid-template-columns: 284px minmax(0, 1fr);
+      max-width: 1520px;
+      margin: 0 auto;
+      align-items: start;
+      gap: 24px;
+    }
+    .sidebar{
+      width: auto;
+      min-height: calc(100vh - 68px);
+      position: sticky;
+      top: 24px;
+      background:
+        radial-gradient(circle at top right, rgba(255,255,255,0.18), transparent 28%),
+        linear-gradient(180deg, #173861 0%, #1f4b82 56%, #295996 100%);
+      border: 1px solid rgba(139, 177, 228, 0.28);
+      box-shadow: 0 26px 54px rgba(22, 52, 97, 0.22);
+    }
+    .sidebar-header{
+      display: flex;
+      align-items: flex-start;
+      height: auto;
+      justify-content: flex-start;
+      min-height: 136px;
+      padding: 24px 22px 20px;
+      background: transparent;
+      border-bottom: 1px solid rgba(214, 230, 255, 0.16);
+      color: #fff;
+    }
+    .sidebar-brand-copy{
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+      text-align: left;
+    }
+    .sidebar-brand-copy strong{
+      font-size: 20px;
+      line-height: 1.1;
+      letter-spacing: 0.01em;
+    }
+    .sidebar-brand-copy span{
+      color: rgba(232, 242, 255, 0.82);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+    .sidebar-menu{
+      padding: 16px 12px 18px;
+    }
+    .menu-item{
+      margin: 6px 4px;
+      min-height: 48px;
+      border-radius: 16px;
+      color: rgba(235, 243, 255, 0.82);
+      background: rgba(255,255,255,0.03);
+      font-weight: 600;
+    }
+    .menu-item:hover{
+      background: rgba(255,255,255,0.12);
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+      transform: translateX(2px);
+    }
+    .menu-item.active{
+      background: linear-gradient(135deg, rgba(255,255,255,0.98), rgba(235,243,255,0.92));
+      color: #143f74;
+      box-shadow: 0 12px 24px rgba(8, 25, 50, 0.22);
+    }
+    .menu-item:last-child{
+      margin-top: 14px;
+      background: rgba(255,255,255,0.08);
+    }
+    .main-content{
+      min-width: 0;
+      gap: 20px;
+    }
+    .top-header{
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      min-height: 136px;
+      padding: 24px 28px;
+      border-radius: 28px;
+      border: 1px solid rgba(198, 216, 242, 0.82);
+      background:
+        radial-gradient(circle at top right, rgba(112, 170, 255, 0.14), transparent 22%),
+        linear-gradient(135deg, rgba(255,255,255,0.94), rgba(244,248,255,0.94));
+      box-shadow: 0 18px 40px rgba(29, 63, 111, 0.1);
+      backdrop-filter: blur(12px);
+    }
+    .header-title-wrap{
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 0;
+    }
+    .header-title-meta{
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 28px;
+      width: fit-content;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(52, 111, 191, 0.08);
+      color: #41699b;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .header-title{
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      color: #16375c;
+    }
+    .header-title-icon{
+      width: 52px;
+      height: 52px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #204f88, #346eb5);
+      color: #fff;
+      font-size: 22px;
+      box-shadow: 0 16px 28px rgba(36, 88, 154, 0.22);
+      flex: 0 0 auto;
+    }
+    .header-title strong{
+      display: block;
+      font-size: 30px;
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+    }
+    .header-title p{
+      margin: 8px 0 0;
+      color: #6881a1;
+      font-size: 14px;
+      line-height: 1.7;
+      max-width: 680px;
+    }
+    .header-right{
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+    .header-search{
+      position: relative;
+      min-width: min(100%, 300px);
+    }
+    .header-search input{
+      width: 100%;
+      height: 48px;
+      border-radius: 16px;
+      border: 1px solid #d4e0ef;
+      padding: 0 42px 0 16px;
+      background: #f6f9ff;
+      color: #6b7f99;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
+    }
+    .header-search span{
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #8ea0ba;
+      pointer-events: none;
+    }
+    .header-icon-btn{
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      border: 1px solid #d7e3f2;
+      color: #3d628f;
+      box-shadow: 0 10px 22px rgba(23, 52, 97, 0.08);
+      cursor: pointer;
+    }
+    .header-profile-chip{
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 46px;
+      padding: 0 16px;
+      border-radius: 16px;
+      background: #fff;
+      border: 1px solid #d7e3f2;
+      color: #28486f;
+      box-shadow: 0 10px 22px rgba(23, 52, 97, 0.08);
+      font-weight: 700;
+      cursor: default;
+    }
+    .header-profile-chip small{
+      color: #7f92ac;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .admin-refresh-btn{
+      min-width: auto;
+      padding: 0 18px;
+      min-height: 46px;
+      border-radius: 16px;
+      box-shadow: 0 14px 28px rgba(245, 108, 108, 0.2);
+    }
+    .dashboard-content{
+      overflow: visible;
+    }
+    .dashboard-content > div{
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
     .stats-grid{
       display:grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap:16px;
-      margin-bottom: 20px;
+      gap:18px;
+      margin-bottom: 4px;
     }
     .stat-card{
-      background:#fff;
-      border-radius: 6px;
-      padding: 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+      position: relative;
+      overflow: hidden;
+      border-radius: 24px;
+      padding: 22px 22px 20px;
+      border: 1px solid rgba(214, 226, 243, 0.94);
+      background:
+        radial-gradient(circle at top right, rgba(127, 167, 226, 0.18), transparent 28%),
+        linear-gradient(180deg, #ffffff 0%, #f7faff 100%);
+      box-shadow: 0 18px 34px rgba(28, 58, 104, 0.09);
+    }
+    .stat-card::after{
+      content:"";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #457ac8, #72b0ff);
+      opacity: 0.92;
+    }
+    .stat-card:nth-child(2)::after{
+      background: linear-gradient(90deg, #5f7ad4, #9bb0ff);
+    }
+    .stat-card:nth-child(3)::after{
+      background: linear-gradient(90deg, #25a28b, #72d4be);
+    }
+    .stat-card:nth-child(4)::after{
+      background: linear-gradient(90deg, #f2a54f, #ffd58a);
     }
     .stat-title{
       font-size: 12px;
-      color:#909399;
-      margin-bottom: 8px;
+      color:#7990ad;
+      margin-bottom: 10px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
     }
     .stat-value{
-      font-size: 22px;
+      font-size: 30px;
       font-weight: 700;
-      color:#303133;
+      color:#203a5c;
+      line-height: 1.12;
     }
     .stat-sub{
-      margin-top: 8px;
+      margin-top: 10px;
       font-size: 12px;
-      color:#606266;
+      color:#6d7f98;
+      line-height: 1.6;
     }
     .toolbar{
       display:flex;
-      gap:10px;
+      gap:12px;
       align-items:center;
       flex-wrap: wrap;
-      margin-bottom: 12px;
+      margin-bottom: 16px;
+      padding: 14px;
+      border-radius: 18px;
+      background: linear-gradient(180deg, #f8fbff 0%, #f2f7ff 100%);
+      border: 1px solid #dbe7f6;
     }
     .toolbar input, .toolbar select{
-      height: 32px;
-      border: 1px solid #dcdfe6;
-      border-radius: 6px;
-      padding: 0 10px;
-      font-size: 13px;
+      height: 44px;
+      border: 1px solid #d2deee;
+      border-radius: 14px;
+      padding: 0 14px;
+      font-size: 14px;
       outline: none;
+      background: #fff;
+      color: #314862;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.72);
+    }
+    .toolbar input{
+      min-width: 240px;
+    }
+    .pill{
+      border-radius: 999px;
+      font-weight: 800;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.42);
     }
     .pill.warn{ background:#fff7e6; border-color:#ffd591; color:#ad6800; }
     .pill.good{ background:#f6ffed; border-color:#b7eb8f; color:#389e0d; }
     .pill.bad{ background:#fff1f0; border-color:#ffa39e; color:#cf1322; }
     .policy-card{
-      background:#fff;
-      border-radius: 6px;
-      padding: 16px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-      margin-bottom: 16px;
+      position: relative;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+      border-radius: 24px;
+      padding: 22px 22px 20px;
+      border: 1px solid #dbe7f6;
+      box-shadow: 0 18px 34px rgba(28, 58, 104, 0.08);
+      margin-bottom: 18px;
+    }
+    .policy-card::before{
+      content:"";
+      position: absolute;
+      left: 0;
+      top: 22px;
+      bottom: 22px;
+      width: 4px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #477ed0, #7bb6ff);
     }
     .policy-title{
-      font-size: 16px;
-      font-weight: 600;
-      margin-bottom: 10px;
-      color:#303133;
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color:#203a5c;
+      padding-left: 14px;
     }
     .policy-list{
       margin:0;
-      padding-left: 18px;
-      color:#606266;
+      padding-left: 32px;
+      color:#5b6f89;
       line-height: 1.7;
       font-size: 14px;
     }
     .chat-admin-layout{
       display:grid;
-      grid-template-columns: 260px 1fr;
-      gap: 16px;
+      grid-template-columns: 300px 1fr;
+      gap: 18px;
     }
     .chat-user-list{
-      border: 1px solid #ebeef5;
-      border-radius: 8px;
-      background:#fafafa;
-      padding: 8px;
+      border: 1px solid #dbe6f4;
+      border-radius: 22px;
+      background: linear-gradient(180deg, #f8fbff 0%, #f3f7fd 100%);
+      padding: 12px;
       max-height: 520px;
       overflow:auto;
     }
     .chat-user{
-      background:#fff;
-      border: 1px solid #eef1f5;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 8px;
+      background: rgba(255,255,255,0.92);
+      border: 1px solid #e4ecf6;
+      border-radius: 18px;
+      padding: 14px;
+      margin-bottom: 10px;
       cursor: pointer;
-      transition: .15s ease;
+      transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
     }
     .chat-user.active{
-      border-color:#cfe0ff;
-      box-shadow: 0 6px 14px rgba(18, 38, 70, 0.08);
+      border-color:#bfd6fb;
+      box-shadow: 0 16px 28px rgba(25, 51, 92, 0.12);
+      transform: translateY(-1px);
     }
     .chat-user-title{
-      font-weight: 600;
-      font-size: 13px;
-      color:#303133;
+      font-weight: 800;
+      font-size: 14px;
+      color:#274769;
     }
     .chat-user-sub{
       font-size: 12px;
-      color:#909399;
+      color:#7588a1;
       margin-top: 4px;
+      line-height: 1.6;
     }
     .chat-user-meta{
       font-size: 11px;
-      color:#b1b7c0;
-      margin-top: 4px;
+      color:#97a8bf;
+      margin-top: 6px;
     }
     .chat-thread{
-      border: 1px solid #ebeef5;
-      border-radius: 8px;
-      background:#fff;
+      border: 1px solid #dbe6f4;
+      border-radius: 24px;
+      background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
       display:flex;
       flex-direction: column;
       min-height: 520px;
+      box-shadow: 0 18px 34px rgba(28, 58, 104, 0.08);
     }
     .chat-thread-head{
-      padding: 10px 14px;
-      border-bottom: 1px solid #ebeef5;
+      padding: 16px 18px;
+      border-bottom: 1px solid #e6edf7;
       display:flex;
       align-items:center;
       justify-content: space-between;
-      font-size: 13px;
+      font-size: 14px;
+      font-weight: 700;
+      color: #28486f;
     }
     .chat-thread-body{
       flex: 1;
-      padding: 12px 14px;
-      background:#f5f7fb;
+      padding: 16px 18px;
+      background:
+        radial-gradient(circle at top right, rgba(116, 175, 255, 0.08), transparent 24%),
+        #f5f8fd;
       overflow:auto;
     }
     .chat-bubble{
       max-width: 80%;
-      padding: 8px 10px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-      font-size: 12px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      margin-bottom: 12px;
+      font-size: 13px;
       line-height: 1.6;
+      box-shadow: 0 12px 22px rgba(23, 52, 97, 0.06);
     }
     .chat-bubble.user{
       margin-left:auto;
-      background:#d8f0ee;
+      background: linear-gradient(135deg, #d8f2f0, #c7ebe7);
       color:#103c3a;
     }
     .chat-bubble.bot,
@@ -194,22 +491,24 @@
       margin-top: 4px;
     }
     .chat-reply{
-      border-top: 1px solid #ebeef5;
-      padding: 12px 14px;
+      border-top: 1px solid #e6edf7;
+      padding: 16px 18px 18px;
       background:#fff;
     }
     .chat-reply textarea{
       width: 100%;
-      min-height: 80px;
-      border: 1px solid #dcdfe6;
-      border-radius: 6px;
-      padding: 8px 10px;
-      font-size: 12px;
+      min-height: 92px;
+      border: 1px solid #d2deee;
+      border-radius: 18px;
+      padding: 12px 14px;
+      font-size: 13px;
       resize: vertical;
       outline: none;
+      background: #f8fbff;
+      color: #344a65;
     }
     .chat-reply-actions{
-      margin-top: 8px;
+      margin-top: 12px;
       display:flex;
       gap: 10px;
       flex-wrap: wrap;
@@ -218,26 +517,151 @@
       display:flex;
       align-items:center;
       gap: 10px;
+      flex-wrap: wrap;
     }
     .template-keywords{
       font-size: 12px;
-      color:#909399;
+      color:#7588a1;
+      line-height: 1.6;
+    }
+    .content-card{
+      min-height: 0;
+      padding: 24px;
+      border-radius: 28px;
+      border: 1px solid rgba(213, 225, 242, 0.95);
+      background:
+        radial-gradient(circle at top right, rgba(114, 176, 255, 0.08), transparent 20%),
+        linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,255,0.96));
+      box-shadow: 0 22px 42px rgba(29, 63, 111, 0.1);
+    }
+    .page-header{
+      margin-bottom: 18px;
+      padding-bottom: 14px;
+      border-bottom: 1px solid #e8eef7;
+      align-items: center;
+    }
+    .page-title{
+      font-size: 24px;
+      color: #1d3f6a;
+      letter-spacing: -0.02em;
+    }
+    .data-table{
+      border-collapse: separate;
+      border-spacing: 0 10px;
+    }
+    .data-table thead th{
+      padding: 0 14px 10px;
+      color: #7a8ea9;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      border: 0;
+    }
+    .data-table tbody td{
+      padding: 16px 14px;
+      border-top: 1px solid #e8eef7;
+      border-bottom: 1px solid #e8eef7;
+      background: rgba(255,255,255,0.92);
+      color: #31465f;
+      vertical-align: middle;
+    }
+    .data-table tbody td:first-child{
+      border-left: 1px solid #e8eef7;
+      border-top-left-radius: 18px;
+      border-bottom-left-radius: 18px;
+    }
+    .data-table tbody td:last-child{
+      border-right: 1px solid #e8eef7;
+      border-top-right-radius: 18px;
+      border-bottom-right-radius: 18px;
+    }
+    .data-table tbody tr:hover td{
+      background: #f9fbff;
+      border-color: #d9e5f4;
+    }
+    .action-btn{
+      min-height: 36px;
+      padding: 0 14px;
+      font-size: 12px;
+      border-radius: 999px;
+      margin-right: 8px;
+      font-weight: 800;
+      box-shadow: 0 10px 18px rgba(26, 68, 129, 0.08);
+    }
+    .btn-blue{
+      background: linear-gradient(135deg, #3576d1, #5ea0ff);
+    }
+    .btn-red{
+      background: linear-gradient(135deg, #ef6a73, #f58b92);
+    }
+    .action-btn:not(.btn-blue):not(.btn-red){
+      background: linear-gradient(135deg, #edf4ff, #dce9ff);
+      color: #3f6599;
+    }
+    .btn{
+      border-radius: 14px;
+    }
+    @media (max-width: 1320px){
+      .top-header{
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .header-right{
+        justify-content: flex-start;
+      }
     }
     @media (max-width: 1200px){
       .stats-grid{ grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
     @media (max-width: 768px){
+      #app{
+        padding: 16px 14px 0;
+      }
+      .dashboard-layout{
+        grid-template-columns: 1fr;
+      }
+      .sidebar{
+        position: static;
+        min-height: 0;
+      }
+      .top-header{
+        padding: 20px 18px;
+        border-radius: 22px;
+        min-height: 0;
+      }
+      .header-title{
+        gap: 12px;
+      }
+      .header-title strong{
+        font-size: 24px;
+      }
+      .header-title-icon{
+        width: 46px;
+        height: 46px;
+        border-radius: 14px;
+      }
+      .toolbar{
+        padding: 12px;
+      }
+      .toolbar input{
+        min-width: 0;
+        width: 100%;
+      }
       .stats-grid{ grid-template-columns: 1fr; }
       .chat-admin-layout{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
-<body>
-<div id="app">
+<body class="admin-page">
+  <div id="app">
   <div class="dashboard-layout">
     <div class="sidebar">
       <div class="sidebar-header">
-        <span>Admin</span>
+        <div class="sidebar-brand-copy">
+          <strong>Admin Console</strong>
+          <span>Review clubs, community content, bookings, and support from one clean workspace.</span>
+        </div>
       </div>
       <div class="sidebar-menu">
         <div class="menu-item" :class="{active: adminTab==='overview'}" @click="adminTab='overview'">
@@ -267,21 +691,27 @@
 
     <div class="main-content">
       <div class="top-header">
-        <div class="header-title">
-          <span style="margin-right:10px; cursor:pointer">☰</span>
-          Admin Dashboard
+        <div class="header-title-wrap">
+          <div class="header-title-meta">Platform Control Center</div>
+          <div class="header-title">
+            <span class="header-title-icon">☰</span>
+            <div>
+              <strong>Admin Dashboard</strong>
+              <p>Monitor registration reviews, safety checks, booking status, and support responses in one place.</p>
+            </div>
+          </div>
         </div>
         <div class="header-right">
           <div class="header-search">
-            <input type="text" placeholder="Search currently unavailable" disabled style="background:#f5f7fa; cursor:not-allowed">
-            <span style="position:absolute; right:10px; top:8px; color:#999">🔍</span>
+            <input type="text" placeholder="Search currently unavailable" disabled style="cursor:not-allowed">
+            <span>🔍</span>
           </div>
-          <div style="cursor:pointer" title="Notifications">🔔</div>
-          <div style="display:flex; align-items:center; gap:8px; cursor:pointer">
-            <span style="font-size:14px; color:#333">Super Admin</span>
-            <span style="font-size:12px; color:#999">▼</span>
+          <div class="header-icon-btn" title="Notifications">🔔</div>
+          <div class="header-profile-chip">
+            <span>Super Admin</span>
+            <small>▼</small>
           </div>
-          <button class="btn danger" style="padding:6px 12px; min-width:auto; font-size:12px;" @click="refreshAll">Refresh</button>
+          <button class="btn danger admin-refresh-btn" @click="refreshAll">Refresh</button>
         </div>
       </div>
 
@@ -291,22 +721,18 @@
             <div class="stat-card">
               <div class="stat-title">Registered Users</div>
               <div class="stat-value">{{ stats.totalUsers }}</div>
-              <div class="stat-sub">Data source: club_users</div>
             </div>
             <div class="stat-card">
               <div class="stat-title">Club (Approved / Pending Review)</div>
               <div class="stat-value">{{ stats.approvedClubs }} / {{ stats.pendingClubs }}</div>
-              <div class="stat-sub">Data source: club_registry_v1</div>
             </div>
             <div class="stat-card">
               <div class="stat-title">Bookings (Active / No-show)</div>
               <div class="stat-value">{{ stats.activeBookings }} / {{ stats.noShowBookings }}</div>
-              <div class="stat-sub">Data source: specialty_bookings_v1</div>
             </div>
             <div class="stat-card">
               <div class="stat-title">Forum Posts / Comments</div>
               <div class="stat-value">{{ stats.totalPosts }} / {{ stats.totalComments }}</div>
-              <div class="stat-sub">Data source: spjs_forum_posts_v1</div>
             </div>
           </div>
 

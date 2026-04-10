@@ -122,6 +122,41 @@
     );
   }
 
+  function shouldUseHistoryBack() {
+    var referrer = String(document.referrer || '').trim();
+    if (!referrer) return false;
+    try {
+      var refUrl = new URL(referrer, window.location.href);
+      return refUrl.origin === window.location.origin && refUrl.href !== window.location.href;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function mountBackButton() {
+    var wrap = document.querySelector('.wrap');
+    if (!wrap || wrap.querySelector('.detail-back-row')) return;
+
+    var prefix = getPathPrefix();
+    var fallbackHref = prefix + 'msjs.html';
+
+    var row = document.createElement('div');
+    row.className = 'detail-back-row';
+
+    var button = document.createElement('a');
+    button.className = 'detail-back-btn';
+    button.href = fallbackHref;
+    button.textContent = '← Back';
+    button.addEventListener('click', function (event) {
+      if (!shouldUseHistoryBack()) return;
+      event.preventDefault();
+      window.history.back();
+    });
+
+    row.appendChild(button);
+    wrap.insertBefore(row, wrap.firstChild);
+  }
+
   function mountHeader() {
     var topbar = document.querySelector('.topbar');
     if (!topbar || document.querySelector('.portal-header')) return;
@@ -214,6 +249,7 @@
 
   async function boot() {
     mountHeader();
+    mountBackButton();
     await ensureStaticDetailMap();
   }
 
