@@ -57,6 +57,57 @@
     .system-picker-actions { display: flex; gap: 10px; flex-wrap: wrap; }
     .system-picker-actions .btn { min-width: 180px; }
     .guest-auth-box { scroll-margin-top: 24px; }
+    .auth-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 14px 0;
+      color: #8a99b3;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .auth-divider::before,
+    .auth-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(138, 153, 179, 0.28);
+    }
+    .google-auth-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      background: #fff;
+      color: #214a86;
+      border: 1px solid rgba(70, 118, 196, 0.24);
+      box-shadow: 0 10px 24px rgba(44, 91, 170, 0.08);
+    }
+    .google-auth-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 28px rgba(44, 91, 170, 0.12);
+    }
+    .google-auth-mark {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: conic-gradient(from 220deg, #ea4335 0 25%, #fbbc05 25% 50%, #34a853 50% 75%, #4285f4 75% 100%);
+      color: #fff;
+      font-weight: 800;
+      font-size: 12px;
+      line-height: 1;
+    }
+    .auth-subhint {
+      margin-top: 10px;
+      color: #64748b;
+      font-size: 13px;
+      line-height: 1.6;
+    }
   </style>
 
 </head>
@@ -150,6 +201,12 @@
                   </div>
 
                   <button class="btn primary auth-btn" @click="doLogin">Log In</button>
+                  <div class="auth-divider">or</div>
+                  <button class="btn auth-btn google-auth-btn" @click="loginWithGoogle">
+                    <span class="google-auth-mark">G</span>
+                    <span>Continue with Google</span>
+                  </button>
+                  <div class="auth-subhint">First-time Google sign-in will create an account automatically with the same email.</div>
 
                   <div class="hint" v-if="loginStatus">{{ loginStatus }}</div>
                 </div>
@@ -2936,6 +2993,33 @@
           return this.doLoginWithSupabase();
         }
         return this.doLoginLegacy();
+      },
+      async loginWithGoogle(){
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+        this.loginStatus = '';
+        if(!this.hasSupabaseConfigured()){
+          this.loginStatus = 'Google sign-in requires Supabase auth to be configured first.';
+          return;
+        }
+        const supabase = this.getSupabaseClientSafe();
+        if(!supabase || !supabase.auth || typeof supabase.auth.signInWithOAuth !== 'function'){
+          this.loginStatus = 'Google sign-in is not available right now.';
+          return;
+        }
+        try{
+          const { error } = await supabase.auth.signInWithOAuth({
+            provider: 'google',
+            options: {
+              redirectTo: this.buildJoinRedirectUrl()
+            }
+          });
+          if(error){
+            this.loginStatus = this.mapAuthErrorMessage(error, 'Unable to start Google sign-in right now.');
+          }
+        }catch(e){
+          this.loginStatus = 'Unable to start Google sign-in right now.';
+        }
       },
       async doLoginWithSupabase(){
         this.showSystemPicker = false;
