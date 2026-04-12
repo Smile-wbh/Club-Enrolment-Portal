@@ -2072,6 +2072,39 @@
           return [];
         }
       },
+      loadLocalClubBookings(){
+        if(this.isBusinessLocalCacheDisabled()) return [];
+        try {
+          const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
+          return (Array.isArray(all) ? all : [])
+            .filter(item => this.normalizeEmail(item && item.userEmail) === this.normalizeEmail(this.sessionEmail))
+            .slice();
+        } catch(e){
+          return [];
+        }
+      },
+      mergeClubBookings(primary, fallback){
+        const map = {};
+        const merged = [];
+        const push = (item) => {
+          if(!item) return;
+          const key = String(item.id || '').trim()
+            || String(item.orderId || '').trim()
+            || [
+              item.clubSlug || '',
+              item.clubName || '',
+              item.dayIso || item.dayLabel || '',
+              item.slotTime || '',
+              this.normalizeEmail(item.userEmail)
+            ].join('|');
+          if(!key || map[key]) return;
+          map[key] = true;
+          merged.push(item);
+        };
+        (Array.isArray(primary) ? primary : []).forEach(push);
+        (Array.isArray(fallback) ? fallback : []).forEach(push);
+        return merged;
+      },
       mergeTeachingBookings(primary, fallback){
         const map = {};
         const merged = [];
@@ -2377,6 +2410,9 @@
       },
       normalizeEmail(value){
         return (value || '').trim().toLowerCase();
+      },
+      isUuidText(value){
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
       },
       isValidEmail(value){
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
@@ -3461,40 +3497,17 @@
         if(this.hasSupabaseConfigured() && this.sessionUserId && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
           window.clubBookingSupabase.fetchMyBookings(this.sessionUserId, this.sessionEmail)
             .then((mine) => {
-              this.sortMyBookingLists(mine);
+              const fallback = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalClubBookings();
+              this.sortMyBookingLists(this.mergeClubBookings(mine, fallback));
             })
             .catch(() => {
-              if(this.isBusinessLocalCacheDisabled()){
-                this.myBookings = [];
-                this.myBookingHistory = [];
-                return;
-              }
-              try {
-                const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
-                const mine = all.filter(b => this.normalizeEmail(b && b.userEmail) === this.normalizeEmail(this.sessionEmail)).slice();
-                this.sortMyBookingLists(mine);
-              } catch(e) {
-                this.myBookings = [];
-                this.myBookingHistory = [];
-              }
+              const fallback = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalClubBookings();
+              this.sortMyBookingLists(fallback);
             });
           return;
         }
-        if(this.isBusinessLocalCacheDisabled()){
-          this.myBookings = [];
-          this.myBookingHistory = [];
-          return;
-        }
-        try {
-          const all = JSON.parse(localStorage.getItem('specialty_bookings_v1') || '[]');
-          const mine = all
-            .filter(b => this.normalizeEmail(b && b.userEmail) === this.normalizeEmail(this.sessionEmail))
-            .slice();
-          this.sortMyBookingLists(mine);
-        } catch(e) {
-          this.myBookings = [];
-          this.myBookingHistory = [];
-        }
+        const fallback = this.isBusinessLocalCacheDisabled() ? [] : this.loadLocalClubBookings();
+        this.sortMyBookingLists(fallback);
       },
       async cancelBooking(b){
         const bookingTime = new Date(b.dayIso + ' ' + b.slotTime.split('-')[0]);
@@ -3514,7 +3527,7 @@
           })
           : confirm('Cancel this booking?');
         if(shouldCancel){
-          if(this.hasSupabaseConfigured() && b && b.id && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
+          if(this.hasSupabaseConfigured() && b && this.isUuidText(b.id) && window.clubBookingSupabase && window.clubBookingSupabase.isConfigured()){
             window.clubBookingSupabase.cancelBooking(b.id)
               .then((updated) => {
                 if(!this.isBusinessLocalCacheDisabled()){
