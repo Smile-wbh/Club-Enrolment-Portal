@@ -162,42 +162,6 @@
     });
   }
 
-  function buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index) {
-    var item = templateSlot || {};
-    var slotTime = trimText(item.time);
-    var slotShort = trimText(item.time_short) || (slotTime ? slotTime.split('-')[0].trim() : '');
-    return {
-      id: 'synthetic-' + trimText(club && club.id || club && club.slug || 'club') + '-' + trimText(dayIso) + '-' + index,
-      dbId: '',
-      time: slotTime,
-      time_short: slotShort,
-      capacity: 0,
-      dayIso: trimText(dayIso),
-      dayLabel: trimText(dayIso),
-      startTime: trimText(item.startTime) || slotShort,
-      endTime: trimText(item.endTime),
-      bookedCount: 0,
-      syntheticUnavailable: true
-    };
-  }
-
-  function buildDefaultDisplaySlots(capacity) {
-    var list = [];
-    for (var hour = 9; hour < 21; hour += 1) {
-      var startText = String(hour) + ':00';
-      var endText = String(hour + 1) + ':00';
-      list.push({
-        id: 'default-slot-' + hour,
-        time: startText + '-' + endText,
-        time_short: startText,
-        startTime: startText,
-        endTime: endText,
-        capacity: Number(capacity || 0)
-      });
-    }
-    return list;
-  }
-
   function timeTextToMinutes(value) {
     var match = trimText(value).match(/^(\d{1,2}):(\d{2})$/);
     if (!match) return null;
@@ -438,12 +402,7 @@
       var weeklyEntries = parseWeeklyTimeEntries(club && club.time_text);
       var actualTemplate = buildTemplateSlots(grouped, seats);
       var weeklyTemplate = buildWeeklyTemplateSlots(weeklyEntries, seats, trimText(club && (club.id || club.slug)) || 'club');
-      var needsDisplayTemplate = Object.keys(grouped).length > 0 || weeklyEntries.length > 0;
-      var template = combineTemplateLists([
-        needsDisplayTemplate ? buildDefaultDisplaySlots(seats) : [],
-        actualTemplate,
-        weeklyTemplate
-      ], seats);
+      var template = combineTemplateLists([actualTemplate, weeklyTemplate], seats);
       var timeSummary = trimText(club && club.time_text);
       var normalizedByDay = {};
 
@@ -460,32 +419,14 @@
         });
       });
 
-      if (template.length && dayRange.length) {
+      if (dayRange.length) {
         dayRange.forEach(function (dayIso) {
           var actual = Array.isArray(normalizedByDay[dayIso]) ? normalizedByDay[dayIso].slice() : [];
           var generated = buildWeeklySlotsForDay(weeklyEntries, dayIso, seats, trimText(club && (club.id || club.slug)) || 'club');
           var mergedActual = mergeSlotsByTime(actual, generated);
-          if (!mergedActual.length) {
-            normalizedByDay[dayIso] = template.map(function (templateSlot, index) {
-              return buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index);
-            });
-            return;
-          }
-          if (mergedActual.length >= template.length) {
+          if (mergedActual.length) {
             normalizedByDay[dayIso] = mergedActual;
-            return;
           }
-          var actualByTime = {};
-          mergedActual.forEach(function (slot) {
-            var slotTime = trimText(slot && slot.time);
-            if (slotTime) actualByTime[slotTime] = slot;
-          });
-          normalizedByDay[dayIso] = template.map(function (templateSlot, index) {
-            var slotTime = trimText(templateSlot && templateSlot.time);
-            return slotTime && actualByTime[slotTime]
-              ? actualByTime[slotTime]
-              : buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index);
-          });
         });
       }
 

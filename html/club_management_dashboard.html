@@ -2628,6 +2628,110 @@
         };
       }
 
+      function clubTimeDayToWeekIndex(day){
+        var map = {
+          Sun: 0,
+          Mon: 1,
+          Tue: 2,
+          Wed: 3,
+          Thu: 4,
+          Fri: 5,
+          Sat: 6
+        };
+        var key = String(day || '').trim();
+        return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : -1;
+      }
+
+      function clubTimeToMinutes(raw){
+        var match = String(raw || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+        if(!match) return -1;
+        return Number(match[1]) * 60 + Number(match[2]);
+      }
+
+      function clubMinutesToTime(raw){
+        var total = Number(raw);
+        if(!Number.isFinite(total) || total < 0) return '';
+        var hour = Math.floor(total / 60);
+        var minute = total % 60;
+        return String(hour).padStart(2, '0') + ':' + String(minute).padStart(2, '0');
+      }
+
+      function buildClubSchedulePayload(entries, seats){
+        var list = Array.isArray(entries) ? entries : [];
+        var capacity = Math.max(1, Number(seats) || 20);
+        var slots = [];
+        var slotsByDay = {};
+        if(!list.length){
+          return {
+            slots: [],
+            slotsByDay: null
+          };
+        }
+
+        var templateSeen = {};
+        list.forEach(function(entry, entryIndex){
+          var dayIndex = clubTimeDayToWeekIndex(entry.day);
+          var startMinutes = clubTimeToMinutes(entry.start);
+          var endMinutes = clubTimeToMinutes(entry.end);
+          if(dayIndex < 0 || startMinutes < 0 || endMinutes <= startMinutes) return;
+          for(var cursor = startMinutes; cursor < endMinutes; cursor += 60){
+            var next = Math.min(cursor + 60, endMinutes);
+            if(next <= cursor) break;
+            var startText = clubMinutesToTime(cursor);
+            var endText = clubMinutesToTime(next);
+            var timeText = startText + '-' + endText;
+            if(!templateSeen[timeText]){
+              templateSeen[timeText] = true;
+              slots.push({
+                id: 'club-template-' + entryIndex + '-' + cursor,
+                time: timeText,
+                time_short: startText,
+                startTime: startText,
+                endTime: endText,
+                capacity: capacity
+              });
+            }
+          }
+        });
+
+        var startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        for(var offset = 0; offset < 84; offset += 1){
+          var currentDate = new Date(startDate);
+          currentDate.setDate(startDate.getDate() + offset);
+          var currentDayIndex = currentDate.getDay();
+          var dayIso = formatDate(currentDate);
+          list.forEach(function(entry, entryIndex){
+            if(clubTimeDayToWeekIndex(entry.day) !== currentDayIndex) return;
+            var startMinutes = clubTimeToMinutes(entry.start);
+            var endMinutes = clubTimeToMinutes(entry.end);
+            if(startMinutes < 0 || endMinutes <= startMinutes) return;
+            for(var cursor = startMinutes; cursor < endMinutes; cursor += 60){
+              var next = Math.min(cursor + 60, endMinutes);
+              if(next <= cursor) break;
+              var startText = clubMinutesToTime(cursor);
+              var endText = clubMinutesToTime(next);
+              if(!slotsByDay[dayIso]) slotsByDay[dayIso] = [];
+              slotsByDay[dayIso].push({
+                id: 'club-slot-' + dayIso + '-' + entryIndex + '-' + cursor,
+                time: startText + '-' + endText,
+                time_short: startText,
+                startTime: startText,
+                endTime: endText,
+                capacity: capacity,
+                dayIso: dayIso,
+                dayLabel: dayIso
+              });
+            }
+          });
+        }
+
+        return {
+          slots: slots,
+          slotsByDay: Object.keys(slotsByDay).length ? slotsByDay : null
+        };
+      }
+
       async function resolveClubCover(mode, fallback){
         var refs = getClubFormRefs(mode);
         var coverUrl = refs.coverUrl ? sanitizeClubCoverValue(refs.coverUrl.value) : '';
@@ -2668,6 +2772,16 @@
 
       function buildClubPayload(values, currentClub, cover){
         var existing = currentClub || null;
+        var weeklyTimeEntries = parseClubTimeList(values.time).map(function(slot){
+          if(!slot || slot.custom) return null;
+          return {
+            day: String(slot.day || '').trim(),
+            start: padTimeText(slot.start),
+            end: padTimeText(slot.end),
+            label: buildClubTimeSlotLabel(slot)
+          };
+        }).filter(Boolean);
+        var slotSchedule = buildClubSchedulePayload(weeklyTimeEntries, values.seats);
         return {
           id: existing && existing.id ? existing.id : Date.now(),
           slug: existing && existing.slug ? existing.slug : slugify(values.name),
@@ -2678,6 +2792,7 @@
           mapLink: values.mapLink,
           onlineLink: values.onlineLink,
           time: values.time,
+          weeklyTimeEntries: weeklyTimeEntries,
           fee: values.fee,
           seats: values.seats,
           cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
@@ -2689,7 +2804,8 @@
           audience: values.audience,
           trainingPlan: values.trainingPlan,
           notes: values.notes,
-          slots: (existing && Array.isArray(existing.slots)) ? existing.slots : [],
+          slots: slotSchedule.slots,
+          slotsByDay: slotSchedule.slotsByDay,
           ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
           createdAt: (existing && existing.createdAt) || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
