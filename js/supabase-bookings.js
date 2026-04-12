@@ -7,6 +7,10 @@
     return String(value || '').trim();
   }
 
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimText(value));
+  }
+
   function formatClubFeeText(value) {
     var text = trimText(value).replace(/^[£$€¥]\s*/, '');
     if (!text) return '';
@@ -387,7 +391,7 @@
   function buildClubCatalog(clubs, slots, availabilityMap, startDate, endDate) {
     var slotGroups = {};
     (Array.isArray(slots) ? slots : []).forEach(function (slot) {
-      if (!slot || !slot.club_id || !slot.id) return;
+      if (!slot || !slot.club_id || !slot.id || trimText(slot.status).toLowerCase() === 'closed') return;
       var clubKey = trimText(slot.club_id);
       if (!slotGroups[clubKey]) slotGroups[clubKey] = {};
       var dayIso = trimText(slot.day_iso);
@@ -561,6 +565,9 @@
 
   function mapCreateBookingError(error) {
     var text = trimText(error && error.message).toLowerCase();
+    if (text.indexOf('slot_not_synced') > -1 || text.indexOf('invalid input syntax for type uuid') > -1) {
+      return 'This club schedule has not finished syncing yet. Please ask the club owner to open Edit Club and save once, then try booking again.';
+    }
     if (text.indexOf('slot_full') > -1) return 'This slot is already full. Please choose another one.';
     if (text.indexOf('slot_conflict') > -1) return 'You already have another booking in the same time slot.';
     if (text.indexOf('slot_expired') > -1) return 'This slot has expired and can no longer be booked.';
@@ -572,11 +579,15 @@
   async function createBooking(order, userEmail) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var slotId = trimText(order && order.slotId);
+    if (!isUuid(slotId)) {
+      throw new Error('slot_not_synced');
+    }
 
     var result = await client.rpc('create_club_booking', {
       p_order_id: trimText(order && order.orderId),
       p_club_id: trimText(order && order.clubId),
-      p_slot_id: trimText(order && order.slotId),
+      p_slot_id: slotId,
       p_location: trimText(order && order.location),
       p_fee_text: trimText(order && order.feeText),
       p_base_fee: Number(order && order.baseFee || 0),

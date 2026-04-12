@@ -50,6 +50,10 @@
     return String(value || '').trim();
   }
 
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimText(value));
+  }
+
   function formatClubFeeText(value) {
     var text = trimText(value).replace(/^[£$€¥]\s*/, '');
     if (!text) return '';
@@ -88,6 +92,116 @@
   function toNumber(value, fallback) {
     var numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
+  }
+
+  function formatIsoDate(value) {
+    var date = value instanceof Date ? new Date(value.getTime()) : new Date(trimText(value));
+    if (Number.isNaN(date.getTime())) {
+      date = new Date();
+    }
+    date.setHours(0, 0, 0, 0);
+    var year = date.getFullYear();
+    var month = String(date.getMonth() + 1).padStart(2, '0');
+    var day = String(date.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function toSqlTime(value, fallbackHour) {
+    var text = trimText(value);
+    var match = text.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    if (!match) {
+      return String(Number(fallbackHour || 0)).padStart(2, '0') + ':00:00';
+    }
+    return String(Number(match[1])).padStart(2, '0') + ':' + match[2] + ':00';
+  }
+
+  function chunkList(list, size) {
+    var items = Array.isArray(list) ? list : [];
+    var chunkSize = Math.max(1, Number(size) || 100);
+    var out = [];
+    for (var index = 0; index < items.length; index += chunkSize) {
+      out.push(items.slice(index, index + chunkSize));
+    }
+    return out;
+  }
+
+  function buildClubSlotRows(remoteClub, payload) {
+    var rows = [];
+    var clubId = trimText(remoteClub && remoteClub.id);
+    var seats = Math.max(1, toNumber(payload && payload.seats, 20));
+    var slotsByDay = payload && payload.slotsByDay && typeof payload.slotsByDay === 'object'
+      ? payload.slotsByDay
+      : null;
+    if (!clubId || !slotsByDay) return rows;
+
+    Object.keys(slotsByDay).forEach(function (dayIso) {
+      var items = Array.isArray(slotsByDay[dayIso]) ? slotsByDay[dayIso] : [];
+      items.forEach(function (slot, index) {
+        var slotTime = trimText(slot && slot.time);
+        var parts = slotTime.split('-');
+        rows.push({
+          club_id: clubId,
+          day_iso: formatIsoDate(dayIso),
+          day_label: trimText(slot && slot.dayLabel) || formatIsoDate(dayIso),
+          start_time: toSqlTime(slot && (slot.startTime || parts[0]), 9 + index),
+          end_time: toSqlTime(slot && (slot.endTime || parts[1]), 10 + index),
+          capacity: Math.max(1, toNumber(slot && slot.capacity, seats)),
+          status: 'open'
+        });
+      });
+    });
+
+    return rows;
+  }
+
+  function buildClubSlotKey(row) {
+    return [
+      trimText(row && (row.club_id || row.clubId)),
+      formatIsoDate(row && (row.day_iso || row.dayIso)),
+      toSqlTime(row && (row.start_time || row.startTime), 0),
+      toSqlTime(row && (row.end_time || row.endTime), 0)
+    ].join('|');
+  }
+
+  async function syncClubSlots(client, remoteClub, payload) {
+    var clubId = trimText(remoteClub && remoteClub.id);
+    if (!clubId) return;
+
+    var rows = buildClubSlotRows(remoteClub, payload);
+    var desiredKeys = {};
+    rows.forEach(function (row) {
+      desiredKeys[buildClubSlotKey(row)] = true;
+    });
+
+    if (rows.length) {
+      var chunks = chunkList(rows, 150);
+      for (var i = 0; i < chunks.length; i += 1) {
+        var upsertResult = await client
+          .from('club_slots')
+          .upsert(chunks[i], { onConflict: 'club_id,day_iso,start_time,end_time' });
+        if (upsertResult.error) throw upsertResult.error;
+      }
+    }
+
+    var existingResult = await client
+      .from('club_slots')
+      .select('id, club_id, day_iso, start_time, end_time, status')
+      .eq('club_id', clubId);
+    if (existingResult.error) throw existingResult.error;
+
+    var existingRows = Array.isArray(existingResult.data) ? existingResult.data : [];
+    var toClose = existingRows
+      .filter(function (row) { return !desiredKeys[buildClubSlotKey(row)] && trimText(row && row.status) !== 'closed'; })
+      .map(function (row) { return trimText(row && row.id); })
+      .filter(isUuid);
+
+    if (toClose.length) {
+      var closeResult = await client
+        .from('club_slots')
+        .update({ status: 'closed' })
+        .in('id', toClose);
+      if (closeResult.error) throw closeResult.error;
+    }
   }
 
   function isMissingCourseMapLinkColumn(error) {
@@ -389,6 +503,7 @@
       .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at')
       .single();
     if (result.error) throw result.error;
+    await syncClubSlots(client, result.data, payload);
     return mapClubRow(result.data);
   }
 
@@ -402,6 +517,7 @@
       .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at')
       .single();
     if (result.error) throw result.error;
+    await syncClubSlots(client, result.data, payload);
     return mapClubRow(result.data);
   }
 

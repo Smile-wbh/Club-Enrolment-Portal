@@ -1442,15 +1442,22 @@
         const match = text.match(/£\s*(\d+(?:\.\d+)?)/i);
         return match ? Number(match[1]) : 0;
       },
+      isUuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+      },
       goToPayment() {
         if (!this.pendingBooking || !this.currentClub || !this.sessionEmail) return;
 
         const baseFee = this.parseFeeAmount(this.currentClub.fee);
         const serviceFee = baseFee > 0 ? 1 : 0;
+        const clubDbId = this.isUuid(this.currentClub.dbId) ? String(this.currentClub.dbId).trim() : '';
+        const slotDbId = this.isUuid(this.pendingBooking.slot && this.pendingBooking.slot.dbId)
+          ? String(this.pendingBooking.slot.dbId).trim()
+          : '';
         const pendingOrder = {
           orderId: this.createPaymentOrderId(),
-          bookingSource: this.useSupabaseBookings && !!(this.currentClub.dbId && this.pendingBooking.slot && this.pendingBooking.slot.dbId) ? 'supabase' : 'local',
-          clubId: this.currentClub.dbId || '',
+          bookingSource: this.useSupabaseBookings && !!(clubDbId && slotDbId) ? 'supabase' : 'local',
+          clubId: clubDbId,
           clubSlug: this.selectedClubSlug,
           clubName: this.currentClub.name,
           category: this.currentClub.category,
@@ -1458,7 +1465,7 @@
           cover: this.currentClub.cover || '',
           dayIso: this.pendingBooking.dayIso,
           dayLabel: this.pendingBooking.dayLabel,
-          slotId: this.pendingBooking.slot.dbId || this.pendingBooking.slot.id,
+          slotId: slotDbId || this.pendingBooking.slot.id,
           slotTime: this.pendingBooking.slot.time,
           location: this.currentClub.location,
           feeText: this.currentClub.fee,
@@ -1499,9 +1506,11 @@
         const slots = rawSlots.length
           ? rawSlots.map((slot, index) => {
               const timeText = String(slot && slot.time || '').trim();
+              const slotId = String(slot && slot.id || `${source}-${slug}-s-${index}`);
+              const slotDbId = this.isUuid(slot && slot.dbId) ? String(slot.dbId).trim() : (this.isUuid(slotId) ? slotId : '');
               return {
-                id: String(slot && slot.id || `${source}-${slug}-s-${index}`),
-                dbId: String(slot && (slot.dbId || slot.id) || ''),
+                id: slotId,
+                dbId: slotDbId,
                 time: timeText || `${9 + index}:00-${10 + index}:00`,
                 time_short: String(slot && slot.time_short || '').trim() || (timeText ? timeText.split('-')[0] : `${9 + index}:00`),
                 capacity: Number(slot && slot.capacity) > 0 ? Number(slot.capacity) : seats,
@@ -1514,9 +1523,11 @@
           ? Object.keys(rawSlotsByDay).reduce((map, dayIso) => {
               map[dayIso] = (Array.isArray(rawSlotsByDay[dayIso]) ? rawSlotsByDay[dayIso] : []).map((slot, index) => {
                 const timeText = String(slot && slot.time || '').trim();
+                const slotId = String(slot && slot.id || `${source}-${slug}-${dayIso}-s-${index}`);
+                const slotDbId = this.isUuid(slot && slot.dbId) ? String(slot.dbId).trim() : (this.isUuid(slotId) ? slotId : '');
                 return {
-                  id: String(slot && slot.id || `${source}-${slug}-${dayIso}-s-${index}`),
-                  dbId: String(slot && (slot.dbId || slot.id) || ''),
+                  id: slotId,
+                  dbId: slotDbId,
                   time: timeText,
                   time_short: String(slot && slot.time_short || '').trim() || (timeText ? timeText.split('-')[0] : ''),
                   capacity: Number(slot && slot.capacity) > 0 ? Number(slot.capacity) : seats,
