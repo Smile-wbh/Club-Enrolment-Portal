@@ -47,6 +47,10 @@
   <section class="course-detail-page">
     <div class="container">
       <div v-if="course" class="detail-page-shell">
+        <div class="detail-topbar">
+          <a class="btn ghost detail-top-back-btn" href="mfms.html">Back to Course List</a>
+        </div>
+
         <section class="detail-hero-card">
           <h1>{{ course.title }}</h1>
           <p class="detail-hero-club">{{ clubEnglish(course) }}</p>
@@ -71,7 +75,6 @@
 
                 <div class="detail-overview-actions">
                   <button class="btn primary detail-action-btn" type="button" @click="goBook(course)">Book Now</button>
-                  <a class="btn ghost detail-action-btn" href="mfms.html">Back to Course List</a>
                 </div>
               </div>
             </article>
