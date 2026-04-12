@@ -238,6 +238,45 @@
     </div>
   </div>
 
+  <div v-if="showBookingModal" class="action-modal-mask" @click.self="closeBookingModal">
+    <div class="action-modal booking-action-modal" role="dialog" aria-modal="true">
+      <div class="action-modal-head">
+        <h3>Choose a Course Time</h3>
+        <div class="action-close" @click="closeBookingModal">Close</div>
+      </div>
+      <div class="action-modal-body">
+        <div class="action-modal-text">Choose the course time you want first. After that, you will continue to payment and the booking will only be created after payment succeeds.</div>
+
+        <div v-if="pendingCourseBooking" class="detail-kv booking-summary-grid">
+          <div>Course: <span>{{ pendingCourseBooking.title }}</span></div>
+          <div>Club: <span>{{ pendingCourseBooking.clubName }}</span></div>
+          <div>Location: <span>{{ pendingCourseBooking.location || 'TBC' }}</span></div>
+          <div>Fee: <span>{{ pendingCourseBooking.fee || 'Free' }}</span></div>
+        </div>
+
+        <div v-if="pendingCourseBooking && pendingCourseBooking.scheduleOptions.length" class="detail-schedule booking-schedule-list">
+          <button
+            class="detail-slot-btn booking-slot-btn"
+            v-for="(slot, idx) in pendingCourseBooking.scheduleOptions"
+            :key="'booking-slot-' + idx"
+            type="button"
+            :class="{ active: bookingModalSchedule === slot }"
+            @click="bookingModalSchedule = slot"
+          >
+            <span class="detail-slot-week">{{ scheduleWeekLabel(slot) }}</span>
+            <span class="detail-slot-time">{{ scheduleTimeRange(slot) }}</span>
+            <small>{{ bookingModalSchedule === slot ? 'Selected for payment' : 'Click to choose this time' }}</small>
+          </button>
+        </div>
+
+        <div class="action-modal-actions">
+          <button class="btn primary" type="button" @click="confirmCourseBookingSelection">Go to Payment</button>
+          <button class="btn ghost" type="button" @click="closeBookingModal">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-links">
@@ -303,6 +342,9 @@
         actionCancelLabel: 'Close',
         actionModalType: '',
         actionModalCourseId: '',
+        showBookingModal: false,
+        pendingCourseBooking: null,
+        bookingModalSchedule: '',
         sessionUserId: '',
         useSupabaseCourses: false,
         coursesSupabase: [],
@@ -842,6 +884,11 @@
       closeActionModal() {
         this.showActionModal = false;
       },
+      closeBookingModal() {
+        this.showBookingModal = false;
+        this.pendingCourseBooking = null;
+        this.bookingModalSchedule = '';
+      },
       openActionModal(type, course) {
         const courseId = course && course.id !== undefined ? String(course.id) : '';
         this.actionModalType = String(type || '');
@@ -966,52 +1013,105 @@
         }
         this.removeFavLocal(id);
       },
-      async goBook(course) {
-        const payload = {
-          id: Date.now(),
-          courseId: String(course.id),
-          title: course.title,
-          clubName: course.club,
-          mode: course.mode,
-          level: course.level,
-          time: this.activeSchedule || course.time,
-          location: course.location,
-          seats: Number(course.seats),
-          fee: course.fee,
-          status: 'Booked'
+      parseFeeAmount(text) {
+        const match = String(text || '').trim().match(/£\s*(\d+(?:\.\d+)?)/i);
+        return match ? Number(match[1]) : 0;
+      },
+      createCoursePaymentOrderId() {
+        const now = new Date();
+        const stamp = [
+          now.getFullYear(),
+          `${now.getMonth() + 1}`.padStart(2, '0'),
+          `${now.getDate()}`.padStart(2, '0'),
+          `${now.getHours()}`.padStart(2, '0'),
+          `${now.getMinutes()}`.padStart(2, '0'),
+          `${now.getSeconds()}`.padStart(2, '0')
+        ].join('');
+        const tail = `${Math.floor(Math.random() * 900) + 100}`;
+        return `CRS${stamp}${tail}`;
+      },
+      isUuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+      },
+      buildPendingCourseOrder(course, selectedSchedule, email) {
+        const normalizedCourse = course && typeof course === 'object' ? course : {};
+        const courseId = String(normalizedCourse.id || normalizedCourse.courseId || '').trim();
+        const baseFee = this.parseFeeAmount(normalizedCourse.fee);
+        const serviceFee = baseFee > 0 ? 1 : 0;
+        return {
+          orderId: this.createCoursePaymentOrderId(),
+          bookingSource: this.useSupabaseCourses && this.sessionUserId && String(normalizedCourse.source || '') === 'supabase' && this.isUuid(courseId)
+            ? 'supabase'
+            : 'local',
+          courseId,
+          title: String(normalizedCourse.title || '').trim(),
+          clubName: String(normalizedCourse.club || normalizedCourse.clubName || '').trim(),
+          level: String(normalizedCourse.level || '').trim(),
+          mode: String(normalizedCourse.mode || '').trim(),
+          selectedSchedule: String(selectedSchedule || '').trim(),
+          location: String(normalizedCourse.location || '').trim(),
+          seats: Number(normalizedCourse.seats || 0),
+          feeText: String(normalizedCourse.fee || '').trim(),
+          baseFee,
+          serviceFee,
+          discount: 0,
+          payableAmount: Math.max(0, baseFee + serviceFee),
+          userEmail: String(email || '').trim().toLowerCase(),
+          createdAt: new Date().toISOString()
         };
+      },
+      goBook(course) {
         const email = this.getSessionEmail();
         if (!email) {
-          this.openLoginModal('You need to log in before booking.', payload, 'join.html?tab=teaching_bookings');
+          this.openLoginModal('You need to log in before booking.', null, 'join.html?tab=teaching_bookings');
           return;
         }
-
-        if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
-          try {
-            const record = await this.getCourseService().createCourseBooking(course, this.activeSchedule || course.time, email);
-            this.syncLocalBookingMirror(record);
-            await this.syncSupabaseCourseData();
-            alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
-            location.href = 'join.html?tab=teaching_bookings';
-          } catch (error) {
-            alert(this.getCourseService().mapCourseActionError(error));
-          }
+        const normalizedCourse = course && typeof course === 'object' ? course : this.course;
+        if (!normalizedCourse) return;
+        const scheduleOptions = Array.isArray(normalizedCourse.schedule) && normalizedCourse.schedule.length
+          ? normalizedCourse.schedule.slice()
+          : [this.activeSchedule || normalizedCourse.time].filter(Boolean);
+        if (!scheduleOptions.length) {
+          alert('This course does not have an available time slot right now.');
           return;
         }
-
-        let all = [];
-        try {
-          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
-        } catch (error) {
-          all = [];
+        this.pendingCourseBooking = {
+          courseId: String(normalizedCourse.id || '').trim(),
+          title: String(normalizedCourse.title || '').trim(),
+          clubName: String(normalizedCourse.club || '').trim(),
+          location: String(normalizedCourse.location || '').trim(),
+          fee: String(normalizedCourse.fee || '').trim(),
+          scheduleOptions
+        };
+        this.bookingModalSchedule = this.activeSchedule || scheduleOptions[0] || '';
+        this.showBookingModal = true;
+      },
+      confirmCourseBookingSelection() {
+        if (!this.pendingCourseBooking) return;
+        const selectedSchedule = String(this.bookingModalSchedule || '').trim();
+        if (!selectedSchedule) {
+          alert('Please choose a time slot first.');
+          return;
         }
-        payload.ownerEmail = email;
-        payload.bookedAt = new Date().toISOString();
-        all.unshift(payload);
-        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
-
-        alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
-        location.href = 'join.html?tab=teaching_bookings';
+        const course = this.course && String(this.course.id || '') === String(this.pendingCourseBooking.courseId || '')
+          ? this.course
+          : (this.coursesPool.find((item) => String(item && item.id) === String(this.pendingCourseBooking.courseId || '')) || null);
+        if (!course) {
+          alert('This course is no longer available.');
+          this.closeBookingModal();
+          return;
+        }
+        const email = this.getSessionEmail();
+        if (!email) {
+          this.closeBookingModal();
+          this.openLoginModal('You need to log in before booking.', null, 'join.html?tab=teaching_bookings');
+          return;
+        }
+        this.selectedSchedule = selectedSchedule;
+        const pendingOrder = this.buildPendingCourseOrder(course, selectedSchedule, email);
+        localStorage.setItem(this.pendingCourseKey(), JSON.stringify(pendingOrder));
+        this.closeBookingModal();
+        location.href = 'mfms-payment.html';
       },
       async addFav(course) {
         const email = this.getSessionEmail();
