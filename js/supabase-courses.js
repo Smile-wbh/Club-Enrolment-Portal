@@ -149,13 +149,21 @@
     return out;
   }
 
+  function courseScheduleCount(scheduleList, primaryTime) {
+    var count = Array.isArray(scheduleList) ? scheduleList.filter(Boolean).length : 0;
+    if (count > 0) return count;
+    return trimText(primaryTime) ? 1 : 1;
+  }
+
   function mapCourseRow(row, bookedCount) {
     if (!row || !row.id) return null;
     var club = row.club || {};
     var schedule = parseSchedule(row.schedule, row.time_text);
     var primaryTime = trimText(row.time_text) || schedule[0] || '';
     var safeSchedule = schedule.length ? schedule : (primaryTime ? [primaryTime] : []);
-    var capacity = Math.max(1, toNumber(row.seats, 12));
+    var scheduleCount = courseScheduleCount(safeSchedule, primaryTime);
+    var capacityPerSlot = Math.max(1, toNumber(row.seats, 12));
+    var capacity = Math.max(1, capacityPerSlot * scheduleCount);
     var reserved = Math.max(0, toNumber(bookedCount, 0));
     var remaining = Math.max(capacity - reserved, 0);
     var description = trimText(row.description);
@@ -186,6 +194,7 @@
       mapLink: trimText(row.map_link),
       seats: remaining,
       seatCapacity: capacity,
+      seatCapacityPerSlot: capacityPerSlot,
       bookedCount: reserved,
       fee: trimText(row.fee_text),
       feeText: trimText(row.fee_text),
@@ -219,7 +228,7 @@
       level: trimText(course.level) || 'Beginner',
       time: selectedSchedule,
       location: trimText(course.location),
-      seats: Math.max(0, toNumber(course.seats, 0)),
+      seats: Math.max(0, toNumber(course.seats, 0)) * courseScheduleCount(scheduleList, course.time_text),
       fee: trimText(course.fee_text),
       ownerEmail: normalizeEmail(fallbackEmail),
       bookedAt: trimText(row.booked_at),
@@ -244,7 +253,7 @@
       level: trimText(course.level) || 'Beginner',
       time: trimText(course.time_text) || scheduleList[0] || '',
       location: trimText(course.location),
-      seats: Math.max(0, toNumber(course.seats, 0)),
+      seats: Math.max(0, toNumber(course.seats, 0)) * courseScheduleCount(scheduleList, course.time_text),
       fee: trimText(course.fee_text),
       ownerEmail: normalizeEmail(fallbackEmail),
       createdAt: trimText(row.created_at),

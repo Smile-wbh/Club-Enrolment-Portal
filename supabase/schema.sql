@@ -786,6 +786,8 @@ declare
   v_booking public.course_bookings%rowtype;
   v_selected_schedule text;
   v_active_count bigint;
+  v_schedule_count integer;
+  v_total_capacity integer;
 begin
   if auth.uid() is null then
     raise exception 'not_authenticated';
@@ -843,13 +845,20 @@ begin
   end if;
 
   if coalesce(v_course.seats, 0) > 0 then
+    v_schedule_count := greatest(
+      coalesce(array_length(v_course.schedule, 1), 0),
+      case when trim(coalesce(v_course.time_text, '')) <> '' then 1 else 0 end,
+      1
+    );
+    v_total_capacity := greatest(coalesce(v_course.seats, 0), 0) * v_schedule_count;
+
     select count(*)
     into v_active_count
     from public.course_bookings
     where course_id = p_course_id
       and status <> 'cancelled';
 
-    if v_active_count >= v_course.seats then
+    if v_active_count >= v_total_capacity then
       raise exception 'course_full';
     end if;
   end if;

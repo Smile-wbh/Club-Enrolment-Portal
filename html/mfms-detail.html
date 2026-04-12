@@ -618,6 +618,17 @@
         const safeSchedule = schedule.length
           ? schedule
           : (primaryTime ? [primaryTime] : []);
+        const scheduleCount = safeSchedule.length || (primaryTime ? 1 : 1);
+        const hasSeatsValue = !(course.seats === undefined || course.seats === null || course.seats === '');
+        const parsedSeats = Number(course.seats);
+        const explicitCapacity = Number(course.seatCapacity);
+        const fallbackPerSlot = Math.max(1, Number(course.seatCapacityPerSlot || 0) || (hasSeatsValue && Number.isFinite(parsedSeats) ? Math.max(0, parsedSeats) : 12));
+        const totalCapacity = Number.isFinite(explicitCapacity) && explicitCapacity > 0
+          ? explicitCapacity
+          : Math.max(1, fallbackPerSlot * scheduleCount);
+        const remainingSeats = Number.isFinite(explicitCapacity) && explicitCapacity > 0 && hasSeatsValue && Number.isFinite(parsedSeats)
+          ? Math.max(0, parsedSeats)
+          : Math.max(0, fallbackPerSlot * scheduleCount);
         const desc = String(course.desc || course.summary || '').trim();
         const detail = String(course.detail || '').trim();
         const clubName = String(course.club || course.clubName || '').trim();
@@ -633,7 +644,9 @@
           schedule: safeSchedule,
           location: String(course.location || '').trim(),
           fee: String(course.fee || '').trim(),
-          seats: Number(course.seats || 0) > 0 ? Number(course.seats) : 12,
+          seats: remainingSeats,
+          seatCapacity: totalCapacity,
+          seatCapacityPerSlot: fallbackPerSlot,
           createdAt: this.timeValue(course.createdAt || course.updatedAt || course.id),
           updatedAt: this.timeValue(course.updatedAt || course.createdAt || course.id),
           learningPoints: this.parseMultiValue(course.learningPoints || ''),
