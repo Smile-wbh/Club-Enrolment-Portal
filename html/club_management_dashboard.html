@@ -715,16 +715,15 @@
                   </div>
                 </div>
                 <label>
-                  English subtitle
-                  <input id="courseEnglishClub" type="text" placeholder="e.g. Badminton Club">
-                </label>
-                <label>
                   Remaining Seats
                   <input id="courseSeats" type="number" min="1" step="1" value="12" placeholder="e.g. 12">
                 </label>
                 <label>
                   Course Fee
-                  <input id="courseFee" type="text" placeholder="e.g. £0 / ¥99">
+                  <div class="currency-input">
+                    <span class="currency-input-prefix">£</span>
+                    <input id="courseFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
+                  </div>
                 </label>
                 <label>
                   Cover image URL
@@ -732,16 +731,8 @@
                 </label>
                 <div class="form-section-title span-2">Detail Content</div>
                 <label class="span-2">
-                  Course Summary
-                  <textarea id="courseDesc" rows="3" placeholder="A short summary shown on the course cards and at the top of the detail page."></textarea>
-                </label>
-                <label class="span-2">
-                  Course lead
-                  <textarea id="courseLead" rows="3" placeholder="Shown below the course title."></textarea>
-                </label>
-                <label class="span-2">
                   Course schedule
-                  <textarea id="courseSchedule" rows="4" placeholder="Supports one item per line or comma-separated values, e.g. &#10;Wed 18:00-19:30&#10;Sun 10:00-11:30"></textarea>
+                  <textarea id="courseSchedule" rows="4" placeholder="Auto-filled from Regular Time above." readonly></textarea>
                 </label>
                 <label class="span-2">
                   Detailed overview
@@ -904,16 +895,15 @@
                     </div>
                   </div>
                   <label>
-                    English subtitle
-                    <input id="courseEditEnglishClub" type="text" placeholder="e.g. Badminton Club">
-                  </label>
-                  <label>
                     Remaining Seats
                     <input id="courseEditSeats" type="number" min="1" step="1" value="12" placeholder="e.g. 12">
                   </label>
                   <label>
                     Course Fee
-                    <input id="courseEditFee" type="text" placeholder="e.g. £0 / ¥99">
+                    <div class="currency-input">
+                      <span class="currency-input-prefix">£</span>
+                      <input id="courseEditFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
+                    </div>
                   </label>
                   <label>
                     Cover image URL
@@ -921,16 +911,8 @@
                   </label>
                   <div class="form-section-title span-2">Detail Content</div>
                   <label class="span-2">
-                    Course Summary
-                    <textarea id="courseEditDesc" rows="3" placeholder="A short summary shown on the course cards and at the top of the detail page."></textarea>
-                  </label>
-                  <label class="span-2">
-                    Course lead
-                    <textarea id="courseEditLead" rows="3" placeholder="Shown below the course title."></textarea>
-                  </label>
-                  <label class="span-2">
                     Course schedule
-                    <textarea id="courseEditSchedule" rows="4" placeholder="Supports one item per line or comma-separated values, e.g. &#10;Wed 18:00-19:30&#10;Sun 10:00-11:30"></textarea>
+                    <textarea id="courseEditSchedule" rows="4" placeholder="Auto-filled from Regular Time above." readonly></textarea>
                   </label>
                   <label class="span-2">
                     Detailed overview
@@ -2892,12 +2874,9 @@
           location: document.getElementById(isEdit ? 'courseEditLocation' : 'courseLocation'),
           mapLink: document.getElementById(isEdit ? 'courseEditMapLink' : 'courseMapLink'),
           mapSearch: document.getElementById(isEdit ? 'courseEditMapSearch' : 'courseMapSearch'),
-          englishClub: document.getElementById(isEdit ? 'courseEditEnglishClub' : 'courseEnglishClub'),
           seats: document.getElementById(isEdit ? 'courseEditSeats' : 'courseSeats'),
           fee: document.getElementById(isEdit ? 'courseEditFee' : 'courseFee'),
           cover: document.getElementById(isEdit ? 'courseEditCover' : 'courseCover'),
-          desc: document.getElementById(isEdit ? 'courseEditDesc' : 'courseDesc'),
-          lead: document.getElementById(isEdit ? 'courseEditLead' : 'courseLead'),
           schedule: document.getElementById(isEdit ? 'courseEditSchedule' : 'courseSchedule'),
           detail: document.getElementById(isEdit ? 'courseEditDetail' : 'courseDetail'),
           coachName: document.getElementById(isEdit ? 'courseEditCoachName' : 'courseCoachName'),
@@ -2936,14 +2915,7 @@
           refs.input.value = labels[0] || '';
         }
         if(!refs.schedule) return;
-        if(labels.length){
-          refs.schedule.value = labels.join('\n');
-          refs.schedule.dataset.scheduleSource = 'builder';
-          return;
-        }
-        if(refs.schedule.dataset.scheduleSource === 'builder'){
-          refs.schedule.value = '';
-        }
+        refs.schedule.value = labels.join('\n');
       }
 
       function renderCourseTimeSlots(mode){
@@ -3069,11 +3041,6 @@
           });
           refs.end.addEventListener('input', function(){
             refs.end.setCustomValidity('');
-          });
-        }
-        if(refs.schedule){
-          refs.schedule.addEventListener('input', function(){
-            refs.schedule.dataset.scheduleSource = 'manual';
           });
         }
         refs.list.addEventListener('click', function(event){
@@ -3223,6 +3190,20 @@
         refreshCourseMapPreview(mode, '', '');
       }
 
+      function bindCourseFeeInput(mode){
+        var refs = getCourseFormRefs(mode);
+        if(!refs || !refs.fee) return;
+        refs.fee.addEventListener('input', function(){
+          var cleaned = stripClubFeePrefix(refs.fee.value);
+          if(cleaned !== refs.fee.value){
+            refs.fee.value = cleaned;
+          }
+        });
+        refs.fee.addEventListener('blur', function(){
+          refs.fee.value = stripClubFeePrefix(refs.fee.value);
+        });
+      }
+
       function populateCourseClubSelect(selectEl, selectedClubName, editingCourse){
         if(!selectEl) return;
         if(state.myClubs.length === 0){
@@ -3270,12 +3251,9 @@
           time: refs.time ? refs.time.value.trim() : '',
           location: refs.location ? refs.location.value.trim() : '',
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
-          englishClub: refs.englishClub ? refs.englishClub.value.trim() : '',
           seats: refs.seats ? Math.max(1, Number(refs.seats.value) || 12) : 12,
-          fee: refs.fee ? refs.fee.value.trim() : '',
+          fee: refs.fee ? formatClubFeeText(refs.fee.value) : '',
           cover: refs.cover ? refs.cover.value.trim() : '',
-          desc: refs.desc ? refs.desc.value.trim() : '',
-          lead: refs.lead ? refs.lead.value.trim() : '',
           schedule: refs.schedule ? refs.schedule.value : '',
           timeSlots: getCourseTimeSlotLabels(mode),
           detail: refs.detail ? refs.detail.value.trim() : '',
@@ -3291,10 +3269,10 @@
       function buildCoursePayload(values, clubRecord){
         var scheduleList = Array.isArray(values.timeSlots) && values.timeSlots.length
           ? values.timeSlots.slice(0, 12)
-          : parseMultiValue(values.schedule, 12);
-        var time = values.time || scheduleList[0] || '';
-        if(scheduleList.length === 0 && values.time){
-          scheduleList = [values.time];
+          : [];
+        var time = scheduleList[0] || values.time || '';
+        if(scheduleList.length === 0 && time){
+          scheduleList = [time];
         }
 
         var location = values.location;
@@ -3303,8 +3281,6 @@
         }
 
         var fee = values.fee || '';
-        var desc = values.desc;
-        var lead = values.lead;
         var detail = values.detail;
         var cover = values.cover || ((clubRecord && clubRecord.cover) ? clubRecord.cover : '');
         var createdAt = Date.now();
@@ -3318,7 +3294,7 @@
           clubSlug: (clubRecord && clubRecord.slug) || '',
           clubCategory: (clubRecord && clubRecord.category) || values.club,
           clubCover: (clubRecord && clubRecord.cover) || '',
-          englishClub: values.englishClub || clubEnglishName((clubRecord && clubRecord.category) || values.club),
+          englishClub: '',
           level: values.level,
           mode: values.mode,
           time: time,
@@ -3328,8 +3304,8 @@
           seats: values.seats,
           fee: fee,
           cover: cover,
-          desc: desc,
-          lead: lead,
+          desc: '',
+          lead: '',
           detail: detail,
           coachName: values.coachName,
           coachTitle: values.coachTitle,
@@ -3579,12 +3555,9 @@
         if(refs.mapSearch) refs.mapSearch.value = '';
         refreshCourseMapPreview('edit', '', '');
         resetCourseTimeBuilder('edit');
-        if(refs.englishClub) refs.englishClub.value = '';
         if(refs.seats) refs.seats.value = '';
         if(refs.fee) refs.fee.value = '';
         if(refs.cover) refs.cover.value = '';
-        if(refs.desc) refs.desc.value = '';
-        if(refs.lead) refs.lead.value = '';
         if(refs.schedule) refs.schedule.value = '';
         if(refs.detail) refs.detail.value = '';
         if(refs.coachName) refs.coachName.value = '';
@@ -3617,14 +3590,10 @@
         if(refs.mapSearch) refs.mapSearch.value = course.mapLink ? extractGoogleMapsQueryFromUrl(course.mapLink) : '';
         refreshCourseMapPreview('edit', '', course.mapLink ? 'Preview based on the current Google Maps link.' : '');
         setCourseTimeSlots('edit', (Array.isArray(course.schedule) && course.schedule.length) ? course.schedule : (course.time || ''));
-        refs.englishClub.value = course.englishClub || '';
         refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;
-        refs.fee.value = course.fee || '';
+        refs.fee.value = stripClubFeePrefix(course.fee || '');
         refs.cover.value = course.cover || '';
-        refs.desc.value = course.desc || '';
-        refs.lead.value = course.lead || '';
         refs.schedule.value = joinMultiValue(course.schedule || course.time || '');
-        refs.schedule.dataset.scheduleSource = 'builder';
         refs.detail.value = course.detail || '';
         refs.coachName.value = course.coachName || '';
         refs.coachTitle.value = course.coachTitle || '';
@@ -4302,6 +4271,8 @@
         bindClubMapControls('edit');
         bindClubFeeInput('create');
         bindClubFeeInput('edit');
+        bindCourseFeeInput('publish');
+        bindCourseFeeInput('edit');
         initCourseTimeBuilder('publish');
         initCourseTimeBuilder('edit');
         bindCourseMapControls('publish');
