@@ -117,7 +117,7 @@
     var custom = trimText(row && row.english_club);
     if (custom) return custom;
     var clubName = trimText(club && club.name) || titleFromSlug(club && club.slug);
-    if (!clubName) return 'Club Course';
+    if (!clubName) return '';
     return /club|society/i.test(clubName) ? clubName : (clubName + ' Club');
   }
 
@@ -148,13 +148,14 @@
     if (!row || !row.id) return null;
     var club = row.club || {};
     var schedule = parseSchedule(row.schedule, row.time_text);
-    var primaryTime = trimText(row.time_text) || schedule[0] || 'Time TBD';
+    var primaryTime = trimText(row.time_text) || schedule[0] || '';
+    var safeSchedule = schedule.length ? schedule : (primaryTime ? [primaryTime] : []);
     var capacity = Math.max(1, toNumber(row.seats, 12));
     var reserved = Math.max(0, toNumber(bookedCount, 0));
     var remaining = Math.max(capacity - reserved, 0);
-    var description = trimText(row.description) || trimText(row.lead) || trimText(row.detail);
-    var detail = trimText(row.detail) || description;
-    var clubName = trimText(club.name) || titleFromSlug(club.slug) || 'Unnamed Club';
+    var description = trimText(row.description);
+    var detail = trimText(row.detail);
+    var clubName = trimText(club.name) || titleFromSlug(club.slug);
     var clubSlug = trimText(club.slug);
     var resolvedClubCover = resolveClubCover(clubSlug || clubName, club.cover_url);
     var resolvedCourseCover = resolveClubCover(clubSlug || row.slug || clubName, trimText(row.cover_url) || resolvedClubCover);
@@ -168,21 +169,21 @@
       club: clubName,
       clubCategory: trimText(club.category) || clubName,
       englishClub: englishClubFromRow(row, club),
-      title: trimText(row.title) || 'Untitled Course',
-      desc: description || '',
+      title: trimText(row.title),
+      desc: description,
       lead: trimText(row.lead) || '',
       detail: detail,
       level: trimText(row.level) || 'Beginner',
       mode: trimText(row.mode) || 'In-person',
       time: primaryTime,
-      schedule: schedule.length ? schedule : [primaryTime],
-      location: trimText(row.location) || 'Location TBD',
+      schedule: safeSchedule,
+      location: trimText(row.location),
       mapLink: trimText(row.map_link),
       seats: remaining,
       seatCapacity: capacity,
       bookedCount: reserved,
-      fee: trimText(row.fee_text) || 'Free',
-      feeText: trimText(row.fee_text) || 'Free',
+      fee: trimText(row.fee_text),
+      feeText: trimText(row.fee_text),
       clubCover: resolvedClubCover,
       cover: resolvedCourseCover,
       popularity: Math.max(0, toNumber(row.popularity, 0)),
@@ -202,19 +203,19 @@
     var course = row.course || {};
     var club = course.club || {};
     var scheduleList = toArray(course.schedule);
-    var selectedSchedule = trimText(row.selected_schedule) || trimText(course.time_text) || scheduleList[0] || 'Time TBD';
+    var selectedSchedule = trimText(row.selected_schedule) || trimText(course.time_text) || scheduleList[0] || '';
     return {
       id: trimText(row.id),
       courseId: trimText(row.course_id) || trimText(course.id),
-      title: trimText(course.title) || 'Untitled Course',
-      clubName: trimText(club.name) || trimText(course.english_club) || 'Default Club',
+      title: trimText(course.title),
+      clubName: trimText(club.name) || trimText(course.english_club),
       clubSlug: trimText(club.slug),
       mode: trimText(course.mode) || 'In-person',
       level: trimText(course.level) || 'Beginner',
       time: selectedSchedule,
-      location: trimText(course.location) || 'Location TBD',
+      location: trimText(course.location),
       seats: Math.max(0, toNumber(course.seats, 0)),
-      fee: trimText(course.fee_text) || 'Free',
+      fee: trimText(course.fee_text),
       ownerEmail: normalizeEmail(fallbackEmail),
       bookedAt: trimText(row.booked_at),
       createdAt: trimText(row.booked_at),
@@ -231,15 +232,15 @@
     return {
       id: trimText(row.course_id) || trimText(course.id),
       courseId: trimText(row.course_id) || trimText(course.id),
-      title: trimText(course.title) || 'Untitled Course',
-      clubName: trimText(club.name) || trimText(course.english_club) || 'Default Club',
+      title: trimText(course.title),
+      clubName: trimText(club.name) || trimText(course.english_club),
       clubSlug: trimText(club.slug),
       mode: trimText(course.mode) || 'In-person',
       level: trimText(course.level) || 'Beginner',
-      time: trimText(course.time_text) || scheduleList[0] || 'Time TBD',
-      location: trimText(course.location) || 'Location TBD',
+      time: trimText(course.time_text) || scheduleList[0] || '',
+      location: trimText(course.location),
       seats: Math.max(0, toNumber(course.seats, 0)),
-      fee: trimText(course.fee_text) || 'Free',
+      fee: trimText(course.fee_text),
       ownerEmail: normalizeEmail(fallbackEmail),
       createdAt: trimText(row.created_at),
       updatedAt: trimText(row.created_at)

@@ -53,8 +53,8 @@
 
         <section class="detail-hero-card">
           <h1>{{ course.title }}</h1>
-          <p class="detail-hero-club">{{ clubEnglish(course) }}</p>
-          <p class="detail-hero-lead">{{ courseLead(course) }}</p>
+          <p v-if="clubEnglish(course)" class="detail-hero-club">{{ clubEnglish(course) }}</p>
+          <p v-if="courseLead(course)" class="detail-hero-lead">{{ courseLead(course) }}</p>
         </section>
 
         <div class="detail-layout">
@@ -66,11 +66,11 @@
 
               <div class="detail-overview-body">
                 <ul class="detail-overview-list">
-                  <li>{{ course.level }} · {{ course.mode }}</li>
-                  <li>Time: {{ activeSchedule }}</li>
-                  <li>Location: {{ course.location }}</li>
+                  <li v-if="course.level || course.mode">{{ [course.level, course.mode].filter(Boolean).join(' · ') }}</li>
+                  <li v-if="activeSchedule">Time: {{ activeSchedule }}</li>
+                  <li v-if="course.location">Location: {{ course.location }}</li>
                   <li>Seats: {{ course.seats }}</li>
-                  <li>Fee: {{ course.fee }}</li>
+                  <li v-if="course.fee">Fee: {{ course.fee }}</li>
                 </ul>
 
                 <div class="detail-overview-actions">
@@ -80,7 +80,7 @@
             </article>
 
             <div class="detail-metrics-grid">
-              <article class="detail-metric-card">
+              <article v-if="courseDuration" class="detail-metric-card">
                 <span>Course Duration</span>
                 <strong>{{ courseDuration }}</strong>
               </article>
@@ -90,28 +90,28 @@
                 <strong>{{ course.seats }}</strong>
               </article>
 
-              <article class="detail-metric-card">
+              <article v-if="course.mode" class="detail-metric-card">
                 <span>Teaching Format</span>
                 <strong>{{ course.mode }}</strong>
               </article>
             </div>
 
-            <article class="detail-content-card">
+            <article class="detail-content-card" v-if="courseSummaryText(course) || learningPoints(course).length || audienceTips(course).length">
               <h2>Course Overview</h2>
 
-              <div class="detail-copy-block">
+              <div class="detail-copy-block" v-if="courseSummaryText(course)">
                 <h3>Course Summary</h3>
-                <p>{{ course.detail }}</p>
+                <p>{{ courseSummaryText(course) }}</p>
               </div>
 
-              <div class="detail-copy-block">
+              <div class="detail-copy-block" v-if="learningPoints(course).length">
                 <h3>What You Will Learn</h3>
                 <ul class="detail-bullet-list">
                   <li v-for="(item, idx) in learningPoints(course)" :key="'learn-' + idx">{{ item }}</li>
                 </ul>
               </div>
 
-              <div class="detail-copy-block">
+              <div class="detail-copy-block" v-if="audienceTips(course).length">
                 <h3>Who This Course Is For</h3>
                 <ul class="detail-bullet-list">
                   <li v-for="(item, idx) in audienceTips(course)" :key="'fit-' + idx">{{ item }}</li>
@@ -119,7 +119,7 @@
               </div>
             </article>
 
-            <article class="detail-content-card">
+            <article class="detail-content-card" v-if="courseNotes(course).length">
               <h2>Course Notes</h2>
               <ul class="detail-note-list">
                 <li v-for="(item, idx) in courseNotes(course)" :key="'note-' + idx">{{ item }}</li>
@@ -143,7 +143,7 @@
                   <img :src="courseCover(item)" :alt="item.title" />
                   <div class="detail-related-body">
                     <h3>{{ item.title }}</h3>
-                    <p>{{ item.desc }}</p>
+                    <p v-if="item.desc">{{ item.desc }}</p>
                   </div>
                 </article>
               </div>
@@ -153,24 +153,24 @@
           <aside class="detail-sidebar">
             <article class="detail-side-card detail-fee-card">
               <h2>Course Fee</h2>
-              <strong class="detail-fee-value">{{ course.fee }}</strong>
+              <strong v-if="course.fee" class="detail-fee-value">{{ course.fee }}</strong>
               <p class="detail-fee-meta">{{ course.seats }} seats remain right now, and you can book a suitable time slot directly.</p>
 
-              <div class="detail-mini-profile">
-                <div class="detail-avatar detail-avatar-sm">{{ coachInitials(coachInfo.name) }}</div>
+              <div class="detail-mini-profile" v-if="coachInfo">
+                <div class="detail-avatar detail-avatar-sm">{{ coachInitials(coachInfo.name || coachInfo.title) }}</div>
                 <div>
-                  <strong>{{ coachInfo.name }}</strong>
-                  <p>{{ coachInfo.title }}</p>
+                  <strong v-if="coachInfo.name">{{ coachInfo.name }}</strong>
+                  <p v-if="coachInfo.title">{{ coachInfo.title }}</p>
                 </div>
               </div>
             </article>
 
-            <article class="detail-side-card">
+            <article class="detail-side-card" v-if="coachInfo">
               <h2>Course Instructor</h2>
-              <div class="detail-avatar">{{ coachInitials(coachInfo.name) }}</div>
-              <h3>{{ coachInfo.name }}</h3>
-              <p class="detail-side-role">{{ coachInfo.title }}</p>
-              <p class="detail-side-text">{{ coachInfo.bio }}</p>
+              <div class="detail-avatar">{{ coachInitials(coachInfo.name || coachInfo.title) }}</div>
+              <h3 v-if="coachInfo.name">{{ coachInfo.name }}</h3>
+              <p v-if="coachInfo.title" class="detail-side-role">{{ coachInfo.title }}</p>
+              <p v-if="coachInfo.bio" class="detail-side-text">{{ coachInfo.bio }}</p>
               <button class="btn ghost detail-side-btn" type="button" @click="addFav(course)" :disabled="isFav(course.id)">
                 {{ isFav(course.id) ? 'Saved to Favorites' : 'Save Course' }}
               </button>
@@ -572,17 +572,16 @@
       normalizeCourse(course) {
         if (!course) return null;
         const schedule = this.parseMultiValue(course.schedule || course.time || '').slice(0, 12);
-        const primaryTime = String(course.time || '').trim() || schedule[0] || 'Time TBD';
+        const primaryTime = String(course.time || '').trim() || schedule[0] || '';
         const safeSchedule = schedule.length
           ? schedule
-          : (primaryTime && primaryTime !== 'Time TBD' ? [primaryTime] : []);
-        const desc = String(course.desc || course.summary || '').trim()
-          || String(course.lead || course.detail || '').trim();
-        const detail = String(course.detail || '').trim() || desc;
-        const clubName = String(course.club || course.clubName || '').trim() || 'Unnamed Club';
+          : (primaryTime ? [primaryTime] : []);
+        const desc = String(course.desc || course.summary || '').trim();
+        const detail = String(course.detail || '').trim();
+        const clubName = String(course.club || course.clubName || '').trim();
         const clubCategory = String(course.clubCategory || course.category || clubName).trim();
         return Object.assign({}, course, {
-          title: String(course.title || 'Untitled Course').trim(),
+          title: String(course.title || '').trim(),
           club: clubName,
           clubCategory: clubCategory,
           interestCategory: this.resolveInterestCategory(course),
@@ -590,8 +589,8 @@
           detail: detail,
           time: primaryTime,
           schedule: safeSchedule,
-          location: String(course.location || '').trim() || 'Location TBD',
-          fee: String(course.fee || '').trim() || 'Free',
+          location: String(course.location || '').trim(),
+          fee: String(course.fee || '').trim(),
           seats: Number(course.seats || 0) > 0 ? Number(course.seats) : 12,
           createdAt: this.timeValue(course.createdAt || course.updatedAt || course.id),
           updatedAt: this.timeValue(course.updatedAt || course.createdAt || course.id),
@@ -675,110 +674,39 @@
         const custom = course && String(course.englishClub || '').trim();
         if (custom) return custom;
         const key = String(course ? (course.clubCategory || course.club || '') : input || '').trim();
-        return map[key] || key || 'Club Course';
+        return map[key] || key || '';
+      },
+      courseSummaryText(course) {
+        if (!course) return '';
+        return String(course.detail || '').trim();
       },
       courseLead(course) {
         if (!course) return '';
-        return String(course.lead || '').trim() || 'Suitable for learners who want to improve core skills, rhythm, and class participation in a structured way, with flexible booking based on the course schedule.';
+        return String(course.lead || '').trim();
       },
       learningPoints(course) {
-        if (course && Array.isArray(course.learningPoints) && course.learningPoints.length) {
-          return course.learningPoints;
-        }
-        const key = String((course && (course.clubCategory || course.club || course.slug)) || '').toLowerCase();
-        const map = {
-          badminton: ['Build a stable grip and a clean power rhythm', 'Improve footwork and multi-shot transitions', 'Receive class feedback focused on shot consistency'],
-          Badminton: ['Build a stable grip and a clean power rhythm', 'Improve footwork and multi-shot transitions', 'Receive class feedback focused on shot consistency'],
-          football: ['Learn core ball control, passing, and movement combinations', 'Improve spatial awareness and tempo changes on the pitch', 'Strengthen teamwork through practical opposition drills'],
-          Football: ['Learn core ball control, passing, and movement combinations', 'Improve spatial awareness and tempo changes on the pitch', 'Strengthen teamwork through practical opposition drills'],
-          swimming: ['Build breathing rhythm and stroke coordination', 'Improve water entry, kicking, and body position control', 'Develop steadier pacing through segmented training'],
-          Swimming: ['Build breathing rhythm and stroke coordination', 'Improve water entry, kicking, and body position control', 'Develop steadier pacing through segmented training'],
-          tennis: ['Understand forehand and backhand swing paths', 'Build basic serve mechanics and placement control', 'Improve rally rhythm and shot stability through practice'],
-          Tennis: ['Understand forehand and backhand swing paths', 'Build basic serve mechanics and placement control', 'Improve rally rhythm and shot stability through practice'],
-          programming: ['Understand the core concepts and implementation ideas in this lesson', 'Use exercises to master layout structure or interactive logic', 'Gradually build the ability to complete small projects independently'],
-          Programming: ['Understand the core concepts and implementation ideas in this lesson', 'Use exercises to master layout structure or interactive logic', 'Gradually build the ability to complete small projects independently']
-        };
-        return map[key] || map[String(course && course.club) || ''] || [
-          'Build a foundational understanding of the course\'s core skills',
-          'Strengthen learning through step-by-step practice and feedback',
-          'Develop a steady training rhythm through regular sessions'
-        ];
+        if (!course || !Array.isArray(course.learningPoints)) return [];
+        return course.learningPoints.filter((item) => String(item || '').trim());
       },
       audienceTips(course) {
-        if (!course) return [];
-        if (Array.isArray(course.audienceTips) && course.audienceTips.length) {
-          return course.audienceTips;
-        }
-        const beginnerText = course.level === 'Beginner'
-          ? 'Best for complete beginners or anyone who wants to rebuild their core skill framework'
-          : 'Best for learners with prior experience who want to improve stability and fluency';
-        const modeText = course.mode === 'Online'
-          ? 'Great for learners who want flexible remote participation and paced practice'
-          : 'Great for learners who want live demonstrations and immediate correction in person';
-        return [
-          beginnerText,
-          'Great for members who want to keep a regular weekly training rhythm and make steady progress',
-          modeText
-        ];
+        if (!course || !Array.isArray(course.audienceTips)) return [];
+        return course.audienceTips.filter((item) => String(item || '').trim());
       },
       courseNotes(course) {
-        if (!course) return [];
-        if (Array.isArray(course.notesList) && course.notesList.length) {
-          return course.notesList;
-        }
-        const modeNote = course.mode === 'Online'
-          ? 'For online sessions, prepare your network connection and class equipment in advance and join on time.'
-          : 'For in-person sessions, arrive about 10 minutes early to check in, warm up, and prepare your equipment.';
-        return [
-          'Choose a suitable course time before submitting your booking. The booking information will sync to your personal center.',
-          modeNote,
-          'If you need to cancel or adjust a slot, try to handle it at least 24 hours in advance so the seat can be released.'
-        ];
+        if (!course || !Array.isArray(course.notesList)) return [];
+        return course.notesList.filter((item) => String(item || '').trim());
       },
       coachByClub(course) {
-        if (course && (course.coachName || course.coachTitle || course.coachBio)) {
-          return {
-            name: String(course.coachName || '').trim() || 'Club Coach',
-            title: String(course.coachTitle || '').trim() || 'Course Instructor',
-            bio: String(course.coachBio || '').trim() || 'The instructor provides structured feedback throughout the class to help learners complete practice steadily.'
-          };
-        }
-        const map = {
-          'Badminton': {
-            name: 'Alex Chen',
-            title: 'Badminton Intensive Coach',
-            bio: 'Brings years of in-person coaching experience, with a strong focus on technical foundations, rhythm, and class feedback.'
-          },
-          'Football': {
-            name: 'Ryan Zhao',
-            title: 'Football Specialist Coach',
-            bio: 'Specialises in passing control, movement, and small-group combinations, helping learners read the game better in live play.'
-          },
-          'Swimming': {
-            name: 'Mia Wang',
-            title: 'Swimming Instructor',
-            bio: 'Focuses on breathing rhythm, stroke correction, and endurance work, making the course suitable from beginner through advanced stages.'
-          },
-          'Tennis': {
-            name: 'Emma Lin',
-            title: 'Tennis Foundations Coach',
-            bio: 'Skilled in forehand, backhand, serving, and rhythm development, helping learners build stable strokes more quickly.'
-          },
-          'Programming': {
-            name: 'Ethan Zhou',
-            title: 'Frontend Course Instructor',
-            bio: 'Teaches page structure, interactive logic, and mini-project practice to help learners build reusable development habits.'
-          }
-        };
-        return map[String(course && (course.clubCategory || course.club)) || ''] || {
-          name: 'Club Coach',
-          title: 'Course Mentor',
-          bio: 'Provides structured feedback throughout the lesson so learners can complete classwork and practice with confidence.'
-        };
+        if (!course) return null;
+        const name = String(course.coachName || '').trim();
+        const title = String(course.coachTitle || '').trim();
+        const bio = String(course.coachBio || '').trim();
+        if (!name && !title && !bio) return null;
+        return { name, title, bio };
       },
       coachInitials(name) {
         const text = String(name || '').trim();
-        if (!text) return 'CC';
+        if (!text) return '';
         const parts = text.split(/\s+/).filter(Boolean);
         if (parts.length >= 2) {
           return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -823,7 +751,7 @@
       },
       formatDuration(text) {
         const minutes = this.parseDurationMinutes(text);
-        return minutes ? minutes + ' min' : 'To Be Confirmed';
+        return minutes ? minutes + ' min' : '';
       },
       normalizeCoverValue(value) {
         return String(value || '').trim();

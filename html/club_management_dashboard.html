@@ -734,7 +734,7 @@
                 </label>
                 <label>
                   Course Fee
-                  <input id="courseFee" type="text" placeholder="e.g. £0 / Free / ¥99">
+                  <input id="courseFee" type="text" placeholder="e.g. £0 / ¥99">
                 </label>
                 <label>
                   Cover image URL
@@ -923,7 +923,7 @@
                   </label>
                   <label>
                     Course Fee
-                    <input id="courseEditFee" type="text" placeholder="e.g. £0 / Free / ¥99">
+                    <input id="courseEditFee" type="text" placeholder="e.g. £0 / ¥99">
                   </label>
                   <label>
                     Cover image URL
@@ -1154,13 +1154,13 @@
         return {
           slug: slug,
           name: name,
-          category: String(club.category || 'Sports').trim() || 'Sports',
-          mode: String(club.mode || 'In-person').trim() || 'In-person',
+          category: String(club.category || '').trim(),
+          mode: String(club.mode || '').trim(),
           location: String(club.location || '').trim(),
           mapLink: String(club.mapLink || '').trim(),
           onlineLink: String(club.onlineLink || '').trim(),
           time: String(club.time || '').trim(),
-          fee: String(club.fee || '£0').trim() || '£0',
+          fee: String(club.fee || '').trim(),
           seats: Number.isFinite(seats) && seats > 0 ? seats : 20,
           cover: sanitizeClubCoverValue(club.cover),
           tags: Array.isArray(club.tags)
@@ -2256,12 +2256,11 @@
           agendaList.innerHTML = '<li class="empty-item">There are no pending bookings right now.</li>';
         }else{
           agendaList.innerHTML = pendingItems.map(function(item){
-            var dateText = item.dayLabel || item.dayIso || item.time || 'Time TBD';
-            var timeText = item.slotTime ? (' · ' + item.slotTime) : '';
-            return '<li>' +
-              '<div class="agenda-title">' + (item.clubName || 'Unnamed Club') + '</div>' +
-              '<div class="agenda-sub">' + dateText + timeText + '</div>' +
-            '</li>';
+            var titleText = item.clubName || '';
+            var subParts = [item.dayLabel || item.dayIso || item.time || '', item.slotTime || ''].filter(Boolean);
+            var titleHtml = titleText ? ('<div class="agenda-title">' + titleText + '</div>') : '';
+            var subHtml = subParts.length ? ('<div class="agenda-sub">' + subParts.join(' · ') + '</div>') : '';
+            return '<li>' + titleHtml + subHtml + '</li>';
           }).join('');
         }
 
@@ -2278,9 +2277,10 @@
           teamList.innerHTML = '<li class="empty-item">No member data yet.</li>';
         }else{
           teamList.innerHTML = coreTeam.map(function(m){
+            var metaParts = [m.clubName || '', m.role || 'member'].filter(Boolean);
             return '<li>' +
               '<div class="team-name">' + (m.name || m.userEmail || 'Member') + '</div>' +
-              '<div class="team-meta">' + (m.clubName || '-') + ' · ' + (m.role || 'member') + '</div>' +
+              '<div class="team-meta">' + metaParts.join(' · ') + '</div>' +
             '</li>';
           }).join('');
         }
@@ -2292,10 +2292,10 @@
           tbody.innerHTML = state.myClubs.slice(0, 10).map(function(c){
             var memberCount = state.myMembers.filter(function(m){ return m.clubName === c.name; }).length;
             return '<tr>' +
-              '<td>' + (c.name || '-') + '</td>' +
-              '<td>' + (c.category || '-') + '</td>' +
-              '<td>' + (c.mode || '-') + '</td>' +
-              '<td>' + (c.location || '-') + '</td>' +
+              '<td>' + (c.name || '') + '</td>' +
+              '<td>' + (c.category || '') + '</td>' +
+              '<td>' + (c.mode || '') + '</td>' +
+              '<td>' + (c.location || '') + '</td>' +
               '<td>' + memberCount + '</td>' +
               '<td><span class="status-pill">' + toTextStatus(c.status) + '</span></td>' +
             '</tr>';
@@ -2315,9 +2315,10 @@
         }
 
         list.innerHTML = recent.map(function(c){
+          var subParts = [c.category || '', c.mode || '', toTextStatus(c.status)].filter(Boolean);
           return '<li>' +
-            '<div class="simple-item-title">' + (c.name || '-') + '</div>' +
-            '<div class="simple-item-sub">' + (c.category || '-') + ' · ' + (c.mode || '-') + ' · ' + toTextStatus(c.status) + '</div>' +
+            '<div class="simple-item-title">' + (c.name || '') + '</div>' +
+            '<div class="simple-item-sub">' + subParts.join(' · ') + '</div>' +
           '</li>';
         }).join('');
       }
@@ -2335,17 +2336,23 @@
         });
 
         tbody.innerHTML = rows.map(function(c){
-          var desc = c.desc || c.heroSub || 'No overview available.';
-          var timeText = c.time || 'Time TBD';
-          var locationText = c.location || 'Location TBD';
+          var desc = c.desc || c.heroSub || '';
+          var timeText = c.time || '';
+          var locationText = c.location || '';
           var statusText = toTextStatus(c.status);
-          var seatsText = Number(c.seats || 0) > 0 ? (Number(c.seats) + ' ') : 'Pending setup';
+          var seatsText = Number(c.seats || 0) > 0 ? String(Number(c.seats)) : '';
           var isSelected = String(c.id || '') === String(editingClubId || '');
+          var titleSub = desc ? ('<div class="table-subtext">' + desc + '</div>') : '';
+          var categoryMain = c.category || '';
+          var categorySub = c.mode ? ('<div class="table-subtext">' + c.mode + '</div>') : '';
+          var scheduleMain = locationText || timeText || '';
+          var scheduleSub = (locationText && timeText) ? ('<div class="table-subtext">' + timeText + '</div>') : '';
+          var statusSub = seatsText ? ('<div class="table-subtext">Capacity: ' + seatsText + '</div>') : '';
           return '<tr class="table-row-selectable' + (isSelected ? ' table-row-selected' : '') + '" data-club-id="' + c.id + '">' +
-            '<td><div class="table-maintext">' + (c.name || '-') + '</div><div class="table-subtext">' + desc + '</div></td>' +
-            '<td><div class="table-maintext">' + (c.category || '-') + '</div><div class="table-subtext">' + (c.mode || '-') + '</div></td>' +
-            '<td><div class="table-maintext">' + locationText + '</div><div class="table-subtext">' + timeText + '</div></td>' +
-            '<td><div class="table-maintext">' + statusText + '</div><div class="table-subtext">Capacity: ' + seatsText + '</div></td>' +
+            '<td><div class="table-maintext">' + (c.name || '') + '</div>' + titleSub + '</td>' +
+            '<td><div class="table-maintext">' + categoryMain + '</div>' + categorySub + '</td>' +
+            '<td><div class="table-maintext">' + scheduleMain + '</div>' + scheduleSub + '</td>' +
+            '<td><div class="table-maintext">' + statusText + '</div>' + statusSub + '</td>' +
             '<td class="actions-cell">' +
               '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit</button>' +
               '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">Preview</button>' +
@@ -2363,16 +2370,18 @@
         }
 
         wrap.innerHTML = state.myClubs.map(function(c){
-          var extraLinkHint = '';
-          if(c.mapLink) extraLinkHint += ' · Map link';
-          if(c.onlineLink) extraLinkHint += ' · Meeting link';
+          var metaParts = [c.category || '', c.mode || '', c.location || ''].filter(Boolean);
+          if(c.mapLink) metaParts.push('Map link');
+          if(c.onlineLink) metaParts.push('Meeting link');
+          var desc = c.desc || c.heroSub || '';
+          var descHtml = desc ? ('<p>' + desc + '</p>') : '';
           return '<article class="club-manage-card">' +
             '<div class="club-manage-head">' +
-              '<h4>' + (c.name || '-') + '</h4>' +
+              '<h4>' + (c.name || '') + '</h4>' +
               '<span class="status-pill">' + toTextStatus(c.status) + '</span>' +
             '</div>' +
-            '<div class="club-manage-meta">' + (c.category || '-') + ' · ' + (c.mode || '-') + ' · ' + (c.location || 'Location TBD') + extraLinkHint + '</div>' +
-            '<p>' + (c.desc || c.heroSub || 'No overview available.') + '</p>' +
+            '<div class="club-manage-meta">' + metaParts.join(' · ') + '</div>' +
+            descHtml +
             '<div class="club-manage-actions">' +
               '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">View Details</button>' +
               '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit Club</button>' +
@@ -2600,8 +2609,8 @@
         var refs = getClubFormRefs(mode);
         return {
           name: refs.name ? refs.name.value.trim() : '',
-          category: refs.category ? refs.category.value : 'Sports',
-          mode: refs.mode ? refs.mode.value : 'In-person',
+          category: refs.category ? refs.category.value : '',
+          mode: refs.mode ? refs.mode.value : '',
           location: refs.location ? refs.location.value.trim() : '',
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
           time: refs.time ? refs.time.value.trim() : '',
@@ -2617,104 +2626,6 @@
           trainingPlan: refs.trainingPlan ? refs.trainingPlan.value.trim() : '',
           notes: refs.notes ? refs.notes.value.trim() : ''
         };
-      }
-
-      function buildClubVenueFallback(club){
-        if(!club) return '';
-        var lines = [];
-        var location = String(club.location || '').trim();
-        var mode = String(club.mode || '').trim();
-        var time = String(club.time || '').trim();
-        if(location){
-          lines.push('Main venue: ' + location);
-        }
-        if(time){
-          lines.push('Typical session time: ' + time);
-        }
-        if(mode){
-          lines.push('Format: ' + mode + (club.onlineLink ? ' with online updates available when needed' : ''));
-        }
-        if(club.mapLink){
-          lines.push('Use the map link to confirm the arrival point before you travel');
-        }
-        return lines.join('\n');
-      }
-
-      function buildClubWhatWeDoFallback(club){
-        if(!club) return '';
-        var tags = Array.isArray(club.tags) ? club.tags : [];
-        var cleanTags = tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean);
-        if(cleanTags.length){
-          return cleanTags.map(function(tag){ return 'Focus area: ' + tag; }).join('\n');
-        }
-        var desc = String(club.desc || '').trim();
-        if(desc){
-          return desc
-            .split(/[.!?]\s+/)
-            .map(function(part){ return part.trim(); })
-            .filter(Boolean)
-            .slice(0, 3)
-            .join('\n');
-        }
-        return 'Regular club activities and guided sessions are arranged through the weekly schedule.';
-      }
-
-      function buildClubAudienceFallback(club){
-        if(!club) return '';
-        var category = String(club.category || 'club').trim().toLowerCase();
-        var mode = String(club.mode || '').trim().toLowerCase();
-        var lines = [
-          'Members looking for regular ' + category + ' activities and a steady weekly routine',
-          'Beginners who want a clear place to start and join scheduled sessions',
-          'Returning members who want to stay active and connected with the club community'
-        ];
-        if(mode === 'online' || mode === 'hybrid'){
-          lines.push('Students who prefer a mix of in-person and online updates or remote participation');
-        }
-        return lines.join('\n');
-      }
-
-      function buildClubTrainingFallback(club){
-        if(!club) return '';
-        var lines = [];
-        var time = String(club.time || '').trim();
-        var seats = Number(club.seats || 0);
-        if(time){
-          lines.push('Sessions usually follow this published time window: ' + time);
-        }
-        lines.push('Weekly activities move from guided warm-up or orientation into the main practice block');
-        if(seats > 0){
-          lines.push('Booking capacity is currently set to ' + seats + ' places so groups stay manageable');
-        }
-        lines.push('Use the booking page to confirm the latest slot before attending');
-        return lines.join('\n');
-      }
-
-      function buildClubNotesFallback(club){
-        if(!club) return '';
-        var fee = String(club.fee || '').trim();
-        var lines = [
-          'Complete your booking before arriving so the organiser can prepare the right group size',
-          'Bring any personal equipment normally required for this activity unless told otherwise'
-        ];
-        if(fee){
-          lines.push('Current fee information: ' + fee);
-        }
-        if(club.onlineLink){
-          lines.push('If an online room is used, the access link is available from the room link field');
-        }
-        return lines.join('\n');
-      }
-
-      function applyClubDetailFallbacks(club){
-        var base = Object.assign({}, club || {});
-        base.heroSub = String(base.heroSub || base.desc || '').trim();
-        base.venueInfo = String(base.venueInfo || '').trim() || buildClubVenueFallback(base);
-        base.whatWeDo = String(base.whatWeDo || '').trim() || buildClubWhatWeDoFallback(base);
-        base.audience = String(base.audience || '').trim() || buildClubAudienceFallback(base);
-        base.trainingPlan = String(base.trainingPlan || '').trim() || buildClubTrainingFallback(base);
-        base.notes = String(base.notes || '').trim() || buildClubNotesFallback(base);
-        return base;
       }
 
       async function resolveClubCover(mode, fallback){
@@ -2757,11 +2668,6 @@
 
       function buildClubPayload(values, currentClub, cover){
         var existing = currentClub || null;
-        var enriched = applyClubDetailFallbacks(Object.assign({}, values, {
-          cover: cover,
-          ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
-          ownerId: (existing && existing.ownerId) || state.sessionUserId
-        }));
         return {
           id: existing && existing.id ? existing.id : Date.now(),
           slug: existing && existing.slug ? existing.slug : slugify(values.name),
@@ -2772,17 +2678,17 @@
           mapLink: values.mapLink,
           onlineLink: values.onlineLink,
           time: values.time,
-          fee: values.fee || '£0',
+          fee: values.fee,
           seats: values.seats,
           cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
           tags: values.tags,
           desc: values.desc,
-          heroSub: enriched.heroSub,
-          venueInfo: enriched.venueInfo,
-          whatWeDo: enriched.whatWeDo,
-          audience: enriched.audience,
-          trainingPlan: enriched.trainingPlan,
-          notes: enriched.notes,
+          heroSub: values.heroSub,
+          venueInfo: values.venueInfo,
+          whatWeDo: values.whatWeDo,
+          audience: values.audience,
+          trainingPlan: values.trainingPlan,
+          notes: values.notes,
           slots: (existing && Array.isArray(existing.slots)) ? existing.slots : [],
           ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
           createdAt: (existing && existing.createdAt) || new Date().toISOString(),
@@ -3274,8 +3180,8 @@
         return {
           title: refs.title ? refs.title.value.trim() : '',
           club: refs.club ? refs.club.value : '',
-          level: refs.level ? refs.level.value : 'Beginner',
-          mode: refs.mode ? refs.mode.value : 'In-person',
+          level: refs.level ? refs.level.value : '',
+          mode: refs.mode ? refs.mode.value : '',
           time: refs.time ? refs.time.value.trim() : '',
           location: refs.location ? refs.location.value.trim() : '',
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
@@ -3301,7 +3207,7 @@
         var scheduleList = Array.isArray(values.timeSlots) && values.timeSlots.length
           ? values.timeSlots.slice(0, 12)
           : parseMultiValue(values.schedule, 12);
-        var time = values.time || scheduleList[0] || 'Time TBD';
+        var time = values.time || scheduleList[0] || '';
         if(scheduleList.length === 0 && values.time){
           scheduleList = [values.time];
         }
@@ -3310,11 +3216,8 @@
         if(!location){
           location = extractGoogleMapsQueryFromUrl(values.mapLink);
         }
-        if(!location){
-          location = values.mode === 'Online' ? 'OnlineMeeting link (to be published)' : 'Location TBD';
-        }
 
-        var fee = values.fee || 'Free';
+        var fee = values.fee || '';
         var desc = values.desc;
         var lead = values.lead;
         var detail = values.detail;
@@ -3369,20 +3272,28 @@
         });
 
         tbody.innerHTML = rows.map(function(c){
-          var desc = c.desc || c.detail || '-';
-          var timeText = c.time || ((Array.isArray(c.schedule) && c.schedule[0]) || 'Time TBD');
-          var locationText = c.location || 'Location TBD';
-          var feeText = c.fee || 'Free';
-          var seatsText = Number(c.seats || 0) > 0 ? (Number(c.seats) + ' ') : 'Pending setup';
-          var coachName = c.coachName || 'Default Coach';
-          var coachTitle = c.coachTitle || 'Course Instructor';
+          var desc = c.desc || '';
+          var timeText = c.time || ((Array.isArray(c.schedule) && c.schedule[0]) || '');
+          var locationText = c.location || '';
+          var feeText = c.fee || '';
+          var seatsText = Number(c.seats || 0) > 0 ? String(Number(c.seats)) : '';
+          var coachName = c.coachName || '';
+          var coachTitle = c.coachTitle || '';
           var isSelected = String(c.id || '') === String(editingCourseId || '');
+          var titleSub = desc ? ('<div class="table-subtext">' + desc + '</div>') : '';
+          var scheduleMain = timeText || locationText || '';
+          var scheduleSub = (timeText && locationText) ? ('<div class="table-subtext">' + locationText + '</div>') : '';
+          var feeMain = feeText ? ('<div class="table-maintext">' + feeText + '</div>') : '';
+          var feeSub = seatsText ? ('<div class="table-subtext">Remaining Seats: ' + seatsText + '</div>') : '';
+          var coachMainValue = coachName || coachTitle || '';
+          var coachMain = coachMainValue ? ('<div class="table-maintext">' + coachMainValue + '</div>') : '';
+          var coachSub = (coachName && coachTitle) ? ('<div class="table-subtext">' + coachTitle + '</div>') : '';
           return '<tr class="table-row-selectable' + (isSelected ? ' table-row-selected' : '') + '" data-course-id="' + c.id + '">' +
-            '<td><div class="table-maintext">' + (c.title || '-') + '</div><div class="table-subtext">' + desc + '</div></td>' +
-            '<td>' + (c.club || '-') + '</td>' +
-            '<td><div class="table-maintext">' + timeText + '</div><div class="table-subtext">' + locationText + '</div></td>' +
-            '<td><div class="table-maintext">' + feeText + '</div><div class="table-subtext">Remaining Seats: ' + seatsText + '</div></td>' +
-            '<td><div class="table-maintext">' + coachName + '</div><div class="table-subtext">' + coachTitle + '</div></td>' +
+            '<td><div class="table-maintext">' + (c.title || '') + '</div>' + titleSub + '</td>' +
+            '<td>' + (c.club || '') + '</td>' +
+            '<td><div class="table-maintext">' + scheduleMain + '</div>' + scheduleSub + '</td>' +
+            '<td>' + feeMain + feeSub + '</td>' +
+            '<td>' + coachMain + coachSub + '</td>' +
             '<td class="actions-cell">' +
               '<button class="btn-plain small" data-action="edit-course" data-id="' + c.id + '">Edit</button>' +
               '<button class="btn-plain small" data-action="preview-course" data-id="' + c.id + '">Preview</button>' +
@@ -3461,7 +3372,7 @@
         }
         if(refs.headNote){
           refs.headNote.hidden = !isEditing;
-          refs.headNote.textContent = isEditing ? ('Currently editing: ' + (course.title || 'Untitled Course')) : '';
+          refs.headNote.textContent = isEditing ? ('Currently editing' + (course.title ? (': ' + course.title) : '')) : '';
         }
         if(refs.submitBtn){
           refs.submitBtn.disabled = !isEditing;
@@ -3480,7 +3391,7 @@
         }
         if(refs.headNote){
           refs.headNote.hidden = !isEditing;
-          refs.headNote.textContent = isEditing ? ('Currently editing: ' + (club.name || 'Unnamed Club')) : '';
+          refs.headNote.textContent = isEditing ? ('Currently editing' + (club.name ? (': ' + club.name) : '')) : '';
         }
         if(refs.submitBtn){
           refs.submitBtn.disabled = !isEditing;
@@ -3535,14 +3446,13 @@
 
       function fillEditClubForm(club){
         if(!club) return;
-        var enriched = applyClubDetailFallbacks(club);
         var refs = getClubFormRefs('edit');
         editingClubId = String(club.id || '');
         if(refs.hiddenId) refs.hiddenId.value = editingClubId;
         setEditClubFieldsVisible(true);
         refs.name.value = club.name || '';
-        refs.category.value = club.category || 'Sports';
-        refs.mode.value = club.mode || 'In-person';
+        refs.category.value = club.category || '';
+        refs.mode.value = club.mode || '';
         refs.location.value = club.location || '';
         refs.mapLink.value = club.mapLink || '';
         if(refs.mapSearch) refs.mapSearch.value = club.location || club.name || '';
@@ -3551,16 +3461,16 @@
         refs.onlineLink.value = club.onlineLink || '';
         refs.fee.value = club.fee || '';
         refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
-        refs.heroSub.value = enriched.heroSub || '';
+        refs.heroSub.value = club.heroSub || '';
         refs.tags.value = Array.isArray(club.tags) ? club.tags.join(', ') : '';
         refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
         refs.desc.value = club.desc || '';
-        refs.venueInfo.value = enriched.venueInfo || '';
-        refs.whatWeDo.value = enriched.whatWeDo || '';
-        refs.audience.value = enriched.audience || '';
-        refs.trainingPlan.value = enriched.trainingPlan || '';
-        refs.notes.value = enriched.notes || '';
+        refs.venueInfo.value = club.venueInfo || '';
+        refs.whatWeDo.value = club.whatWeDo || '';
+        refs.audience.value = club.audience || '';
+        refs.trainingPlan.value = club.trainingPlan || '';
+        refs.notes.value = club.notes || '';
         syncEditClubFormMode(club);
       }
 
@@ -3619,8 +3529,8 @@
         setEditCourseFieldsVisible(true);
         populateCourseClubSelect(refs.club, course.club || '', course);
         refs.title.value = course.title || '';
-        refs.level.value = course.level || 'Beginner';
-        refs.mode.value = course.mode || 'In-person';
+        refs.level.value = course.level || '';
+        refs.mode.value = course.mode || '';
         refs.location.value = course.location || '';
         refs.mapLink.value = course.mapLink || '';
         if(refs.mapSearch) refs.mapSearch.value = course.location || course.title || course.club || '';

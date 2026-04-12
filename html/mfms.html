@@ -192,8 +192,8 @@
 
                 <div class="course-list-info">
                   <h3 class="course-list-title">{{ c.title }}</h3>
-                  <p class="course-list-desc">{{ c.desc }}</p>
-                  <div class="course-list-time">Course Time: {{ c.time }}</div>
+                  <p v-if="c.desc" class="course-list-desc">{{ c.desc }}</p>
+                  <div v-if="c.time" class="course-list-time">Course Time: {{ c.time }}</div>
                 </div>
               </article>
             </div>
@@ -618,25 +618,24 @@
       normalizeCourse(course) {
         if (!course) return null;
         const schedule = this.parseMultiValue(course.schedule || course.time || '').slice(0, 12);
-        const primaryTime = String(course.time || '').trim() || schedule[0] || 'Time TBD';
+        const primaryTime = String(course.time || '').trim() || schedule[0] || '';
         const safeSchedule = schedule.length
           ? schedule
-          : (primaryTime && primaryTime !== 'Time TBD' ? [primaryTime] : []);
-        const desc = String(course.desc || course.summary || '').trim()
-          || String(course.lead || course.detail || '').trim();
-        const detail = String(course.detail || '').trim() || desc;
-        const clubName = String(course.club || course.clubName || '').trim() || 'Unnamed Club';
+          : (primaryTime ? [primaryTime] : []);
+        const desc = String(course.desc || course.summary || '').trim();
+        const detail = String(course.detail || '').trim();
+        const clubName = String(course.club || course.clubName || '').trim();
         const clubCategory = String(course.clubCategory || course.category || clubName).trim();
         return Object.assign({}, course, {
-          title: String(course.title || 'Untitled Course').trim(),
+          title: String(course.title || '').trim(),
           club: clubName,
           clubCategory: clubCategory,
           desc: desc,
           detail: detail,
           time: primaryTime,
           schedule: safeSchedule,
-          location: String(course.location || '').trim() || 'Location TBD',
-          fee: String(course.fee || '').trim() || 'Free',
+          location: String(course.location || '').trim(),
+          fee: String(course.fee || '').trim(),
           seats: Number(course.seats || 0) > 0 ? Number(course.seats) : 12,
           createdAt: this.timeValue(course.createdAt || course.updatedAt || course.id),
           updatedAt: this.timeValue(course.updatedAt || course.createdAt || course.id)

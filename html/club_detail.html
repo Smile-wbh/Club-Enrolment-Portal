@@ -30,13 +30,13 @@
       <div class="heroGrid">
         <div>
           <h1 class="heroTitle">{{ club.name }}</h1>
-          <p class="heroSub">{{ club.heroSub || club.desc }}</p>
+          <p v-if="club.heroSub" class="heroSub">{{ club.heroSub }}</p>
 
           <div class="chips" v-if="club.tags && club.tags.length">
             <span class="chip" v-for="(t, i) in club.tags" :key="i">{{ t }}</span>
           </div>
-          <div class="chips">
-            <span class="chip">📍 Venue: {{ club.location }}</span>
+          <div class="chips" v-if="club.location || club.mapLink || club.onlineLink">
+            <span v-if="club.location" class="chip">📍 Venue: {{ club.location }}</span>
             <a v-if="club.mapLink" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
             <a v-if="club.onlineLink" class="chip chip-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">💻 Online Room</a>
           </div>
@@ -71,27 +71,27 @@
 
     <section class="main" v-if="club">
       <div class="leftCol">
-        <div class="card">
+        <div class="card" v-if="club.desc">
           <h2>About the Club</h2>
           <p>{{ club.desc }}</p>
         </div>
 
-        <div class="card">
+        <div class="card" v-if="venueList.length">
           <h2>Venue Information</h2>
           <ul class="list">
             <li v-for="(x, i) in venueList" :key="i">{{ x }}</li>
           </ul>
         </div>
 
-        <div class="grid2">
-          <div class="card">
+        <div class="grid2" v-if="whatList.length || audienceList.length">
+          <div class="card" v-if="whatList.length">
             <h2>What We Do</h2>
             <ul class="list">
               <li v-for="(x, i) in whatList" :key="i">{{ x }}</li>
             </ul>
           </div>
 
-          <div class="card">
+          <div class="card" v-if="audienceList.length">
             <h2>Who It's For</h2>
             <ul class="list">
               <li v-for="(x, i) in audienceList" :key="i">{{ x }}</li>
@@ -99,14 +99,14 @@
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" v-if="trainingList.length">
           <h2>Training Plan</h2>
           <ul class="list">
             <li v-for="(x, i) in trainingList" :key="i">{{ x }}</li>
           </ul>
         </div>
 
-        <div class="card">
+        <div class="card" v-if="notesList.length">
           <h2>Equipment and Notes</h2>
           <ul class="list">
             <li v-for="(x, i) in notesList" :key="i">{{ x }}</li>
@@ -118,17 +118,17 @@
       <aside class="card">
         <h2>Key Information</h2>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.category">
           <div class="k">Category</div>
-          <div class="v">{{ club.category || 'Sports' }}</div>
+          <div class="v">{{ club.category }}</div>
         </div>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.mode">
           <div class="k">Format</div>
-          <div class="v">{{ club.mode || 'In-person' }}</div>
+          <div class="v">{{ club.mode }}</div>
         </div>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.location">
           <div class="k">Location</div>
           <div class="v">{{ club.location }}</div>
         </div>
@@ -141,19 +141,19 @@
           <div class="v"><a class="info-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">Open Room</a></div>
         </div>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.time">
           <div class="k">Typical Time</div>
-          <div class="v">{{ club.time || '—' }}</div>
+          <div class="v">{{ club.time }}</div>
         </div>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.seats || club.seats === 0">
           <div class="k">Seats</div>
           <div class="v">{{ club.seats }}</div>
         </div>
 
-        <div class="infoRow">
+        <div class="infoRow" v-if="club.fee">
           <div class="k">Fee</div>
-          <div class="v">{{ club.fee || '£0' }}</div>
+          <div class="v">{{ club.fee }}</div>
         </div>
 
         <div class="cta">
@@ -189,8 +189,6 @@
   </div>
 
   <script>
-    const DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
-    const DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL = 'https://www.google.com/maps/place/Hull+Sport/@53.7738999,-0.3687267,18z';
     const CLUB_COVER_MAP = Object.freeze({
       football: '../zp/zq.webp',
       badminton: '../zp/ymq.webp',
@@ -260,19 +258,19 @@
           return `Note: Please complete your booking by choosing a date and time slot on the booking page. ${tagText}`.trim();
         },
         venueList(){
-          return this.toList(this.club ? (this.club.venueInfo || this.buildVenueInfoFallback(this.club)) : '');
+          return this.toList(this.club ? this.club.venueInfo : '');
         },
         whatList(){
-          return this.toList(this.club ? (this.club.whatWeDo || this.buildWhatWeDoFallback(this.club)) : '');
+          return this.toList(this.club ? this.club.whatWeDo : '');
         },
         audienceList(){
-          return this.toList(this.club ? (this.club.audience || this.buildAudienceFallback(this.club)) : '');
+          return this.toList(this.club ? this.club.audience : '');
         },
         trainingList(){
-          return this.toList(this.club ? (this.club.trainingPlan || this.buildTrainingFallback(this.club)) : '');
+          return this.toList(this.club ? this.club.trainingPlan : '');
         },
         notesList(){
-          return this.toList(this.club ? (this.club.notes || this.buildNotesFallback(this.club)) : '');
+          return this.toList(this.club ? this.club.notes : '');
         },
         activeMapLink(){
           if(this.resolvedMapLink) return this.resolvedMapLink;
@@ -383,20 +381,20 @@
             : slots.reduce((sum, s)=> sum + (Number(s && s.capacity) || 0), 0);
           const time = c && c.time
             ? c.time
-            : slots.map(s=>s && s.time).filter(Boolean).slice(0,2).join(' / ') || '—';
+            : slots.map(s=>s && s.time).filter(Boolean).slice(0,2).join(' / ');
           const tags = Array.isArray(c && c.tags) ? c.tags.map(t=>String(t).trim()).filter(Boolean) : [];
 
           return {
             slug: c && c.slug ? c.slug : '',
-            name: c && c.name ? c.name : 'Unnamed Club',
-            category: c && c.category ? c.category : 'Sports',
-            mode: c && c.mode ? c.mode : 'In-person',
-            location: c && c.location ? c.location : 'TBD',
-            fee: c && c.fee ? c.fee : '£0',
+            name: c && c.name ? c.name : '',
+            category: c && c.category ? c.category : '',
+            mode: c && c.mode ? c.mode : '',
+            location: c && c.location ? c.location : '',
+            fee: c && c.fee ? c.fee : '',
             desc: c && c.desc ? c.desc : '',
             heroSub: c && c.heroSub ? c.heroSub : '',
             cover: this.resolveClubCover(c && c.slug, c && c.cover ? c.cover : ''),
-            mapLink: c && c.mapLink ? c.mapLink : DEFAULT_CLUB_PREVIEW_MAP_LINK,
+            mapLink: c && c.mapLink ? c.mapLink : '',
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
             venueInfo: c && c.venueInfo ? c.venueInfo : '',
             whatWeDo: c && c.whatWeDo ? c.whatWeDo : '',
@@ -429,87 +427,6 @@
             return fallbackCover;
           }
           return text;
-        },
-        buildVenueInfoFallback(club){
-          if(!club) return '';
-          const lines = [];
-          const location = String(club.location || '').trim();
-          const mode = String(club.mode || '').trim();
-          const time = String(club.time || '').trim();
-          if(location && location !== 'TBD'){
-            lines.push(`Main venue: ${location}`);
-          }
-          if(time && time !== '—'){
-            lines.push(`Typical session time: ${time}`);
-          }
-          if(mode){
-            lines.push(`Format: ${mode}${club.onlineLink ? ' with online updates shared through the room link when needed' : ''}`);
-          }
-          if(club.mapLink){
-            lines.push('Use the map link above to check the exact arrival point before you travel');
-          }
-          return lines.join('\n');
-        },
-        buildWhatWeDoFallback(club){
-          if(!club) return '';
-          const tags = Array.isArray(club.tags) ? club.tags.map(t => String(t || '').trim()).filter(Boolean) : [];
-          if(tags.length){
-            return tags.map(tag => `Focus area: ${tag}`).join('\n');
-          }
-          const desc = String(club.desc || '').trim();
-          if(desc){
-            return desc
-              .split(/[.!?]\s+/)
-              .map(x => x.trim())
-              .filter(Boolean)
-              .slice(0, 3)
-              .join('\n');
-          }
-          return 'Regular club activities and guided sessions are organised through the weekly schedule.';
-        },
-        buildAudienceFallback(club){
-          if(!club) return '';
-          const category = String(club.category || 'club').trim().toLowerCase();
-          const mode = String(club.mode || '').trim().toLowerCase();
-          const lines = [
-            `Members looking for regular ${category} activities and a consistent weekly routine`,
-            'Beginners who want a clear place to start and join sessions with booking support',
-            'Returning members who want to stay active and connected with the club community'
-          ];
-          if(mode === 'online' || mode === 'hybrid'){
-            lines.push('Students who prefer a mix of in-person and online updates or remote participation');
-          }
-          return lines.join('\n');
-        },
-        buildTrainingFallback(club){
-          if(!club) return '';
-          const time = String(club.time || '').trim();
-          const seats = Number(club.seats || 0);
-          const lines = [];
-          if(time && time !== '—'){
-            lines.push(`Sessions usually follow this published time window: ${time}`);
-          }
-          lines.push('Weekly activities move from guided warm-up or orientation into the main practice block');
-          if(seats > 0){
-            lines.push(`Booking capacity is currently set to ${seats} places so groups stay manageable`);
-          }
-          lines.push('Use the booking page to confirm the latest slot before you attend');
-          return lines.join('\n');
-        },
-        buildNotesFallback(club){
-          if(!club) return '';
-          const fee = String(club.fee || '').trim();
-          const lines = [
-            'Complete your booking before arriving so the organiser can prepare the right group size',
-            'Bring any personal equipment normally required for this type of activity unless told otherwise'
-          ];
-          if(fee){
-            lines.push(`Current fee information: ${fee}`);
-          }
-          if(club.onlineLink){
-            lines.push('If an online room is used, the access link is available from the room link above');
-          }
-          return lines.join('\n');
         },
         async findClub(slug){
           const normalizedSlug = String(slug || '').trim();
@@ -548,7 +465,7 @@
         },
         toList(text){
           const raw = (text || '').toString().trim();
-          if(!raw) return ['—'];
+          if(!raw) return [];
           const lines = raw
             .split(/\r?\n/g)
             .map(x=>x.trim())
@@ -584,19 +501,8 @@
                 this.mapResolvePending = false;
                 return;
               }
-              if(raw === DEFAULT_CLUB_PREVIEW_MAP_LINK){
-                this.resolvedMapLink = DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL;
-                this.mapResolvePending = false;
-                return;
-              }
             }
-          }catch(e){
-            if(raw === DEFAULT_CLUB_PREVIEW_MAP_LINK){
-              this.resolvedMapLink = DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL;
-              this.mapResolvePending = false;
-              return;
-            }
-          }
+          }catch(e){}
           try{
             const response = await fetch(raw, {
               method: 'GET',
@@ -605,9 +511,9 @@
               cache: 'no-store'
             });
             const finalUrl = String(response && response.url || '').trim();
-            this.resolvedMapLink = finalUrl || (raw === DEFAULT_CLUB_PREVIEW_MAP_LINK ? DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL : raw);
+            this.resolvedMapLink = finalUrl || raw;
           }catch(error){
-            this.resolvedMapLink = raw === DEFAULT_CLUB_PREVIEW_MAP_LINK ? DEFAULT_CLUB_PREVIEW_MAP_RESOLVED_URL : raw;
+            this.resolvedMapLink = raw;
           }finally{
             this.mapResolvePending = false;
           }
