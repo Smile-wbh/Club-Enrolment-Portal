@@ -660,7 +660,7 @@
                   <div class="map-link-search-row">
                     <label class="map-link-search-field" for="courseMapSearch">
                       <span>Google Maps search</span>
-                      <input id="courseMapSearch" type="text" placeholder="Search a place to confirm, or leave blank to use Activity Location">
+                      <input id="courseMapSearch" type="text" placeholder="Search a place to confirm on Google Maps">
                     </label>
                     <div class="map-link-search-actions">
                       <button class="btn-plain map-link-btn" id="courseMapSearchBtn" type="button">Search Google Maps</button>
@@ -849,7 +849,7 @@
                     <div class="map-link-search-row">
                       <label class="map-link-search-field" for="courseEditMapSearch">
                         <span>Google Maps search</span>
-                        <input id="courseEditMapSearch" type="text" placeholder="Search a place to confirm, or leave blank to use Activity Location">
+                        <input id="courseEditMapSearch" type="text" placeholder="Search a place to confirm on Google Maps">
                       </label>
                       <div class="map-link-search-actions">
                         <button class="btn-plain map-link-btn" id="courseEditMapSearchBtn" type="button">Search Google Maps</button>
@@ -3114,20 +3114,14 @@
 
       function getCourseMapSearchQuery(mode){
         var refs = getCourseFormRefs(mode);
-        var direct = refs.mapSearch ? String(refs.mapSearch.value || '').trim() : '';
-        if(direct) return direct;
-        return [
-          refs.location ? String(refs.location.value || '').trim() : '',
-          refs.title ? String(refs.title.value || '').trim() : '',
-          refs.club ? String(refs.club.value || '').trim() : ''
-        ].filter(Boolean).join(' ');
+        return refs.mapSearch ? String(refs.mapSearch.value || '').trim() : '';
       }
 
       function refreshCourseMapPreview(mode, preferredQuery, preferredMeta){
         var refs = getCourseFormRefs(mode);
         var fromLink = extractGoogleMapsQueryFromUrl(refs.mapLink ? refs.mapLink.value : '');
-        var fallbackQuery = getCourseMapSearchQuery(mode);
-        var query = String(preferredQuery || '').trim() || fromLink || fallbackQuery;
+        var directSearch = getCourseMapSearchQuery(mode);
+        var query = String(preferredQuery || '').trim() || fromLink || directSearch;
         if(!query){
           setCourseMapPreview(mode, '', '');
           return;
@@ -3148,11 +3142,9 @@
         var refs = getCourseFormRefs(mode);
         var query = getCourseMapSearchQuery(mode);
         if(!query){
-          alert('Please enter a place name or activity location before searching Google Maps.');
+          alert('Please enter a place name in Google Maps search before searching.');
           if(refs.mapSearch){
             refs.mapSearch.focus();
-          }else if(refs.location){
-            refs.location.focus();
           }
           return;
         }
@@ -3226,24 +3218,6 @@
           });
           refs.mapSearch.addEventListener('blur', function(){
             refreshCourseMapPreview(mode, '', 'Preview based on your search text.');
-          });
-        }
-        if(refs.location){
-          refs.location.addEventListener('input', function(){
-            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
-          });
-          refs.location.addEventListener('blur', function(){
-            refreshCourseMapPreview(mode, '', 'Preview based on the activity location.');
-          });
-        }
-        if(refs.title){
-          refs.title.addEventListener('input', function(){
-            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
-          });
-        }
-        if(refs.club){
-          refs.club.addEventListener('change', function(){
-            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
           });
         }
         refreshCourseMapPreview(mode, '', '');
@@ -3640,8 +3614,8 @@
         refs.mode.value = course.mode || '';
         refs.location.value = course.location || '';
         refs.mapLink.value = course.mapLink || '';
-        if(refs.mapSearch) refs.mapSearch.value = course.location || course.title || course.club || '';
-        refreshCourseMapPreview('edit', '', course.mapLink ? 'Preview based on the current Google Maps link.' : 'Preview based on the activity location.');
+        if(refs.mapSearch) refs.mapSearch.value = course.mapLink ? extractGoogleMapsQueryFromUrl(course.mapLink) : '';
+        refreshCourseMapPreview('edit', '', course.mapLink ? 'Preview based on the current Google Maps link.' : '');
         setCourseTimeSlots('edit', (Array.isArray(course.schedule) && course.schedule.length) ? course.schedule : (course.time || ''));
         refs.englishClub.value = course.englishClub || '';
         refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;
