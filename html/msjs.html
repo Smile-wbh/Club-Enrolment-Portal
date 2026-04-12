@@ -168,17 +168,23 @@
               <span class="club-mode">{{ c.mode }}</span>
             </h3>
 
-            <p class="club-desc">{{ c.desc }}</p>
-
-            <div class="club-tags" v-if="c.tags && c.tags.length">
-              <span class="club-tag-pill" v-for="(t, i) in c.tags.slice(0, 4)" :key="i">{{ t }}</span>
-            </div>
-
             <div class="club-meta">
-              <div>Location: <span>{{ c.location }}</span></div>
-              <div>Typical Time: <span>{{ c.time }}</span></div>
-              <div>Remaining Seats: <span>{{ c.seats }}</span></div>
-              <div>Fee: <span>{{ c.fee }}</span></div>
+              <div class="club-meta-row">
+                <span class="club-meta-label">Location:</span>
+                <span class="club-meta-value">{{ c.location }}</span>
+              </div>
+              <div class="club-meta-row">
+                <span class="club-meta-label">Typical Time:</span>
+                <span class="club-meta-value">{{ c.time }}</span>
+              </div>
+              <div class="club-meta-row">
+                <span class="club-meta-label">Remaining Seats:</span>
+                <span class="club-meta-value">{{ c.seats }}</span>
+              </div>
+              <div class="club-meta-row">
+                <span class="club-meta-label">Fee:</span>
+                <span class="club-meta-value">{{ c.fee }}</span>
+              </div>
               <div class="meta-links" v-if="c.mapLink || c.onlineLink">
                 <a v-if="c.mapLink" class="meta-link" :href="c.mapLink" target="_blank" rel="noopener">Open Map</a>
                 <a v-if="c.onlineLink" class="meta-link" :href="c.onlineLink" target="_blank" rel="noopener">Open Room</a>
@@ -281,7 +287,6 @@
             seats: 12,
             fee: '£0 (Free)',
             cover: '../zp/zq.webp',
-            tags: ['Event Sign-up', 'Training Camp', 'Teamwork']
           },
           {
             id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
@@ -291,7 +296,6 @@
             seats: 8,
             fee: '£3/session (Optional)',
             cover: '../zp/ymq.webp',
-            tags: ['Campus Matches', 'Live Seats', 'Hot Club']
           },
           {
             id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
@@ -301,7 +305,6 @@
             seats: 16,
             fee: '£2/session',
             cover: '../zp/yy1.webp',
-            tags: ['Level-based Training', 'Lane Booking', 'Beginner Friendly']
           },
           {
             id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
@@ -311,7 +314,6 @@
             seats: 20,
             fee: '£0',
             cover: '../zp/qx.webp',
-            tags: ['Weekend Rides', 'Route Sharing', 'Outdoor Community']
           },
           {
             id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
@@ -321,7 +323,6 @@
             seats: 40,
             fee: '£0',
             cover: '../zp/bc.webp',
-            tags: ['Web Development', 'Python', 'Project Practice']
           },
           {
             id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
@@ -331,7 +332,6 @@
             seats: 10,
             fee: '£2/session',
             cover: '../zp/wq.webp',
-            tags: ['Doubles Training', 'Weekend Activities', 'Session Booking']
           },
           {
             id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
@@ -341,7 +341,6 @@
             seats: 18,
             fee: '£0',
             cover: '../zp/yy.webp',
-            tags: ['Instrument Exchange', 'Ensemble Rehearsal', 'Performance Sign-up']
           },
           {
             id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
@@ -351,7 +350,6 @@
             seats: 30,
             fee: '£0',
             cover: '../zp/pb.webp',
-            tags: ['Morning Run Check-in', 'Road Running', 'Training Plan']
           },
           {
             id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
@@ -361,7 +359,6 @@
             seats: 18,
             fee: '£0 (Free)',
             cover: '../zp/lq.webp',
-            tags: ['League Sign-up', 'Tactical Training', 'Scrimmages']
           },
           {
             id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
@@ -371,7 +368,6 @@
             seats: 12,
             fee: '£5/session (Optional)',
             cover: '../zp/grf.webp',
-            tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome']
           },
           {
             id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
@@ -381,7 +377,6 @@
             seats: 22,
             fee: '£0',
             cover: '../zp/glq.webp',
-            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training']
           },
           {
             id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
@@ -391,7 +386,6 @@
             seats: 16,
             fee: '£0',
             cover: '../zp/sj.webp',
-            tags: ['Team Coordination', 'Grouped Practice', 'Event Sign-up']
           },
           {
             id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
@@ -401,7 +395,6 @@
             seats: 14,
             fee: '£0',
             cover: '../zp/tc.webp',
-            tags: ['Flexibility Training', 'Strength Growth', 'Movement Demonstration']
           },
           {
             id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
@@ -411,7 +404,6 @@
             seats: 20,
             fee: '£0',
             cover: '../zp/ppq.webp',
-            tags: ['Foundations Coaching', 'Footwork Drills', 'Serve & Receive']
           },
           {
             id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
@@ -421,7 +413,6 @@
             seats: 22,
             fee: '£0',
             cover: '../zp/pq.webp',
-            tags: ['Passing Basics', 'Serve & Set', 'Team Rotation']
           },
           {
             id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
@@ -431,7 +422,6 @@
             seats: 24,
             fee: '£0',
             cover: '../zp/pkq.webp',
-            tags: ['Beginner-Friendly', 'Serve & Return', 'Social Matches']
           },
           {
             id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
@@ -441,7 +431,6 @@
             seats: 18,
             fee: '£0',
             cover: '../zp/bq.webp',
-            tags: ['Throwing & Catching', 'Batting Practice', 'Base Running']
           }
         ]
       };
@@ -471,8 +460,7 @@
             c.mode,
             c.location,
             c.time,
-            c.fee,
-            Array.isArray(c.tags) ? c.tags.join(' ') : ''
+            c.fee
           ].join(' ').toLowerCase();
           const matchQ = !q || searchText.includes(q);
           const matchCat = !this.category || this.matchesCategoryFilter(c, this.category);
@@ -495,10 +483,7 @@
       },
       hotClubCount() {
         const hotClubSlugs = new Set(['badminton', 'programming', 'football', 'tennis']);
-        return this.filteredClubs.filter((club) => {
-          const tags = Array.isArray(club.tags) ? club.tags : [];
-          return hotClubSlugs.has(club.slug) || tags.some((tag) => /hot|featured/i.test(tag));
-        }).length;
+        return this.filteredClubs.filter((club) => hotClubSlugs.has(club.slug)).length;
       },
       todayCourseCount() {
         const todayLabelsByDay = [
@@ -613,8 +598,7 @@
           club && club.name,
           club && club.desc,
           club && club.category,
-          club && club.location,
-          Array.isArray(club && club.tags) ? club.tags.join(' ') : ''
+          club && club.location
         ].join(' ').toLowerCase();
 
         if (!target) return true;
@@ -699,6 +683,14 @@
         return text;
       },
 
+      formatClubFee(value) {
+        const text = String(value || '').trim().replace(/^[£$€¥]\s*/, '');
+        if (!text) return '';
+        if (/^\.[0-9]+(?:\b|[^0-9])/.test(text)) return `£0${text}`;
+        if (/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) return `£${text}`;
+        return text;
+      },
+
       mapRegistryClub(c) {
         const slots = Array.isArray(c && c.slots) ? c.slots : [];
         const seats = typeof c.seats === 'number'
@@ -719,17 +711,15 @@
           location: c && c.location ? c.location : '—',
           time,
           seats,
-          fee: c && c.fee ? c.fee : '£0',
+          fee: this.formatClubFee(c && c.fee ? c.fee : '£0'),
           cover,
-          heroSub: c && c.heroSub,
           mapLink: c && c.mapLink ? c.mapLink : DEFAULT_CLUB_PREVIEW_MAP_LINK,
           onlineLink: c && c.onlineLink,
           venueInfo: c && c.venueInfo,
           whatWeDo: c && c.whatWeDo,
           audience: c && c.audience,
           trainingPlan: c && c.trainingPlan,
-          notes: c && c.notes,
-          tags: c && c.tags
+          notes: c && c.notes
         };
       },
 

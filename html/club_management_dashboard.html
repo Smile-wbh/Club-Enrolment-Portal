@@ -307,19 +307,14 @@
                 </label>
                 <label>
                   Fee
-                  <input id="regFee" type="text" placeholder="e.g. £3 per session">
+                  <div class="currency-input">
+                    <span class="currency-input-prefix">£</span>
+                    <input id="regFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
+                  </div>
                 </label>
                 <label>
                   Capacity
                   <input id="regCapacity" type="number" min="1" value="20">
-                </label>
-                <label class="span-2">
-                  Hero subtitle (shown at the top of the detail page)
-                  <input id="regHeroSub" type="text" placeholder="e.g. Weekly practice and friendly matches for members of different levels.">
-                </label>
-                <label class="span-2">
-                  Tags (comma-separated)
-                  <input id="regTags" type="text" placeholder="e.g. Weekly practice, friendly matches, teamwork, court booking">
                 </label>
                 <label class="span-2">
                   Cover image upload (used on the detail page)
@@ -482,19 +477,14 @@
                   </label>
                   <label>
                     Fee
-                    <input id="clubEditFee" type="text" placeholder="e.g. £3 per session">
+                    <div class="currency-input">
+                      <span class="currency-input-prefix">£</span>
+                      <input id="clubEditFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
+                    </div>
                   </label>
                   <label>
                     Capacity
                     <input id="clubEditCapacity" type="number" min="1" value="20">
-                  </label>
-                  <label class="span-2">
-                    Hero subtitle (shown at the top of the detail page)
-                    <input id="clubEditHeroSub" type="text" placeholder="e.g. Weekly practice and friendly matches for members of different levels.">
-                  </label>
-                  <label class="span-2">
-                    Tags (comma-separated)
-                    <input id="clubEditTags" type="text" placeholder="e.g. Weekly practice, friendly matches, teamwork, court booking">
                   </label>
                   <label class="span-2">
                     Cover image upload (used on the detail page)
@@ -1136,6 +1126,22 @@
         return text;
       }
 
+      function stripClubFeePrefix(raw){
+        return String(raw || '').trim().replace(/^[£$€¥]\s*/, '');
+      }
+
+      function formatClubFeeText(raw){
+        var text = stripClubFeePrefix(raw);
+        if(!text) return '';
+        if(/^\.[0-9]+(?:\b|[^0-9])/.test(text)){
+          return '£0' + text;
+        }
+        if(/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)){
+          return '£' + text;
+        }
+        return text;
+      }
+
       function isDemoClub(value){
         return !!DEMO_CLUB_SLUGS[String(value || '').trim().toLowerCase()];
       }
@@ -1150,7 +1156,6 @@
         if(!name) return null;
         var slug = String(club.slug || '').trim() || slugify(name);
         var seats = Number(club.seats || 0);
-        var status = String(club.status || '').trim().toLowerCase();
         return {
           slug: slug,
           name: name,
@@ -1160,14 +1165,12 @@
           mapLink: String(club.mapLink || '').trim(),
           onlineLink: String(club.onlineLink || '').trim(),
           time: String(club.time || '').trim(),
-          fee: String(club.fee || '').trim(),
+          fee: formatClubFeeText(club.fee),
           seats: Number.isFinite(seats) && seats > 0 ? seats : 20,
           cover: sanitizeClubCoverValue(club.cover),
-          tags: Array.isArray(club.tags)
-            ? club.tags.map(function(tag){ return String(tag || '').trim(); }).filter(Boolean)
-            : [],
+          tags: [],
           desc: String(club.desc || '').trim(),
-          heroSub: String(club.heroSub || club.desc || '').trim(),
+          heroSub: '',
           venueInfo: String(club.venueInfo || '').trim(),
           whatWeDo: String(club.whatWeDo || '').trim(),
           audience: String(club.audience || '').trim(),
@@ -1177,7 +1180,7 @@
           ownerId: state.sessionUserId,
           createdAt: String(club.createdAt || '').trim(),
           updatedAt: String(club.updatedAt || '').trim(),
-          status: status === 'approved' || status === 'inactive' ? status : 'pending'
+          status: 'approved'
         };
       }
 
@@ -2091,7 +2094,8 @@
 
         state.clubs = state.clubs.map(function(c){
           return c ? Object.assign({}, c, {
-            cover: sanitizeClubCoverValue(c.cover)
+            cover: sanitizeClubCoverValue(c.cover),
+            status: 'approved'
           }) : c;
         });
 
@@ -2336,7 +2340,7 @@
         });
 
         tbody.innerHTML = rows.map(function(c){
-          var desc = c.desc || c.heroSub || '';
+          var desc = c.desc || '';
           var timeText = c.time || '';
           var locationText = c.location || '';
           var statusText = toTextStatus(c.status);
@@ -2373,7 +2377,7 @@
           var metaParts = [c.category || '', c.mode || '', c.location || ''].filter(Boolean);
           if(c.mapLink) metaParts.push('Map link');
           if(c.onlineLink) metaParts.push('Meeting link');
-          var desc = c.desc || c.heroSub || '';
+          var desc = c.desc || '';
           var descHtml = desc ? ('<p>' + desc + '</p>') : '';
           return '<article class="club-manage-card">' +
             '<div class="club-manage-head">' +
@@ -2385,7 +2389,6 @@
             '<div class="club-manage-actions">' +
               '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">View Details</button>' +
               '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit Club</button>' +
-              '<button class="btn-plain small" data-action="toggle-status" data-id="' + c.id + '">Change Status</button>' +
               '<button class="btn-danger small" data-action="remove-club" data-id="' + c.id + '">Delete</button>' +
             '</div>' +
           '</article>';
@@ -2411,8 +2414,6 @@
           onlineLink: document.getElementById(isEdit ? 'clubEditOnlineLink' : 'regOnlineLink'),
           fee: document.getElementById(isEdit ? 'clubEditFee' : 'regFee'),
           capacity: document.getElementById(isEdit ? 'clubEditCapacity' : 'regCapacity'),
-          heroSub: document.getElementById(isEdit ? 'clubEditHeroSub' : 'regHeroSub'),
-          tags: document.getElementById(isEdit ? 'clubEditTags' : 'regTags'),
           coverFile: document.getElementById(isEdit ? 'clubEditCoverFile' : 'regCoverFile'),
           coverUrl: document.getElementById(isEdit ? 'clubEditCoverUrl' : 'regCoverUrl'),
           desc: document.getElementById(isEdit ? 'clubEditDesc' : 'regDesc'),
@@ -2422,6 +2423,20 @@
           trainingPlan: document.getElementById(isEdit ? 'clubEditTrainingPlan' : 'regTrainingPlan'),
           notes: document.getElementById(isEdit ? 'clubEditNotes' : 'regNotes')
         };
+      }
+
+      function bindClubFeeInput(mode){
+        var refs = getClubFormRefs(mode);
+        if(!refs || !refs.fee) return;
+        refs.fee.addEventListener('input', function(){
+          var cleaned = stripClubFeePrefix(refs.fee.value);
+          if(cleaned !== refs.fee.value){
+            refs.fee.value = cleaned;
+          }
+        });
+        refs.fee.addEventListener('blur', function(){
+          refs.fee.value = stripClubFeePrefix(refs.fee.value);
+        });
       }
 
       function getClubMapPreviewRefs(mode){
@@ -2615,10 +2630,10 @@
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
           time: refs.time ? refs.time.value.trim() : '',
           onlineLink: refs.onlineLink ? normalizeUrl(refs.onlineLink.value) : '',
-          fee: refs.fee ? refs.fee.value.trim() : '',
+          fee: refs.fee ? formatClubFeeText(refs.fee.value) : '',
           seats: refs.capacity ? Math.max(1, Number(refs.capacity.value) || 20) : 20,
-          heroSub: refs.heroSub ? refs.heroSub.value.trim() : '',
-          tags: refs.tags ? parseTags(refs.tags.value) : [],
+          heroSub: '',
+          tags: [],
           desc: refs.desc ? refs.desc.value.trim() : '',
           venueInfo: refs.venueInfo ? refs.venueInfo.value.trim() : '',
           whatWeDo: refs.whatWeDo ? refs.whatWeDo.value.trim() : '',
@@ -2793,12 +2808,12 @@
           onlineLink: values.onlineLink,
           time: values.time,
           weeklyTimeEntries: weeklyTimeEntries,
-          fee: values.fee,
+          fee: formatClubFeeText(values.fee),
           seats: values.seats,
           cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
-          tags: values.tags,
+          tags: [],
           desc: values.desc,
-          heroSub: values.heroSub,
+          heroSub: '',
           venueInfo: values.venueInfo,
           whatWeDo: values.whatWeDo,
           audience: values.audience,
@@ -2809,7 +2824,7 @@
           ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
           createdAt: (existing && existing.createdAt) || new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          status: (existing && existing.status) || 'pending'
+          status: 'approved'
         };
       }
 
@@ -3541,8 +3556,6 @@
         if(refs.onlineLink) refs.onlineLink.value = '';
         if(refs.fee) refs.fee.value = '';
         if(refs.capacity) refs.capacity.value = '';
-        if(refs.heroSub) refs.heroSub.value = '';
-        if(refs.tags) refs.tags.value = '';
         if(refs.coverFile) refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = '';
         if(refs.desc) refs.desc.value = '';
@@ -3575,10 +3588,8 @@
         refreshClubMapPreview('edit', '', club.mapLink ? 'Preview based on the current Google Maps link.' : 'Preview based on the activity location.');
         setClubTimeSlots('edit', club.time || '');
         refs.onlineLink.value = club.onlineLink || '';
-        refs.fee.value = club.fee || '';
+        refs.fee.value = stripClubFeePrefix(club.fee || '');
         refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
-        refs.heroSub.value = club.heroSub || '';
-        refs.tags.value = Array.isArray(club.tags) ? club.tags.join(', ') : '';
         refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
         refs.desc.value = club.desc || '';
@@ -4076,13 +4087,6 @@
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           var service = getAdminService();
           try{
-            if(action === 'toggle-status'){
-              var currentClub = state.clubs[idx] || null;
-              var cur = String(currentClub && currentClub.status || 'pending');
-              var nextStatus = cur === 'approved' ? 'inactive' : (cur === 'inactive' ? 'pending' : 'approved');
-              await service.updateClub(id, Object.assign({}, currentClub, { status: nextStatus }), state.sessionUserId);
-            }
-
             if(action === 'remove-club'){
               if(!(window.portalConfirm
                 ? await window.portalConfirm('Delete this club?', {
@@ -4104,11 +4108,6 @@
             );
             return;
           }
-        }
-
-        if(action === 'toggle-status'){
-          var cur = String(state.clubs[idx].status || 'pending');
-          state.clubs[idx].status = cur === 'approved' ? 'inactive' : (cur === 'inactive' ? 'pending' : 'approved');
         }
 
         if(action === 'remove-club'){
@@ -4347,6 +4346,8 @@
         initClubTimeBuilder('edit');
         bindClubMapControls('create');
         bindClubMapControls('edit');
+        bindClubFeeInput('create');
+        bindClubFeeInput('edit');
         initCourseTimeBuilder('publish');
         initCourseTimeBuilder('edit');
         bindCourseMapControls('publish');

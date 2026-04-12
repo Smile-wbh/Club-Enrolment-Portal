@@ -30,11 +30,6 @@
       <div class="heroGrid">
         <div>
           <h1 class="heroTitle">{{ club.name }}</h1>
-          <p v-if="club.heroSub" class="heroSub">{{ club.heroSub }}</p>
-
-          <div class="chips" v-if="club.tags && club.tags.length">
-            <span class="chip" v-for="(t, i) in club.tags" :key="i">{{ t }}</span>
-          </div>
           <div class="chips" v-if="club.location || club.mapLink || club.onlineLink">
             <span v-if="club.location" class="chip">📍 Venue: {{ club.location }}</span>
             <a v-if="club.mapLink" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
@@ -60,7 +55,7 @@
       <div class="heroGrid">
         <div>
           <h1 class="heroTitle">Club Not Found</h1>
-          <p class="heroSub">Please open this page from the club preview screen, or check whether the link parameters are correct.</p>
+          <p>Please open this page from the club preview screen, or check whether the link parameters are correct.</p>
           <div class="chips">
             <a class="btn primary" href="msjs.html">↩ Back to Club Preview</a>
           </div>
@@ -247,15 +242,15 @@
         },
         highlightText(){
           if(!this.club) return '';
-          const tags = Array.isArray(this.club.tags) ? this.club.tags : [];
-          const first = tags.find(Boolean);
-          return first ? first : 'Join this week\'s activity';
+          const parts = [
+            String(this.club.mode || '').trim(),
+            String(this.club.time || '').trim()
+          ].filter(Boolean);
+          return parts.length ? parts.join(' · ') : 'Join this week\'s activity';
         },
         noteText(){
           if(!this.club) return '';
-          const tags = Array.isArray(this.club.tags) ? this.club.tags : [];
-          const tagText = tags.length ? ('Tags: ' + tags.join(' / ') + '.') : '';
-          return `Note: Please complete your booking by choosing a date and time slot on the booking page. ${tagText}`.trim();
+          return 'Note: Please complete your booking by choosing a date and time slot on the booking page.';
         },
         venueList(){
           return this.toList(this.club ? this.club.venueInfo : '');
@@ -382,17 +377,14 @@
           const time = c && c.time
             ? c.time
             : slots.map(s=>s && s.time).filter(Boolean).slice(0,2).join(' / ');
-          const tags = Array.isArray(c && c.tags) ? c.tags.map(t=>String(t).trim()).filter(Boolean) : [];
-
           return {
             slug: c && c.slug ? c.slug : '',
             name: c && c.name ? c.name : '',
             category: c && c.category ? c.category : '',
             mode: c && c.mode ? c.mode : '',
             location: c && c.location ? c.location : '',
-            fee: c && c.fee ? c.fee : '',
+            fee: this.formatClubFee(c && c.fee ? c.fee : ''),
             desc: c && c.desc ? c.desc : '',
-            heroSub: c && c.heroSub ? c.heroSub : '',
             cover: this.resolveClubCover(c && c.slug, c && c.cover ? c.cover : ''),
             mapLink: c && c.mapLink ? c.mapLink : '',
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
@@ -401,7 +393,6 @@
             audience: c && c.audience ? c.audience : '',
             trainingPlan: c && c.trainingPlan ? c.trainingPlan : '',
             notes: c && c.notes ? c.notes : '',
-            tags,
             time,
             seats
           };
@@ -410,10 +401,10 @@
           const text = String(value || '').trim();
           return text;
         },
-        resolveClubCover(slug, value){
-          const normalizedSlug = String(slug || '')
-            .trim()
-            .toLowerCase()
+      resolveClubCover(slug, value){
+        const normalizedSlug = String(slug || '')
+          .trim()
+          .toLowerCase()
             .replace(/[_\s]+/g, '-')
             .replace(/-+/g, '-')
             .replace(/^-+|-+$/g, '')
@@ -425,10 +416,17 @@
           if(text === fallbackCover) return text;
           if(CLUB_CUSTOM_COVER_SLUGS[normalizedSlug] && LEGACY_GENERIC_COVER_SET[text]){
             return fallbackCover;
-          }
-          return text;
-        },
-        async findClub(slug){
+        }
+        return text;
+      },
+      formatClubFee(value){
+        const text = String(value || '').trim().replace(/^[£$€¥]\s*/, '');
+        if(!text) return '';
+        if(/^\.[0-9]+(?:\b|[^0-9])/.test(text)) return `£0${text}`;
+        if(/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) return `£${text}`;
+        return text;
+      },
+      async findClub(slug){
           const normalizedSlug = String(slug || '').trim();
           if(!normalizedSlug) return null;
 

@@ -7,6 +7,18 @@
     return String(value || '').trim();
   }
 
+  function formatClubFeeText(value) {
+    var text = trimText(value).replace(/^[£$€¥]\s*/, '');
+    if (!text) return '';
+    if (/^\.[0-9]+(?:\b|[^0-9])/.test(text)) {
+      return '£0' + text;
+    }
+    if (/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) {
+      return '£' + text;
+    }
+    return text;
+  }
+
   var LEGACY_AUTO_COVER_PATHS = {
     '../zp/zq.webp': true,
     '../zp/ymq.webp': true,
@@ -442,11 +454,11 @@
         onlineLink: trimText(club.online_link),
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
-        fee: trimText(club.fee_text) || '£0',
+        fee: formatClubFeeText(club.fee_text) || '£0',
         cover: resolveClubCover(trimText(club.slug), club.cover_url),
-        tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map(function (tag) { return trimText(tag); }) : [],
-        desc: trimText(club.description || club.hero_sub),
-        heroSub: trimText(club.hero_sub),
+        tags: [],
+        desc: trimText(club.description),
+        heroSub: '',
         venueInfo: trimText(club.venue_info),
         whatWeDo: trimText(club.what_we_do),
         audience: trimText(club.audience),
@@ -517,7 +529,7 @@
       slotId: trimText(row && row.slot_id),
       slotTime: trimText(row && row.slot_time),
       location: trimText(row && row.location),
-      fee: trimText(row && row.fee_text) || '£0',
+      fee: formatClubFeeText(row && row.fee_text) || '£0',
       userEmail: '',
       createdAt: trimText(row && row.created_at),
       cancelledAt: trimText(row && row.cancelled_at),

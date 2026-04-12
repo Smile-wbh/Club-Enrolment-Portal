@@ -754,6 +754,22 @@ body{
   background: #fff;
   font-family: inherit;
 }
+.currency-input{
+  position: relative;
+}
+.currency-input-prefix{
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #425468;
+  font-size: 14px;
+  font-weight: 700;
+  pointer-events: none;
+}
+.currency-input input{
+  padding-left: 30px;
+}
 .form-grid textarea{
   resize: vertical;
 }

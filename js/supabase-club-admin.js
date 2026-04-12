@@ -50,6 +50,18 @@
     return String(value || '').trim();
   }
 
+  function formatClubFeeText(value) {
+    var text = trimText(value).replace(/^[£$€¥]\s*/, '');
+    if (!text) return '';
+    if (/^\.[0-9]+(?:\b|[^0-9])/.test(text)) {
+      return '£0' + text;
+    }
+    if (/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) {
+      return '£' + text;
+    }
+    return text;
+  }
+
   function normalizeCoverValue(value) {
     var text = trimText(value);
     return text;
@@ -103,10 +115,7 @@
   }
 
   function mapClubStatus(status) {
-    var value = trimText(status).toLowerCase();
-    if (value === 'approved') return 'approved';
-    if (value === 'inactive') return 'inactive';
-    return 'pending';
+    return 'approved';
   }
 
   function mapBookingStatusToDb(status) {
@@ -141,12 +150,12 @@
       mapLink: trimText(row.map_link),
       onlineLink: trimText(row.online_link),
       time: trimText(row.time_text),
-      fee: trimText(row.fee_text),
+      fee: formatClubFeeText(row.fee_text),
       seats: Math.max(0, toNumber(row.seats, 0)),
       cover: normalizeCoverValue(row.cover_url),
-      tags: toArray(row.tags),
+      tags: [],
       desc: trimText(row.description),
-      heroSub: trimText(row.hero_sub),
+      heroSub: '',
       venueInfo: trimText(row.venue_info),
       whatWeDo: trimText(row.what_we_do),
       audience: trimText(row.audience),
@@ -190,7 +199,7 @@
       slotId: trimText(row.slot_id),
       slotTime: trimText(row.slot_time),
       location: trimText(row.location),
-      fee: trimText(row.fee_text),
+      fee: formatClubFeeText(row.fee_text),
       userId: trimText(row.user_id),
       userEmail: 'Cloud booking',
       createdAt: trimText(row.created_at),
@@ -254,12 +263,12 @@
       map_link: trimText(source.mapLink),
       online_link: trimText(source.onlineLink),
       time_text: trimText(source.time),
-      fee_text: trimText(source.fee),
+      fee_text: formatClubFeeText(source.fee),
       seats: Math.max(0, toNumber(source.seats, 0)),
       cover_url: normalizeCoverValue(source.cover) || null,
-      tags: toArray(source.tags),
+      tags: [],
       description: trimText(source.desc),
-      hero_sub: trimText(source.heroSub),
+      hero_sub: '',
       venue_info: trimText(source.venueInfo),
       what_we_do: trimText(source.whatWeDo),
       audience: trimText(source.audience),

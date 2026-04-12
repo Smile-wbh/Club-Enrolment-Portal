@@ -63,7 +63,7 @@
               <input
                 id="booking-keyword"
                 type="text"
-                placeholder="Search clubs, locations, or tags..."
+                placeholder="Search clubs or locations..."
                 v-model.trim="q"
                 @keydown.enter.prevent="scrollToGrid"
               />
@@ -145,7 +145,6 @@
                 <div>
                   <h3 class="club-list-title">{{ c.name }}</h3>
                   <div class="club-list-subtitle">{{ c.mode }} booking · {{ c.category }}</div>
-                  <div class="club-list-tags">{{ c.tags && c.tags.length ? c.tags.join(' / ') : 'General Activities' }}</div>
                 </div>
               </div>
 
@@ -207,9 +206,6 @@
                 <h3>{{ currentClub.name }}</h3>
                 <p>{{ clubSummary(currentClub) }}</p>
 
-                <div class="schedule-tags" v-if="currentClub.tags && currentClub.tags.length">
-                  <span class="club-tag-pill" v-for="(t, i) in currentClub.tags" :key="i">{{ t }}</span>
-                </div>
               </div>
             </div>
 
@@ -468,79 +464,66 @@
         clubs: [
           {
             id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
-            tags: ['Tactical Training', 'Event Sign-up', 'Teamwork'],
             location: 'Stadium A (In-person)',
             seats: 12, fee: '£0 (Free)', cover: '../zp/zq.webp', slots: []
           },
           {
             id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
-            tags: ['Doubles Training', 'Daily Practice', 'Campus Matches'],
             location: 'Indoor Hall B (In-person)',
             seats: 8, fee: '£3/session (Optional)', cover: '../zp/ymq.webp', slots: []
           },
           {
             id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
-            tags: ['Grouped Training', 'Fitness Growth', 'Safety Coaching'],
             location: 'Aquatics Center (In-person)',
             seats: 16, fee: '£2/session', cover: '../zp/yy1.webp', slots: []
           },
           {
             id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
-            tags: ['City Rides', 'Route Sharing', 'Gear Exchange'],
             location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
             seats: 20, fee: '£0', cover: '../zp/qx.webp', slots: []
           },
           {
             id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
-            tags: ['Web Development', 'Python', 'Project Practice'],
             location: 'Online meeting link (Virtual)',
             seats: 40, fee: '£0', cover: '../zp/bc.webp', slots: []
           },
           {
             id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
-            tags: ['Serve Training', 'Weekend Activities', 'Beginner Welcome'],
             location: 'Tennis Court C (In-person)',
             seats: 10, fee: '£2/session', cover: '../zp/wq.webp', slots: []
           },
           {
             id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
-            tags: ['Ensemble Rehearsal', 'Stage Showcases', 'Recording Sharing'],
             location: 'Arts Building 2F / online sharing',
             seats: 18, fee: '£0', cover: '../zp/yy.webp', slots: []
           },
           {
             id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
-            tags: ['Morning Check-in', 'Endurance Growth', 'Pacing Training'],
             location: 'Track meeting point (In-person)',
             seats: 30, fee: '£0', cover: '../zp/pb.webp', slots: []
           },
           {
             id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
-            tags: ['Half-court Games', 'Shooting Practice', 'Teamwork'],
             location: 'Basketball Court D (In-person)',
             seats: 18, fee: '£0 (Free)', cover: '../zp/lq.webp', slots: []
           },
           {
             id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
-            tags: ['Swing Practice', 'Weekend Experience', 'Beginner Welcome'],
             location: 'Practice Ground E (In-person)',
             seats: 12, fee: '£5/session (Optional)', cover: '../zp/grf.webp', slots: []
           },
           {
             id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
-            tags: ['Inter-school Events', 'Tactical Drills', 'Strength Training'],
             location: 'Stadium F (In-person)',
             seats: 22, fee: '£0', cover: '../zp/glq.webp', slots: []
           },
           {
             id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
-            tags: ['Attack and Defense', 'Core Coordination', 'Training Camp'],
             location: 'Sports Hall G (In-person)',
             seats: 16, fee: '£0', cover: '../zp/sj.webp', slots: []
           },
           {
             id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
-            tags: ['Core Movements', 'Flexibility Training', 'Open Class'],
             location: 'Gym Hall H (In-person)',
             seats: 14, fee: '£0', cover: '../zp/tc.webp', slots: []
           },
@@ -548,7 +531,6 @@
             id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
             desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
             time: 'Wed/Sun (see booking page)',
-            tags: ['Foundations Coaching', 'Footwork Drills', 'Serve & Receive'],
             location: 'Multi-Sport Hall I (In-person)',
             seats: 20, fee: '£0', cover: '../zp/ppq.webp', slots: []
           },
@@ -556,7 +538,6 @@
             id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
             desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
             time: 'Tue/Sat (see booking page)',
-            tags: ['Passing Basics', 'Serve & Set', 'Team Rotation'],
             location: 'Sports Hall J (In-person)',
             seats: 22, fee: '£0', cover: '../zp/pq.webp', slots: []
           },
@@ -564,7 +545,6 @@
             id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
             desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
             time: 'Thu (see booking page)',
-            tags: ['Beginner-Friendly', 'Serve & Return', 'Social Matches'],
             location: 'Multi-Purpose Hall K (In-person)',
             seats: 24, fee: '£0', cover: '../zp/pkq.webp', slots: []
           },
@@ -572,7 +552,6 @@
             id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
             desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
             time: 'Sat (see booking page)',
-            tags: ['Throwing & Catching', 'Batting Practice', 'Base Running'],
             location: 'Baseball Field L (In-person)',
             seats: 18, fee: '£0', cover: '../zp/bq.webp', slots: []
           }
@@ -663,7 +642,6 @@
             club.mode,
             club.location,
             club.fee,
-            (club.tags || []).join(' '),
             this.clubSummary(club)
           ].join(' ').toLowerCase();
 
@@ -1207,8 +1185,9 @@
         history.replaceState(null, '', query ? `${url.pathname}?${query}` : url.pathname);
       },
       clubSummary(club) {
-        const tags = club.tags && club.tags.length ? club.tags.join(' / ') : 'General Activities';
-        return `${club.mode} format, located at ${club.location}, suitable for members interested in ${tags}.`;
+        const desc = String(club && club.desc || '').trim();
+        if (desc) return desc;
+        return `${club.mode} format, located at ${club.location}.`;
       },
       slotSortValue(slot) {
         const text = String(slot && (slot.startTime || slot.time_short || slot.time) || '').trim();
@@ -1557,13 +1536,12 @@
           name: String(club.name || 'Unnamed Club').trim(),
           category: String(club.category || 'Sports').trim(),
           mode: String(club.mode || 'In-person').trim(),
-          desc: String(club.desc || club.heroSub || '').trim(),
+          desc: String(club.desc || '').trim(),
           location: String(club.location || 'Location TBD').trim(),
           time: String(club.time || '').trim(),
           seats: seats,
-          fee: String(club.fee || '£0').trim(),
+          fee: this.formatClubFee(String(club.fee || '£0').trim()),
           cover: this.resolveClubCover(slug, club.cover || ''),
-          tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map((tag) => String(tag).trim()) : [],
           weeklyTimeEntries: this.normalizeWeeklyTimeEntries(club.weeklyTimeEntries || club.regularTimeSlots || club.time),
           slots: slots,
           slotsByDay: slotsByDay
@@ -1571,6 +1549,13 @@
       },
       normalizeCoverValue(value) {
         const text = String(value || '').trim();
+        return text;
+      },
+      formatClubFee(value) {
+        const text = String(value || '').trim().replace(/^[£$€¥]\s*/, '');
+        if (!text) return '';
+        if (/^\.[0-9]+(?:\b|[^0-9])/.test(text)) return `£0${text}`;
+        if (/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) return `£${text}`;
         return text;
       },
       resolveClubCover(slug, value) {
