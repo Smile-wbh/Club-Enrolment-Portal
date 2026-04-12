@@ -646,6 +646,7 @@
       time: time,
       schedule: schedule,
       location: trimText(course.location),
+      mapLink: trimText(course.mapLink || course.map_link),
       seats: Math.max(0, toNumber(course.seats, 0)),
       fee: trimText(course.fee || course.feeText || course.fee_text) || 'Free',
       cover: resolveClubCover(course.clubSlug || course.clubCategory || course.club || course.clubName, course.cover || course.cover_url || course.clubCover),

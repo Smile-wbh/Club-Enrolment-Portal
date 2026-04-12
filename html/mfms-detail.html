@@ -577,8 +577,7 @@
           ? schedule
           : (primaryTime && primaryTime !== 'Time TBD' ? [primaryTime] : []);
         const desc = String(course.desc || course.summary || '').trim()
-          || String(course.lead || course.detail || '').trim()
-          || 'Open the course page to review details and booking information.';
+          || String(course.lead || course.detail || '').trim();
         const detail = String(course.detail || '').trim() || desc;
         const clubName = String(course.club || course.clubName || '').trim() || 'Unnamed Club';
         const clubCategory = String(course.clubCategory || course.category || clubName).trim();

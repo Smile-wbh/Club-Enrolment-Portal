@@ -160,6 +160,7 @@ create table if not exists public.courses (
   time_text text,
   schedule text[] not null default array[]::text[],
   location text,
+  map_link text,
   seats integer check (seats is null or seats >= 0),
   fee_text text not null default 'Free',
   cover_url text,

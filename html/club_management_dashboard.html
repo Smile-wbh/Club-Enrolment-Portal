@@ -296,7 +296,7 @@
                       </label>
                       <button class="btn-plain time-slot-add-btn" id="regTimeAddBtn" type="button">Add Slot</button>
                     </div>
-                    <div class="time-slot-helper">After one time period is complete, it will be added below so you can keep entering the next one.</div>
+                    <div class="time-slot-helper">After one time period is complete, it will appear below so you can keep entering the next one.</div>
                     <div class="time-slot-list" id="regTimeList" aria-live="polite"></div>
                     <input id="regTime" type="hidden">
                   </div>
@@ -471,7 +471,7 @@
                         </label>
                         <button class="btn-plain time-slot-add-btn" id="clubEditTimeAddBtn" type="button">Add Slot</button>
                       </div>
-                      <div class="time-slot-helper">Saved time periods appear below so you can continue adding weekly slots.</div>
+                      <div class="time-slot-helper">After one time period is complete, it will appear below so you can keep entering the next one.</div>
                       <div class="time-slot-list" id="clubEditTimeList" aria-live="polite"></div>
                       <input id="clubEditTime" type="hidden">
                     </div>
@@ -661,13 +661,69 @@
                   </select>
                 </label>
                 <label>
-                  Time
-                  <input id="courseTime" type="text" placeholder="e.g. Thu 20:00-21:30，If left blank, the first entry from the schedule below will be used">
-                </label>
-                <label>
-                  Location
+                  Activity Location
                   <input id="courseLocation" type="text" placeholder="e.g. Indoor Hall B">
                 </label>
+                <div class="form-field span-2">
+                  <div>Map link</div>
+                  <input id="courseMapLink" required type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
+                  <div class="map-link-search-row">
+                    <label class="map-link-search-field" for="courseMapSearch">
+                      <span>Google Maps search</span>
+                      <input id="courseMapSearch" type="text" placeholder="Search a place to confirm, or leave blank to use Activity Location">
+                    </label>
+                    <div class="map-link-search-actions">
+                      <button class="btn-plain map-link-btn" id="courseMapSearchBtn" type="button">Search Google Maps</button>
+                      <button class="btn-plain map-link-btn" id="courseMapPreviewBtn" type="button">Open Link</button>
+                    </div>
+                  </div>
+                  <div class="map-link-helper">Required. Search on Google Maps to confirm the place, or paste the final Google Maps link directly.</div>
+                  <div class="map-preview-card" id="courseMapPreviewCard" hidden>
+                    <div class="map-preview-head">
+                      <strong>Map preview</strong>
+                      <span id="courseMapPreviewMeta">Search or paste a link to preview the location.</span>
+                    </div>
+                    <iframe
+                      id="courseMapPreviewFrame"
+                      class="map-preview-frame"
+                      title="Course location preview"
+                      loading="lazy"
+                      referrerpolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                  </div>
+                </div>
+                <div class="form-field span-2">
+                  <div>Regular Time</div>
+                  <div class="time-slot-builder">
+                    <div class="time-slot-controls">
+                      <label class="time-slot-control-field" for="courseTimeDay">
+                        <span>Day</span>
+                        <select id="courseTimeDay">
+                          <option value="">Select day</option>
+                          <option value="Mon">Monday</option>
+                          <option value="Tue">Tuesday</option>
+                          <option value="Wed">Wednesday</option>
+                          <option value="Thu">Thursday</option>
+                          <option value="Fri">Friday</option>
+                          <option value="Sat">Saturday</option>
+                          <option value="Sun">Sunday</option>
+                        </select>
+                      </label>
+                      <label class="time-slot-control-field" for="courseTimeStart">
+                        <span>Start</span>
+                        <input id="courseTimeStart" type="time">
+                      </label>
+                      <label class="time-slot-control-field" for="courseTimeEnd">
+                        <span>End</span>
+                        <input id="courseTimeEnd" type="time">
+                      </label>
+                      <button class="btn-plain time-slot-add-btn" id="courseTimeAddBtn" type="button">Add Slot</button>
+                    </div>
+                    <div class="time-slot-helper">After one time period is complete, it will appear below so you can keep entering the next one.</div>
+                    <div class="time-slot-list" id="courseTimeList" aria-live="polite"></div>
+                    <input id="courseTime" type="hidden">
+                  </div>
+                </div>
                 <label>
                   English subtitle
                   <input id="courseEnglishClub" type="text" placeholder="e.g. Badminton Club">
@@ -684,14 +740,14 @@
                   Cover image URL
                   <input id="courseCover" type="text" placeholder="If left blank, the club cover or a system image will be used">
                 </label>
-                <div class="form-section-title span-2">Auto-generated detail content</div>
+                <div class="form-section-title span-2">Detail Content</div>
                 <label class="span-2">
                   Course Summary
                   <textarea id="courseDesc" rows="3" placeholder="A short summary shown on the course cards and at the top of the detail page."></textarea>
                 </label>
                 <label class="span-2">
                   Course lead
-                  <textarea id="courseLead" rows="3" placeholder="Shown below the course title. If left blank, it will be generated automatically."></textarea>
+                  <textarea id="courseLead" rows="3" placeholder="Shown below the course title."></textarea>
                 </label>
                 <label class="span-2">
                   Course schedule
@@ -794,13 +850,69 @@
                     </select>
                   </label>
                   <label>
-                    Time
-                    <input id="courseEditTime" type="text" placeholder="e.g. Thu 20:00-21:30，If left blank, the first entry from the schedule below will be used">
-                  </label>
-                  <label>
-                    Location
+                    Activity Location
                     <input id="courseEditLocation" type="text" placeholder="e.g. Indoor Hall B">
                   </label>
+                  <div class="form-field span-2">
+                    <div>Map link</div>
+                    <input id="courseEditMapLink" required type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
+                    <div class="map-link-search-row">
+                      <label class="map-link-search-field" for="courseEditMapSearch">
+                        <span>Google Maps search</span>
+                        <input id="courseEditMapSearch" type="text" placeholder="Search a place to confirm, or leave blank to use Activity Location">
+                      </label>
+                      <div class="map-link-search-actions">
+                        <button class="btn-plain map-link-btn" id="courseEditMapSearchBtn" type="button">Search Google Maps</button>
+                        <button class="btn-plain map-link-btn" id="courseEditMapPreviewBtn" type="button">Open Link</button>
+                      </div>
+                    </div>
+                    <div class="map-link-helper">Required. Search on Google Maps to confirm the place, or paste the final Google Maps link directly.</div>
+                    <div class="map-preview-card" id="courseEditMapPreviewCard" hidden>
+                      <div class="map-preview-head">
+                        <strong>Map preview</strong>
+                        <span id="courseEditMapPreviewMeta">Search or paste a link to preview the location.</span>
+                      </div>
+                      <iframe
+                        id="courseEditMapPreviewFrame"
+                        class="map-preview-frame"
+                        title="Course location preview"
+                        loading="lazy"
+                        referrerpolicy="no-referrer-when-downgrade"
+                      ></iframe>
+                    </div>
+                  </div>
+                  <div class="form-field span-2">
+                    <div>Regular Time</div>
+                    <div class="time-slot-builder">
+                      <div class="time-slot-controls">
+                        <label class="time-slot-control-field" for="courseEditTimeDay">
+                          <span>Day</span>
+                          <select id="courseEditTimeDay">
+                            <option value="">Select day</option>
+                            <option value="Mon">Monday</option>
+                            <option value="Tue">Tuesday</option>
+                            <option value="Wed">Wednesday</option>
+                            <option value="Thu">Thursday</option>
+                            <option value="Fri">Friday</option>
+                            <option value="Sat">Saturday</option>
+                            <option value="Sun">Sunday</option>
+                          </select>
+                        </label>
+                        <label class="time-slot-control-field" for="courseEditTimeStart">
+                          <span>Start</span>
+                          <input id="courseEditTimeStart" type="time">
+                        </label>
+                        <label class="time-slot-control-field" for="courseEditTimeEnd">
+                          <span>End</span>
+                          <input id="courseEditTimeEnd" type="time">
+                        </label>
+                        <button class="btn-plain time-slot-add-btn" id="courseEditTimeAddBtn" type="button">Add Slot</button>
+                      </div>
+                      <div class="time-slot-helper">After one time period is complete, it will appear below so you can keep entering the next one.</div>
+                      <div class="time-slot-list" id="courseEditTimeList" aria-live="polite"></div>
+                      <input id="courseEditTime" type="hidden">
+                    </div>
+                  </div>
                   <label>
                     English subtitle
                     <input id="courseEditEnglishClub" type="text" placeholder="e.g. Badminton Club">
@@ -824,7 +936,7 @@
                   </label>
                   <label class="span-2">
                     Course lead
-                    <textarea id="courseEditLead" rows="3" placeholder="Shown below the course title. If left blank, it will be generated automatically."></textarea>
+                    <textarea id="courseEditLead" rows="3" placeholder="Shown below the course title."></textarea>
                   </label>
                   <label class="span-2">
                     Course schedule
@@ -1522,32 +1634,6 @@
         return map[key] || key;
       }
 
-      function buildAutoCourseDesc(title, clubName, level, mode){
-        var pieces = [];
-        if(level) pieces.push(level);
-        if(mode) pieces.push(mode);
-        pieces.push('course');
-        return 'A structured learning session built around ' + title + ', designed for steady progress in a ' + pieces.join(' · ') + ' setting and aligned with ' + (clubName || 'the club') + ' schedule.';
-      }
-
-      function buildAutoCourseLead(title, level, mode){
-        return 'Ideal for members who want to improve fundamentals, class engagement, and training rhythm through ' + title + ', with support for ' + (level || 'standard') + ' and ' + (mode || 'In-person') + ' participation.';
-      }
-
-      function buildAutoCourseDetail(desc, scheduleList, location, fee){
-        var parts = [desc];
-        if(scheduleList.length){
-          parts.push('Available time options: ' + scheduleList.join(', ') + '.');
-        }
-        if(location){
-          parts.push('Location: ' + location + '.');
-        }
-        if(fee){
-          parts.push('Fee: ' + fee + '.');
-        }
-        return parts.join(' ');
-      }
-
       function readFileAsDataURL(file){
         return new Promise(function(resolve, reject){
           var reader = new FileReader();
@@ -1688,6 +1774,14 @@
       };
       var clubMapPreviewTimers = {
         create: 0,
+        edit: 0
+      };
+      var courseTimeBuilderState = {
+        publish: [],
+        edit: []
+      };
+      var courseMapPreviewTimers = {
+        publish: 0,
         edit: 0
       };
       var editingClubId = '';
@@ -2779,6 +2873,8 @@
           mode: document.getElementById(isEdit ? 'courseEditMode' : 'courseMode'),
           time: document.getElementById(isEdit ? 'courseEditTime' : 'courseTime'),
           location: document.getElementById(isEdit ? 'courseEditLocation' : 'courseLocation'),
+          mapLink: document.getElementById(isEdit ? 'courseEditMapLink' : 'courseMapLink'),
+          mapSearch: document.getElementById(isEdit ? 'courseEditMapSearch' : 'courseMapSearch'),
           englishClub: document.getElementById(isEdit ? 'courseEditEnglishClub' : 'courseEnglishClub'),
           seats: document.getElementById(isEdit ? 'courseEditSeats' : 'courseSeats'),
           fee: document.getElementById(isEdit ? 'courseEditFee' : 'courseFee'),
@@ -2794,6 +2890,346 @@
           audienceTips: document.getElementById(isEdit ? 'courseEditAudienceTips' : 'courseAudienceTips'),
           notes: document.getElementById(isEdit ? 'courseEditNotes' : 'courseNotes')
         };
+      }
+
+      function getCourseTimeBuilderRefs(mode){
+        var isEdit = mode === 'edit';
+        return {
+          input: document.getElementById(isEdit ? 'courseEditTime' : 'courseTime'),
+          day: document.getElementById(isEdit ? 'courseEditTimeDay' : 'courseTimeDay'),
+          start: document.getElementById(isEdit ? 'courseEditTimeStart' : 'courseTimeStart'),
+          end: document.getElementById(isEdit ? 'courseEditTimeEnd' : 'courseTimeEnd'),
+          addBtn: document.getElementById(isEdit ? 'courseEditTimeAddBtn' : 'courseTimeAddBtn'),
+          list: document.getElementById(isEdit ? 'courseEditTimeList' : 'courseTimeList'),
+          schedule: document.getElementById(isEdit ? 'courseEditSchedule' : 'courseSchedule')
+        };
+      }
+
+      function getCourseTimeSlotLabels(mode){
+        return (courseTimeBuilderState[mode] || [])
+          .map(buildClubTimeSlotLabel)
+          .filter(Boolean)
+          .slice(0, 12);
+      }
+
+      function syncCourseScheduleFromSlots(mode){
+        var refs = getCourseTimeBuilderRefs(mode);
+        var labels = getCourseTimeSlotLabels(mode);
+        if(refs.input){
+          refs.input.value = labels[0] || '';
+        }
+        if(!refs.schedule) return;
+        if(labels.length){
+          refs.schedule.value = labels.join('\n');
+          refs.schedule.dataset.scheduleSource = 'builder';
+          return;
+        }
+        if(refs.schedule.dataset.scheduleSource === 'builder'){
+          refs.schedule.value = '';
+        }
+      }
+
+      function renderCourseTimeSlots(mode){
+        var refs = getCourseTimeBuilderRefs(mode);
+        var slots = courseTimeBuilderState[mode] || [];
+        syncCourseScheduleFromSlots(mode);
+        if(!refs.list) return;
+        if(!slots.length){
+          refs.list.innerHTML = '<div class="time-slot-empty">No time slots added yet.</div>';
+          return;
+        }
+        refs.list.innerHTML = slots.map(function(slot, index){
+          return '<div class="time-slot-pill">' +
+            '<span class="time-slot-pill-label">' + escapeHtml(buildClubTimeSlotLabel(slot)) + '</span>' +
+            '<button class="time-slot-remove" type="button" data-course-time-slot-remove="' + index + '" aria-label="Remove time slot">×</button>' +
+          '</div>';
+        }).join('');
+      }
+
+      function clearCourseTimeEntryInputs(mode){
+        var refs = getCourseTimeBuilderRefs(mode);
+        if(refs.day) refs.day.value = '';
+        if(refs.start){
+          refs.start.value = '';
+          refs.start.setCustomValidity('');
+        }
+        if(refs.end){
+          refs.end.value = '';
+          refs.end.setCustomValidity('');
+        }
+      }
+
+      function setCourseTimeSlots(mode, raw){
+        var next = Array.isArray(raw)
+          ? raw.map(function(item){
+            return typeof item === 'string' ? parseClubTimeEntry(item) : cloneClubTimeSlot(item);
+          }).filter(Boolean)
+          : parseClubTimeList(raw);
+        courseTimeBuilderState[mode] = next.slice(0, 12);
+        clearCourseTimeEntryInputs(mode);
+        renderCourseTimeSlots(mode);
+      }
+
+      function resetCourseTimeBuilder(mode){
+        courseTimeBuilderState[mode] = [];
+        clearCourseTimeEntryInputs(mode);
+        syncCourseScheduleFromSlots(mode);
+        renderCourseTimeSlots(mode);
+      }
+
+      function addCourseTimeSlot(mode, silent){
+        var refs = getCourseTimeBuilderRefs(mode);
+        var day = refs.day ? String(refs.day.value || '').trim() : '';
+        var start = refs.start ? padTimeText(refs.start.value) : '';
+        var end = refs.end ? padTimeText(refs.end.value) : '';
+        if(refs.end){
+          refs.end.setCustomValidity('');
+        }
+        if(!day || !start || !end){
+          if(!silent){
+            alert('Please choose a day, start time, and end time first.');
+          }
+          return false;
+        }
+        if(start >= end){
+          if(refs.end){
+            refs.end.setCustomValidity('End must be later than start.');
+            refs.end.reportValidity();
+          }
+          return false;
+        }
+        var slot = cloneClubTimeSlot({
+          day: day,
+          start: start,
+          end: end
+        });
+        var exists = (courseTimeBuilderState[mode] || []).some(function(item){
+          return buildClubTimeSlotLabel(item) === slot.label;
+        });
+        if(exists){
+          if(!silent){
+            alert('This time slot has already been added.');
+          }
+          return false;
+        }
+        courseTimeBuilderState[mode].push(slot);
+        clearCourseTimeEntryInputs(mode);
+        renderCourseTimeSlots(mode);
+        if(refs.day) refs.day.focus();
+        return true;
+      }
+
+      function commitPendingCourseTimeSlot(mode){
+        var refs = getCourseTimeBuilderRefs(mode);
+        var hasDraft = !!(
+          (refs.day && refs.day.value)
+          || (refs.start && refs.start.value)
+          || (refs.end && refs.end.value)
+        );
+        if(!hasDraft) return true;
+        if(refs.day && refs.day.value && refs.start && refs.start.value && refs.end && refs.end.value){
+          return addCourseTimeSlot(mode, true);
+        }
+        alert('Please complete the current time slot before submitting.');
+        return false;
+      }
+
+      function initCourseTimeBuilder(mode){
+        var refs = getCourseTimeBuilderRefs(mode);
+        if(!refs.input || !refs.list) return;
+        setCourseTimeSlots(mode, refs.schedule && refs.schedule.value ? refs.schedule.value : refs.input.value);
+        if(refs.addBtn){
+          refs.addBtn.addEventListener('click', function(){
+            addCourseTimeSlot(mode, false);
+          });
+        }
+        if(refs.end){
+          refs.end.addEventListener('change', function(){
+            var ready = refs.day && refs.day.value && refs.start && refs.start.value && refs.end && refs.end.value;
+            if(ready){
+              addCourseTimeSlot(mode, true);
+            }
+          });
+          refs.end.addEventListener('input', function(){
+            refs.end.setCustomValidity('');
+          });
+        }
+        if(refs.schedule){
+          refs.schedule.addEventListener('input', function(){
+            refs.schedule.dataset.scheduleSource = 'manual';
+          });
+        }
+        refs.list.addEventListener('click', function(event){
+          var button = event.target && event.target.closest ? event.target.closest('[data-course-time-slot-remove]') : null;
+          if(!button) return;
+          var index = Number(button.getAttribute('data-course-time-slot-remove'));
+          if(!Number.isFinite(index)) return;
+          courseTimeBuilderState[mode].splice(index, 1);
+          renderCourseTimeSlots(mode);
+        });
+      }
+
+      function getCourseMapPreviewRefs(mode){
+        var isEdit = mode === 'edit';
+        return {
+          card: document.getElementById(isEdit ? 'courseEditMapPreviewCard' : 'courseMapPreviewCard'),
+          frame: document.getElementById(isEdit ? 'courseEditMapPreviewFrame' : 'courseMapPreviewFrame'),
+          meta: document.getElementById(isEdit ? 'courseEditMapPreviewMeta' : 'courseMapPreviewMeta')
+        };
+      }
+
+      function setCourseMapPreview(mode, query, metaText){
+        var refs = getCourseMapPreviewRefs(mode);
+        var safeQuery = String(query || '').trim();
+        if(!refs.card || !refs.frame || !refs.meta){
+          return;
+        }
+        if(!safeQuery){
+          refs.card.hidden = true;
+          refs.frame.removeAttribute('src');
+          refs.meta.textContent = 'Search or paste a link to preview the location.';
+          return;
+        }
+        refs.card.hidden = false;
+        refs.frame.src = buildGoogleMapsEmbedUrl(safeQuery);
+        refs.meta.textContent = metaText || ('Previewing: ' + safeQuery);
+      }
+
+      function getCourseMapSearchQuery(mode){
+        var refs = getCourseFormRefs(mode);
+        var direct = refs.mapSearch ? String(refs.mapSearch.value || '').trim() : '';
+        if(direct) return direct;
+        return [
+          refs.location ? String(refs.location.value || '').trim() : '',
+          refs.title ? String(refs.title.value || '').trim() : '',
+          refs.club ? String(refs.club.value || '').trim() : ''
+        ].filter(Boolean).join(' ');
+      }
+
+      function refreshCourseMapPreview(mode, preferredQuery, preferredMeta){
+        var refs = getCourseFormRefs(mode);
+        var fromLink = extractGoogleMapsQueryFromUrl(refs.mapLink ? refs.mapLink.value : '');
+        var fallbackQuery = getCourseMapSearchQuery(mode);
+        var query = String(preferredQuery || '').trim() || fromLink || fallbackQuery;
+        if(!query){
+          setCourseMapPreview(mode, '', '');
+          return;
+        }
+        setCourseMapPreview(mode, query, preferredMeta || (fromLink ? 'Preview based on the current Google Maps link.' : 'Preview based on your search text.'));
+      }
+
+      function scheduleCourseMapPreview(mode, preferredMeta){
+        if(courseMapPreviewTimers[mode]){
+          clearTimeout(courseMapPreviewTimers[mode]);
+        }
+        courseMapPreviewTimers[mode] = window.setTimeout(function(){
+          refreshCourseMapPreview(mode, '', preferredMeta || '');
+        }, 180);
+      }
+
+      function searchCourseMap(mode){
+        var refs = getCourseFormRefs(mode);
+        var query = getCourseMapSearchQuery(mode);
+        if(!query){
+          alert('Please enter a place name or activity location before searching Google Maps.');
+          if(refs.mapSearch){
+            refs.mapSearch.focus();
+          }else if(refs.location){
+            refs.location.focus();
+          }
+          return;
+        }
+        var url = buildGoogleMapsSearchUrl(query);
+        if(refs.mapSearch && !String(refs.mapSearch.value || '').trim()){
+          refs.mapSearch.value = query;
+        }
+        if(refs.mapLink){
+          refs.mapLink.value = url;
+          refs.mapLink.setCustomValidity('');
+        }
+        refreshCourseMapPreview(mode, query, 'Preview based on your Google Maps search.');
+        window.open(url, '_blank', 'noopener');
+      }
+
+      function openCourseMapLink(mode){
+        var refs = getCourseFormRefs(mode);
+        var url = normalizeUrl(refs.mapLink ? refs.mapLink.value : '');
+        if(!url){
+          alert('Please paste a map link first, or use Google Maps search to generate one.');
+          if(refs.mapLink) refs.mapLink.focus();
+          return;
+        }
+        if(refs.mapLink){
+          refs.mapLink.value = url;
+          refs.mapLink.setCustomValidity('');
+        }
+        refreshCourseMapPreview(mode, '', 'Preview based on the current Google Maps link.');
+        window.open(url, '_blank', 'noopener');
+      }
+
+      function bindCourseMapControls(mode){
+        var refs = getCourseFormRefs(mode);
+        var isEdit = mode === 'edit';
+        var searchBtn = document.getElementById(isEdit ? 'courseEditMapSearchBtn' : 'courseMapSearchBtn');
+        var previewBtn = document.getElementById(isEdit ? 'courseEditMapPreviewBtn' : 'courseMapPreviewBtn');
+        if(refs.mapLink){
+          refs.mapLink.addEventListener('input', function(){
+            scheduleCourseMapPreview(mode, 'Preview based on the current Google Maps link.');
+          });
+          refs.mapLink.addEventListener('blur', function(){
+            var raw = String(refs.mapLink.value || '').trim();
+            if(!raw){
+              refreshCourseMapPreview(mode, '', '');
+              return;
+            }
+            refs.mapLink.value = normalizeUrl(raw);
+            refs.mapLink.setCustomValidity('');
+            refreshCourseMapPreview(mode, '', 'Preview based on the current Google Maps link.');
+          });
+        }
+        if(searchBtn){
+          searchBtn.addEventListener('click', function(){
+            searchCourseMap(mode);
+          });
+        }
+        if(previewBtn){
+          previewBtn.addEventListener('click', function(){
+            openCourseMapLink(mode);
+          });
+        }
+        if(refs.mapSearch){
+          refs.mapSearch.addEventListener('keydown', function(event){
+            if(event.key === 'Enter'){
+              event.preventDefault();
+              refreshCourseMapPreview(mode, '', 'Preview based on your search text.');
+            }
+          });
+          refs.mapSearch.addEventListener('input', function(){
+            scheduleCourseMapPreview(mode, 'Preview based on your search text.');
+          });
+          refs.mapSearch.addEventListener('blur', function(){
+            refreshCourseMapPreview(mode, '', 'Preview based on your search text.');
+          });
+        }
+        if(refs.location){
+          refs.location.addEventListener('input', function(){
+            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
+          });
+          refs.location.addEventListener('blur', function(){
+            refreshCourseMapPreview(mode, '', 'Preview based on the activity location.');
+          });
+        }
+        if(refs.title){
+          refs.title.addEventListener('input', function(){
+            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
+          });
+        }
+        if(refs.club){
+          refs.club.addEventListener('change', function(){
+            scheduleCourseMapPreview(mode, 'Preview based on the activity location.');
+          });
+        }
+        refreshCourseMapPreview(mode, '', '');
       }
 
       function populateCourseClubSelect(selectEl, selectedClubName, editingCourse){
@@ -2842,6 +3278,7 @@
           mode: refs.mode ? refs.mode.value : 'In-person',
           time: refs.time ? refs.time.value.trim() : '',
           location: refs.location ? refs.location.value.trim() : '',
+          mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
           englishClub: refs.englishClub ? refs.englishClub.value.trim() : '',
           seats: refs.seats ? Math.max(1, Number(refs.seats.value) || 12) : 12,
           fee: refs.fee ? refs.fee.value.trim() : '',
@@ -2849,6 +3286,7 @@
           desc: refs.desc ? refs.desc.value.trim() : '',
           lead: refs.lead ? refs.lead.value.trim() : '',
           schedule: refs.schedule ? refs.schedule.value : '',
+          timeSlots: getCourseTimeSlotLabels(mode),
           detail: refs.detail ? refs.detail.value.trim() : '',
           coachName: refs.coachName ? refs.coachName.value.trim() : '',
           coachTitle: refs.coachTitle ? refs.coachTitle.value.trim() : '',
@@ -2860,7 +3298,9 @@
       }
 
       function buildCoursePayload(values, clubRecord){
-        var scheduleList = parseMultiValue(values.schedule, 12);
+        var scheduleList = Array.isArray(values.timeSlots) && values.timeSlots.length
+          ? values.timeSlots.slice(0, 12)
+          : parseMultiValue(values.schedule, 12);
         var time = values.time || scheduleList[0] || 'Time TBD';
         if(scheduleList.length === 0 && values.time){
           scheduleList = [values.time];
@@ -2868,13 +3308,16 @@
 
         var location = values.location;
         if(!location){
+          location = extractGoogleMapsQueryFromUrl(values.mapLink);
+        }
+        if(!location){
           location = values.mode === 'Online' ? 'OnlineMeeting link (to be published)' : 'Location TBD';
         }
 
         var fee = values.fee || 'Free';
-        var desc = values.desc || buildAutoCourseDesc(values.title, values.club, values.level, values.mode);
-        var lead = values.lead || buildAutoCourseLead(values.title, values.level, values.mode);
-        var detail = values.detail || buildAutoCourseDetail(desc, scheduleList, location, fee);
+        var desc = values.desc;
+        var lead = values.lead;
+        var detail = values.detail;
         var cover = values.cover || ((clubRecord && clubRecord.cover) ? clubRecord.cover : '');
         var createdAt = Date.now();
 
@@ -2893,6 +3336,7 @@
           time: time,
           schedule: scheduleList,
           location: location,
+          mapLink: values.mapLink,
           seats: values.seats,
           fee: fee,
           cover: cover,
@@ -2925,7 +3369,7 @@
         });
 
         tbody.innerHTML = rows.map(function(c){
-          var desc = c.desc || c.detail || 'Course details template generated';
+          var desc = c.desc || c.detail || '-';
           var timeText = c.time || ((Array.isArray(c.schedule) && c.schedule[0]) || 'Time TBD');
           var locationText = c.location || 'Location TBD';
           var feeText = c.fee || 'Free';
@@ -3140,6 +3584,10 @@
         if(refs.mode) refs.mode.value = '';
         if(refs.time) refs.time.value = '';
         if(refs.location) refs.location.value = '';
+        if(refs.mapLink) refs.mapLink.value = '';
+        if(refs.mapSearch) refs.mapSearch.value = '';
+        refreshCourseMapPreview('edit', '', '');
+        resetCourseTimeBuilder('edit');
         if(refs.englishClub) refs.englishClub.value = '';
         if(refs.seats) refs.seats.value = '';
         if(refs.fee) refs.fee.value = '';
@@ -3173,8 +3621,11 @@
         refs.title.value = course.title || '';
         refs.level.value = course.level || 'Beginner';
         refs.mode.value = course.mode || 'In-person';
-        refs.time.value = course.time || '';
         refs.location.value = course.location || '';
+        refs.mapLink.value = course.mapLink || '';
+        if(refs.mapSearch) refs.mapSearch.value = course.location || course.title || course.club || '';
+        refreshCourseMapPreview('edit', '', course.mapLink ? 'Preview based on the current Google Maps link.' : 'Preview based on the activity location.');
+        setCourseTimeSlots('edit', (Array.isArray(course.schedule) && course.schedule.length) ? course.schedule : (course.time || ''));
         refs.englishClub.value = course.englishClub || '';
         refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;
         refs.fee.value = course.fee || '';
@@ -3182,6 +3633,7 @@
         refs.desc.value = course.desc || '';
         refs.lead.value = course.lead || '';
         refs.schedule.value = joinMultiValue(course.schedule || course.time || '');
+        refs.schedule.dataset.scheduleSource = 'builder';
         refs.detail.value = course.detail || '';
         refs.coachName.value = course.coachName || '';
         refs.coachTitle.value = course.coachTitle || '';
@@ -3436,9 +3888,20 @@
 
       async function handlePublishCourse(e){
         e.preventDefault();
+        if(!commitPendingCourseTimeSlot('publish')){
+          return;
+        }
+        var publishRefs = getCourseFormRefs('publish');
+        if(publishRefs.mapLink && !publishRefs.mapLink.reportValidity()){
+          return;
+        }
         var values = readCourseFormValues('publish');
         if(!values.title || !values.club){
           alert('Please enter a course title and club.');
+          return;
+        }
+        if(!values.mapLink){
+          alert('Please add a Google Maps link. You can search Google Maps first or paste the link directly.');
           return;
         }
 
@@ -3452,9 +3915,11 @@
             var service = getAdminService();
             await service.createCourse(course, state.sessionUserId);
             if(e.target) e.target.reset();
+            resetCourseTimeBuilder('publish');
+            refreshCourseMapPreview('publish', '', '');
             await refreshState();
             renderAll();
-            alert('Course published and the detail page template was generated automatically.');
+            alert('Course published.');
             return;
           }catch(error){
             alert(service && typeof service.mapAdminError === 'function'
@@ -3468,13 +3933,22 @@
         state.courses.unshift(course);
         saveData(KEYS.courses, state.courses);
         if(e.target) e.target.reset();
+        resetCourseTimeBuilder('publish');
+        refreshCourseMapPreview('publish', '', '');
         await refreshState();
         renderAll();
-        alert('Course published and the detail page template was generated automatically.');
+        alert('Course published.');
       }
 
       async function handleEditCourseSubmit(e){
         e.preventDefault();
+        if(!commitPendingCourseTimeSlot('edit')){
+          return;
+        }
+        var editRefs = getCourseFormRefs('edit');
+        if(editRefs.mapLink && !editRefs.mapLink.reportValidity()){
+          return;
+        }
         var editingId = String(editingCourseId || '').trim();
         if(!editingId){
           alert('Select a course from the course list above before editing.');
@@ -3484,6 +3958,10 @@
         var values = readCourseFormValues('edit');
         if(!values.title || !values.club){
           alert('Please enter a course title and club.');
+          return;
+        }
+        if(!values.mapLink){
+          alert('Please add a Google Maps link. You can search Google Maps first or paste the link directly.');
           return;
         }
 
@@ -3843,6 +4321,10 @@
         initClubTimeBuilder('edit');
         bindClubMapControls('create');
         bindClubMapControls('edit');
+        initCourseTimeBuilder('publish');
+        initCourseTimeBuilder('edit');
+        bindCourseMapControls('publish');
+        bindCourseMapControls('edit');
 
         document.querySelectorAll('.side-link[data-view]').forEach(function(link){
           link.addEventListener('click', function(){
@@ -3919,7 +4401,19 @@
         });
         document.getElementById('addMemberForm').addEventListener('submit', handleAddMember);
         document.getElementById('courseForm').addEventListener('submit', handlePublishCourse);
+        document.getElementById('courseForm').addEventListener('reset', function(){
+          window.requestAnimationFrame(function(){
+            resetCourseTimeBuilder('publish');
+            refreshCourseMapPreview('publish', '', '');
+          });
+        });
         document.getElementById('courseEditForm').addEventListener('submit', handleEditCourseSubmit);
+        document.getElementById('courseEditForm').addEventListener('reset', function(){
+          window.requestAnimationFrame(function(){
+            resetCourseTimeBuilder('edit');
+            refreshCourseMapPreview('edit', '', '');
+          });
+        });
         document.getElementById('clubEditCancelBtn').addEventListener('click', function(){
           resetEditClubForm();
           renderRegister();

@@ -43,6 +43,9 @@
     '../zp/gywm.webp': true
   };
 
+  var COURSE_ADMIN_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)';
+  var COURSE_ADMIN_SELECT_LEGACY = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)';
+
   function trimText(value) {
     return String(value || '').trim();
   }
@@ -73,6 +76,17 @@
   function toNumber(value, fallback) {
     var numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
+  }
+
+  function isMissingCourseMapLinkColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /map_link/i.test(text);
+  }
+
+  function withoutCourseMapLink(payload) {
+    var next = Object.assign({}, payload || {});
+    delete next.map_link;
+    return next;
   }
 
   function getSupabaseClientSafe() {
@@ -207,6 +221,7 @@
       time: primaryTime,
       schedule: schedule.length ? schedule : [primaryTime],
       location: trimText(row.location),
+      mapLink: trimText(row.map_link),
       seats: Math.max(0, toNumber(row.seats, 0)),
       fee: trimText(row.fee_text) || 'Free',
       cover: normalizeCoverValue(row.cover_url) || normalizeCoverValue(club.cover_url),
@@ -267,6 +282,7 @@
       time_text: trimText(source.time),
       schedule: toArray(source.schedule),
       location: trimText(source.location),
+      map_link: trimText(source.mapLink),
       seats: Math.max(0, toNumber(source.seats, 0)),
       fee_text: trimText(source.fee) || 'Free',
       cover_url: normalizeCoverValue(source.cover) || null,
@@ -322,16 +338,22 @@
       .in('club_id', clubIds)
       .order('created_at', { ascending: false });
 
-    var coursePromise = client
+    var results = await Promise.all([memberPromise, bookingPromise]);
+    var membersResult = results[0] || {};
+    var bookingsResult = results[1] || {};
+    var coursesResult = await client
       .from('courses')
-      .select('id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)')
+      .select(COURSE_ADMIN_SELECT)
       .or('owner_id.eq.' + normalizedUserId + ',club_id.in.(' + clubIds.join(',') + ')')
       .order('created_at', { ascending: false });
 
-    var results = await Promise.all([memberPromise, bookingPromise, coursePromise]);
-    var membersResult = results[0] || {};
-    var bookingsResult = results[1] || {};
-    var coursesResult = results[2] || {};
+    if (coursesResult.error && isMissingCourseMapLinkColumn(coursesResult.error)) {
+      coursesResult = await client
+        .from('courses')
+        .select(COURSE_ADMIN_SELECT_LEGACY)
+        .or('owner_id.eq.' + normalizedUserId + ',club_id.in.(' + clubIds.join(',') + ')')
+        .order('created_at', { ascending: false });
+    }
 
     if (membersResult.error) throw membersResult.error;
     if (bookingsResult.error) throw bookingsResult.error;
@@ -428,12 +450,21 @@
   async function createCourse(payload, userId) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var courseInput = mapCourseInput(payload, payload && payload.clubId, userId);
 
     var result = await client
       .from('courses')
-      .insert(mapCourseInput(payload, payload && payload.clubId, userId))
-      .select('id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)')
+      .insert(courseInput)
+      .select(COURSE_ADMIN_SELECT)
       .single();
+
+    if (result.error && isMissingCourseMapLinkColumn(result.error)) {
+      result = await client
+        .from('courses')
+        .insert(withoutCourseMapLink(courseInput))
+        .select(COURSE_ADMIN_SELECT_LEGACY)
+        .single();
+    }
 
     if (result.error) throw result.error;
     return mapCourseRow(result.data);
@@ -442,13 +473,23 @@
   async function updateCourse(courseId, payload, userId) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var courseInput = mapCourseInput(payload, payload && payload.clubId, userId);
 
     var result = await client
       .from('courses')
-      .update(mapCourseInput(payload, payload && payload.clubId, userId))
+      .update(courseInput)
       .eq('id', trimText(courseId))
-      .select('id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)')
+      .select(COURSE_ADMIN_SELECT)
       .single();
+
+    if (result.error && isMissingCourseMapLinkColumn(result.error)) {
+      result = await client
+        .from('courses')
+        .update(withoutCourseMapLink(courseInput))
+        .eq('id', trimText(courseId))
+        .select(COURSE_ADMIN_SELECT_LEGACY)
+        .single();
+    }
 
     if (result.error) throw result.error;
     return mapCourseRow(result.data);

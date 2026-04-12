@@ -23,6 +23,11 @@
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
   }
 
+  function isMissingCourseMapLinkColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /map_link/i.test(text);
+  }
+
   var CLUB_COVER_MAP = {
     football: '../zp/zq.webp',
     badminton: '../zp/ymq.webp',
@@ -60,6 +65,8 @@
     '../zp/hb2.webp': true,
     '../zp/hb3.webp': true
   };
+  var COURSE_PUBLIC_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url)';
+  var COURSE_PUBLIC_SELECT_LEGACY = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url)';
 
   function normalizeClubCoverSlug(value) {
     return trimText(value)
@@ -146,7 +153,7 @@
     var reserved = Math.max(0, toNumber(bookedCount, 0));
     var remaining = Math.max(capacity - reserved, 0);
     var description = trimText(row.description) || trimText(row.lead) || trimText(row.detail);
-    var detail = trimText(row.detail) || description || 'Open the detail page to review this course.';
+    var detail = trimText(row.detail) || description;
     var clubName = trimText(club.name) || titleFromSlug(club.slug) || 'Unnamed Club';
     var clubSlug = trimText(club.slug);
     var resolvedClubCover = resolveClubCover(clubSlug || clubName, club.cover_url);
@@ -162,7 +169,7 @@
       clubCategory: trimText(club.category) || clubName,
       englishClub: englishClubFromRow(row, club),
       title: trimText(row.title) || 'Untitled Course',
-      desc: description || 'Structured course content with booking support.',
+      desc: description || '',
       lead: trimText(row.lead) || '',
       detail: detail,
       level: trimText(row.level) || 'Beginner',
@@ -170,6 +177,7 @@
       time: primaryTime,
       schedule: schedule.length ? schedule : [primaryTime],
       location: trimText(row.location) || 'Location TBD',
+      mapLink: trimText(row.map_link),
       seats: remaining,
       seatCapacity: capacity,
       bookedCount: reserved,
@@ -251,8 +259,15 @@
     var normalizedUserId = trimText(userId);
     var courseResult = await client
       .from('courses')
-      .select('id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url)')
+      .select(COURSE_PUBLIC_SELECT)
       .order('created_at', { ascending: false });
+
+    if (courseResult.error && isMissingCourseMapLinkColumn(courseResult.error)) {
+      courseResult = await client
+        .from('courses')
+        .select(COURSE_PUBLIC_SELECT_LEGACY)
+        .order('created_at', { ascending: false });
+    }
 
     if (courseResult.error) throw courseResult.error;
 
