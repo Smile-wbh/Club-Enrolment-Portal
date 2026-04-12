@@ -181,6 +181,200 @@
     };
   }
 
+  function buildDefaultDisplaySlots(capacity) {
+    var list = [];
+    for (var hour = 9; hour < 21; hour += 1) {
+      var startText = String(hour) + ':00';
+      var endText = String(hour + 1) + ':00';
+      list.push({
+        id: 'default-slot-' + hour,
+        time: startText + '-' + endText,
+        time_short: startText,
+        startTime: startText,
+        endTime: endText,
+        capacity: Number(capacity || 0)
+      });
+    }
+    return list;
+  }
+
+  function timeTextToMinutes(value) {
+    var match = trimText(value).match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    var hour = Number(match[1]);
+    var minute = Number(match[2]);
+    if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+    return hour * 60 + minute;
+  }
+
+  function minutesToTimeText(totalMinutes) {
+    var value = Number(totalMinutes);
+    if (!Number.isFinite(value) || value < 0) return '';
+    var hour = Math.floor(value / 60);
+    var minute = value % 60;
+    return String(hour) + ':' + String(minute).padStart(2, '0');
+  }
+
+  function weekdayTokenToIndex(value) {
+    var token = trimText(value).toLowerCase().replace(/\./g, '');
+    var map = {
+      sun: 0,
+      sunday: 0,
+      mon: 1,
+      monday: 1,
+      tue: 2,
+      tues: 2,
+      tuesday: 2,
+      wed: 3,
+      weds: 3,
+      wednesday: 3,
+      thu: 4,
+      thur: 4,
+      thurs: 4,
+      thursday: 4,
+      fri: 5,
+      friday: 5,
+      sat: 6,
+      saturday: 6
+    };
+    return Object.prototype.hasOwnProperty.call(map, token) ? map[token] : null;
+  }
+
+  function dayIsoToWeekdayIndex(dayIso) {
+    var date = new Date(trimText(dayIso) + 'T12:00:00');
+    return Number.isNaN(date.getTime()) ? null : date.getDay();
+  }
+
+  function parseWeeklyTimeEntries(raw) {
+    return String(raw || '')
+      .replace(/[–—]/g, '-')
+      .split(/\n|·|\|/)
+      .map(function (item) { return trimText(item); })
+      .filter(Boolean)
+      .map(function (item) {
+        var match = item.match(/^(.*?)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+        if (!match) return null;
+        var dayLabel = trimText(match[1]);
+        var dayIndex = weekdayTokenToIndex(dayLabel);
+        var startMinutes = timeTextToMinutes(match[2]);
+        var endMinutes = timeTextToMinutes(match[3]);
+        if (dayIndex === null || startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
+          return null;
+        }
+        return {
+          dayLabel: dayLabel,
+          dayIndex: dayIndex,
+          startMinutes: startMinutes,
+          endMinutes: endMinutes
+        };
+      })
+      .filter(Boolean);
+  }
+
+  function buildWeeklyTemplateSlots(entries, capacity, clubKey) {
+    var seen = {};
+    var list = [];
+    (Array.isArray(entries) ? entries : []).forEach(function (entry) {
+      for (var cursor = entry.startMinutes; cursor < entry.endMinutes; cursor += 60) {
+        var next = Math.min(cursor + 60, entry.endMinutes);
+        if (next <= cursor) break;
+        var startText = minutesToTimeText(cursor);
+        var endText = minutesToTimeText(next);
+        var time = startText + '-' + endText;
+        if (seen[time]) continue;
+        seen[time] = true;
+        list.push({
+          id: 'weekly-template-' + trimText(clubKey || 'club') + '-' + entry.dayIndex + '-' + cursor + '-' + next,
+          time: time,
+          time_short: startText,
+          startTime: startText,
+          endTime: endText,
+          capacity: Number(capacity || 0)
+        });
+      }
+    });
+    return list.sort(function (a, b) {
+      return slotSortValue(a) - slotSortValue(b);
+    });
+  }
+
+  function buildWeeklySlotsForDay(entries, dayIso, capacity, clubKey) {
+    var dayIndex = dayIsoToWeekdayIndex(dayIso);
+    if (!Array.isArray(entries) || !entries.length || dayIndex === null) return [];
+    var list = [];
+    entries.filter(function (entry) {
+      return entry.dayIndex === dayIndex;
+    }).forEach(function (entry) {
+      for (var cursor = entry.startMinutes; cursor < entry.endMinutes; cursor += 60) {
+        var next = Math.min(cursor + 60, entry.endMinutes);
+        if (next <= cursor) break;
+        var startText = minutesToTimeText(cursor);
+        var endText = minutesToTimeText(next);
+        list.push({
+          id: 'weekly-' + trimText(clubKey || 'club') + '-' + entry.dayIndex + '-' + cursor + '-' + next,
+          dbId: '',
+          time: startText + '-' + endText,
+          time_short: startText,
+          capacity: Number(capacity || 0),
+          dayIso: trimText(dayIso),
+          dayLabel: trimText(dayIso),
+          startTime: startText,
+          endTime: endText,
+          bookedCount: 0
+        });
+      }
+    });
+    return list.sort(function (a, b) {
+      return slotSortValue(a) - slotSortValue(b);
+    });
+  }
+
+  function mergeSlotsByTime(primary, secondary) {
+    var byTime = {};
+    (Array.isArray(secondary) ? secondary : []).forEach(function (slot) {
+      var slotTime = trimText(slot && slot.time);
+      if (slotTime) byTime[slotTime] = slot;
+    });
+    (Array.isArray(primary) ? primary : []).forEach(function (slot) {
+      var slotTime = trimText(slot && slot.time);
+      if (slotTime) byTime[slotTime] = slot;
+    });
+    return Object.keys(byTime).map(function (slotTime) {
+      return byTime[slotTime];
+    }).sort(function (a, b) {
+      return slotSortValue(a) - slotSortValue(b);
+    });
+  }
+
+  function combineTemplateLists(lists, fallbackCapacity) {
+    var indexByTime = {};
+    var combined = [];
+    (Array.isArray(lists) ? lists : []).forEach(function (list) {
+      (Array.isArray(list) ? list : []).forEach(function (slot) {
+        var time = trimText(slot && slot.time);
+        if (!time) return;
+        var timeShort = trimText(slot && slot.time_short) || (time ? time.split('-')[0].trim() : '');
+        var item = {
+          id: trimText(slot && slot.id) || ('template-slot-' + combined.length),
+          time: time,
+          time_short: timeShort,
+          startTime: trimText(slot && slot.startTime) || timeShort,
+          endTime: trimText(slot && slot.endTime),
+          capacity: Number(slot && slot.capacity || fallbackCapacity || 0)
+        };
+        if (Object.prototype.hasOwnProperty.call(indexByTime, time)) {
+          combined[indexByTime[time]] = item;
+          return;
+        }
+        indexByTime[time] = combined.length;
+        combined.push(item);
+      });
+    });
+    return combined.sort(function (a, b) {
+      return slotSortValue(a) - slotSortValue(b);
+    });
+  }
+
   function buildDayIsoRange(startDate, endDate) {
     var start = new Date(startDate);
     var end = new Date(endDate);
@@ -240,12 +434,22 @@
 
     return (Array.isArray(clubs) ? clubs : []).map(function (club) {
       var grouped = slotGroups[trimText(club.id)] || {};
-      var template = buildTemplateSlots(grouped, Number(club && club.seats || 0));
+      var seats = Number(club && club.seats || 0);
+      var weeklyEntries = parseWeeklyTimeEntries(club && club.time_text);
+      var actualTemplate = buildTemplateSlots(grouped, seats);
+      var weeklyTemplate = buildWeeklyTemplateSlots(weeklyEntries, seats, trimText(club && (club.id || club.slug)) || 'club');
+      var needsDisplayTemplate = Object.keys(grouped).length > 0 || weeklyEntries.length > 0;
+      var template = combineTemplateLists([
+        needsDisplayTemplate ? buildDefaultDisplaySlots(seats) : [],
+        actualTemplate,
+        weeklyTemplate
+      ], seats);
       var timeSummary = trimText(club && club.time_text);
       var normalizedByDay = {};
 
-      if (!timeSummary && template.length) {
-        timeSummary = template.slice(0, 2).map(function (slot) {
+      if (!timeSummary && (actualTemplate.length || weeklyTemplate.length)) {
+        var summarySource = actualTemplate.length ? actualTemplate : weeklyTemplate;
+        timeSummary = summarySource.slice(0, 2).map(function (slot) {
           return trimText(slot && slot.time);
         }).filter(Boolean).join(' / ');
       }
@@ -259,18 +463,20 @@
       if (template.length && dayRange.length) {
         dayRange.forEach(function (dayIso) {
           var actual = Array.isArray(normalizedByDay[dayIso]) ? normalizedByDay[dayIso].slice() : [];
-          if (!actual.length) {
+          var generated = buildWeeklySlotsForDay(weeklyEntries, dayIso, seats, trimText(club && (club.id || club.slug)) || 'club');
+          var mergedActual = mergeSlotsByTime(actual, generated);
+          if (!mergedActual.length) {
             normalizedByDay[dayIso] = template.map(function (templateSlot, index) {
               return buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index);
             });
             return;
           }
-          if (actual.length >= template.length) {
-            normalizedByDay[dayIso] = actual;
+          if (mergedActual.length >= template.length) {
+            normalizedByDay[dayIso] = mergedActual;
             return;
           }
           var actualByTime = {};
-          actual.forEach(function (slot) {
+          mergedActual.forEach(function (slot) {
             var slotTime = trimText(slot && slot.time);
             if (slotTime) actualByTime[slotTime] = slot;
           });

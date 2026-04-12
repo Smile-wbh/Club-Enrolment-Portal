@@ -1228,7 +1228,7 @@ textarea {
 }
 
 .legend-dot.available {
-  background: #90a8c8;
+  background: #b7bfca;
 }
 
 .legend-dot.mine {
@@ -1311,14 +1311,14 @@ textarea {
 }
 
 .slot-card.available {
-  background: #eef4fb;
-  border-color: #dbe5f3;
-  color: #24456f;
+  background: #edf0f4;
+  border-color: #d5dbe4;
+  color: #334a67;
 }
 
 .slot-card.available:hover {
   transform: translateY(-1px);
-  box-shadow: 0 10px 18px rgba(31, 63, 109, 0.12);
+  box-shadow: 0 10px 18px rgba(68, 84, 106, 0.14);
 }
 
 .slot-card.mine {

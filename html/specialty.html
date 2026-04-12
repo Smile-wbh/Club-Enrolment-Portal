@@ -180,7 +180,7 @@
         <div class="section-head">
           <div>
             <h2>{{ currentClub.name }} Booking Slots</h2>
-            <p>Green shows your booking, red means full, and blue-grey marks currently available slots.</p>
+            <p>Grey marks the club's scheduled time, green shows your booking, and red means full or unavailable.</p>
           </div>
 
           <button class="toolbar-btn ghost" type="button" @click="goBackToList">Back to Club List</button>
@@ -266,7 +266,7 @@
             <div class="legend-bar">
               <div class="legend-item">
                 <span class="legend-dot available"></span>
-                <span>Available</span>
+                <span>Club Time</span>
               </div>
 
               <div class="legend-item">
@@ -302,6 +302,7 @@
                   <strong>{{ slot.time_short }}</strong>
                   <span v-if="isSlotExpired(slot, day)">Unavailable</span>
                   <span v-else-if="isBooked(slot, day)">Booked</span>
+                  <span v-else-if="slot.syntheticUnavailable">Unavailable</span>
                   <span v-else-if="remaining(slot, day) <= 0">Full</span>
                   <span v-else>{{ remaining(slot, day) }} left</span>
                 </button>
@@ -328,7 +329,7 @@
 
               <div class="hint-list">
                 <div class="hint-item">You cannot book different clubs in the same time slot. The system checks conflicts automatically.</div>
-                <div class="hint-item">Click a blue-grey slot to start a booking. After confirmation, you will be taken to payment, and the booking is saved only after payment succeeds.</div>
+                <div class="hint-item">Click a grey slot to start a booking. After confirmation, you will be taken to payment, and the booking is saved only after payment succeeds.</div>
                 <div class="hint-item">If you arrived here through a direct club link, you can still return to the list and keep filtering other options.</div>
               </div>
 
@@ -806,6 +807,158 @@
         }
         return slots;
       },
+      timeTextToMinutes(value) {
+        const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+        if (!match) return null;
+        const hour = Number(match[1]);
+        const minute = Number(match[2]);
+        if (!Number.isFinite(hour) || !Number.isFinite(minute)) return null;
+        return hour * 60 + minute;
+      },
+      minutesToTimeText(totalMinutes) {
+        const value = Number(totalMinutes);
+        if (!Number.isFinite(value) || value < 0) return '';
+        const hour = Math.floor(value / 60);
+        const minute = value % 60;
+        return `${hour}:${`${minute}`.padStart(2, '0')}`;
+      },
+      weekdayTokenToIndex(value) {
+        const token = String(value || '')
+          .trim()
+          .toLowerCase()
+          .replace(/\./g, '');
+        const map = {
+          sun: 0,
+          sunday: 0,
+          mon: 1,
+          monday: 1,
+          tue: 2,
+          tues: 2,
+          tuesday: 2,
+          wed: 3,
+          weds: 3,
+          wednesday: 3,
+          thu: 4,
+          thur: 4,
+          thurs: 4,
+          thursday: 4,
+          fri: 5,
+          friday: 5,
+          sat: 6,
+          saturday: 6
+        };
+        return Object.prototype.hasOwnProperty.call(map, token) ? map[token] : null;
+      },
+      dayIsoToWeekdayIndex(dayIso) {
+        const date = new Date(`${String(dayIso || '').trim()}T12:00:00`);
+        return Number.isNaN(date.getTime()) ? null : date.getDay();
+      },
+      parseWeeklyTimeEntries(raw) {
+        return String(raw || '')
+          .replace(/[–—]/g, '-')
+          .split(/\n|·|\|/)
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+          .map((item) => {
+            const match = item.match(/^(.*?)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$/);
+            if (!match) return null;
+            const dayLabel = String(match[1] || '').trim();
+            const dayIndex = this.weekdayTokenToIndex(dayLabel);
+            const startMinutes = this.timeTextToMinutes(match[2]);
+            const endMinutes = this.timeTextToMinutes(match[3]);
+            if (dayIndex === null || startMinutes === null || endMinutes === null || startMinutes >= endMinutes) {
+              return null;
+            }
+            return {
+              dayLabel,
+              dayIndex,
+              startMinutes,
+              endMinutes
+            };
+          })
+          .filter(Boolean);
+      },
+      clubWeeklyEntries(club) {
+        if (!club) return [];
+        if (Array.isArray(club.weeklyTimeEntries)) {
+          return club.weeklyTimeEntries;
+        }
+        return this.parseWeeklyTimeEntries(club.time);
+      },
+      buildWeeklyTemplateSlots(entries, capacity, scopeKey) {
+        const seen = new Set();
+        const slots = [];
+        (Array.isArray(entries) ? entries : []).forEach((entry) => {
+          for (let cursor = entry.startMinutes; cursor < entry.endMinutes; cursor += 60) {
+            const next = Math.min(cursor + 60, entry.endMinutes);
+            if (next <= cursor) break;
+            const startText = this.minutesToTimeText(cursor);
+            const endText = this.minutesToTimeText(next);
+            const timeText = `${startText}-${endText}`;
+            if (seen.has(timeText)) continue;
+            seen.add(timeText);
+            slots.push({
+              id: `weekly-template-${scopeKey}-${entry.dayIndex}-${cursor}-${next}`,
+              time: timeText,
+              time_short: startText,
+              startTime: startText,
+              endTime: endText,
+              capacity: capacity || 10
+            });
+          }
+        });
+        return slots.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+      },
+      buildWeeklySlotsForDay(club, dayIso) {
+        const entries = this.clubWeeklyEntries(club);
+        const dayIndex = this.dayIsoToWeekdayIndex(dayIso);
+        const capacity = Number(club && club.seats || 0) || 10;
+        const scopeKey = String(club && (club.dbId || club.slug || club.id) || 'club').trim() || 'club';
+        if (!entries.length || dayIndex === null) return [];
+        const slots = [];
+        entries
+          .filter((entry) => entry.dayIndex === dayIndex)
+          .forEach((entry) => {
+            for (let cursor = entry.startMinutes; cursor < entry.endMinutes; cursor += 60) {
+              const next = Math.min(cursor + 60, entry.endMinutes);
+              if (next <= cursor) break;
+              const startText = this.minutesToTimeText(cursor);
+              const endText = this.minutesToTimeText(next);
+              slots.push({
+                id: `weekly-${scopeKey}-${entry.dayIndex}-${cursor}-${next}`,
+                dbId: '',
+                time: `${startText}-${endText}`,
+                time_short: startText,
+                capacity: capacity,
+                dayIso: dayIso,
+                dayLabel: dayIso,
+                startTime: startText,
+                endTime: endText
+              });
+            }
+          });
+        return slots.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+      },
+      mergeSlotsByTime(primary, secondary) {
+        const byTime = {};
+        (Array.isArray(secondary) ? secondary : []).forEach((slot) => {
+          const slotTime = String(slot && slot.time || '').trim();
+          if (slotTime) byTime[slotTime] = slot;
+        });
+        (Array.isArray(primary) ? primary : []).forEach((slot) => {
+          const slotTime = String(slot && slot.time || '').trim();
+          if (slotTime) byTime[slotTime] = slot;
+        });
+        return Object.values(byTime).sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+      },
+      clubHasStructuredSchedule(club) {
+        if (!club) return false;
+        const weeklyEntries = this.clubWeeklyEntries(club);
+        const byDay = club.slotsByDay && typeof club.slotsByDay === 'object'
+          ? Object.keys(club.slotsByDay).some((dayIso) => Array.isArray(club.slotsByDay[dayIso]) && club.slotsByDay[dayIso].length)
+          : false;
+        return weeklyEntries.length > 0 || byDay || String(club.source || '').trim() === 'supabase';
+      },
       getBookingService() {
         return window.clubBookingSupabase || null;
       },
@@ -937,6 +1090,16 @@
       clubSlotTemplate(club) {
         if (!club) return [];
         const buckets = [];
+        const capacity = Number(club && club.seats || 0) || 10;
+        const weeklyEntries = this.clubWeeklyEntries(club);
+        const scopeKey = String(club && (club.dbId || club.slug || club.id) || 'club').trim() || 'club';
+        if (this.clubHasStructuredSchedule(club)) {
+          buckets.push(this.generateSlots(capacity));
+        }
+        const weeklyTemplate = this.buildWeeklyTemplateSlots(weeklyEntries, capacity, scopeKey);
+        if (weeklyTemplate.length) {
+          buckets.push(weeklyTemplate);
+        }
         if (Array.isArray(club.slots) && club.slots.length) {
           buckets.push(club.slots);
         }
@@ -989,18 +1152,20 @@
       slotsForClubDay(club, day) {
         if (!club || !day) return [];
         const dayIso = String(day.iso || '').trim();
-        const actual = club.slotsByDay && Array.isArray(club.slotsByDay[dayIso])
+        const actualByDay = club.slotsByDay && Array.isArray(club.slotsByDay[dayIso])
           ? club.slotsByDay[dayIso].slice()
           : [];
+        const generated = this.buildWeeklySlotsForDay(club, dayIso);
+        const actual = this.mergeSlotsByTime(actualByDay, generated);
         const template = this.clubSlotTemplate(club);
-        const isSupabaseClub = String(club.source || '').trim() === 'supabase';
+        const hasStructuredSchedule = this.clubHasStructuredSchedule(club);
         if (!template.length) {
           if (!actual.length) return Array.isArray(club.slots) ? club.slots : [];
           return actual.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
         }
 
         if (!actual.length) {
-          if (isSupabaseClub) {
+          if (hasStructuredSchedule) {
             return template.map((templateSlot, index) => this.buildSyntheticUnavailableSlot(club, dayIso, templateSlot, index));
           }
           return Array.isArray(club.slots) ? club.slots : [];
@@ -1358,6 +1523,7 @@
           fee: String(club.fee || '£0').trim(),
           cover: this.resolveClubCover(slug, club.cover || ''),
           tags: Array.isArray(club.tags) ? club.tags.filter(Boolean).map((tag) => String(tag).trim()) : [],
+          weeklyTimeEntries: this.parseWeeklyTimeEntries(club.time),
           slots: slots,
           slotsByDay: slotsByDay
         });
