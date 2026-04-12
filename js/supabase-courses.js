@@ -90,6 +90,11 @@
     return text;
   }
 
+  function sanitizeCourseCoverValue(value) {
+    var text = trimText(value);
+    return LEGACY_GENERIC_COVER_SET[text] ? '' : text;
+  }
+
   function getSupabaseClientSafe() {
     try {
       return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
@@ -157,8 +162,8 @@
     var detail = trimText(row.detail);
     var clubName = trimText(club.name) || titleFromSlug(club.slug);
     var clubSlug = trimText(club.slug);
-    var resolvedClubCover = resolveClubCover(clubSlug || clubName, club.cover_url);
-    var resolvedCourseCover = resolveClubCover(clubSlug || row.slug || clubName, trimText(row.cover_url) || resolvedClubCover);
+    var resolvedClubCover = resolveClubCover(clubSlug || clubName, sanitizeCourseCoverValue(club.cover_url));
+    var resolvedCourseCover = resolveClubCover(clubSlug || row.slug || clubName, sanitizeCourseCoverValue(row.cover_url) || resolvedClubCover);
     return {
       id: trimText(row.id),
       dbId: trimText(row.id),

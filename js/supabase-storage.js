@@ -116,6 +116,9 @@
     uploadClubCoverImage: function (file, userId) {
       return uploadAsset(file, userId, 'club-covers');
     },
+    uploadCourseCoverImage: function (file, userId) {
+      return uploadAsset(file, userId, 'course-covers');
+    },
     uploadForumCoverImage: function (file, userId) {
       return uploadAsset(file, userId, 'forum-covers');
     },

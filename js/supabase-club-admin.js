@@ -71,6 +71,11 @@
     return text;
   }
 
+  function sanitizeCourseCoverValue(value) {
+    var text = normalizeCoverValue(value);
+    return LEGACY_AUTO_COVER_PATHS[text] ? '' : text;
+  }
+
   function normalizeEmail(value) {
     return trimText(value).toLowerCase();
   }
@@ -348,7 +353,7 @@
       mapLink: trimText(row.map_link),
       seats: Math.max(0, toNumber(row.seats, 0)),
       fee: trimText(row.fee_text),
-      cover: normalizeCoverValue(row.cover_url) || normalizeCoverValue(club.cover_url),
+      cover: sanitizeCourseCoverValue(row.cover_url) || sanitizeCourseCoverValue(club.cover_url),
       desc: trimText(row.description),
       lead: trimText(row.lead),
       detail: trimText(row.detail),
@@ -379,7 +384,7 @@
       time_text: trimText(source.time),
       fee_text: formatClubFeeText(source.fee),
       seats: Math.max(0, toNumber(source.seats, 0)),
-      cover_url: normalizeCoverValue(source.cover) || null,
+      cover_url: sanitizeCourseCoverValue(source.cover) || null,
       tags: [],
       description: trimText(source.desc),
       hero_sub: '',

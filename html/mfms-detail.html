@@ -776,11 +776,13 @@
       },
       courseCover(course) {
         const slug = String(course && (course.clubSlug || course.clubCategory || course.club || course.slug) || '').trim();
-        const cover = this.resolveClubCover(slug, course && course.cover);
+        const courseCover = this.normalizeCoverValue(course && course.cover);
+        const cover = this.resolveClubCover(slug, LEGACY_GENERIC_COVER_SET[courseCover] ? '' : courseCover);
         if (cover) return cover;
-        const clubCover = this.resolveClubCover(slug, course && course.clubCover);
+        const rawClubCover = this.normalizeCoverValue(course && course.clubCover);
+        const clubCover = this.resolveClubCover(slug, LEGACY_GENERIC_COVER_SET[rawClubCover] ? '' : rawClubCover);
         if (clubCover) return clubCover;
-        return this.resolveClubCover(slug, '') || '../zp/gywm.webp';
+        return this.resolveClubCover(slug, '');
       },
       favKey() {
         const email = this.getSessionEmail();
