@@ -271,56 +271,31 @@
           if(this.resolvedMapLink) return this.resolvedMapLink;
           return this.club && this.club.mapLink ? this.club.mapLink : '';
         },
-        fallbackMapQuery(){
-          if(!this.club) return '';
-          const parts = [
-            String(this.club.location || '').trim(),
-            String(this.club.name || '').trim()
-          ].filter(Boolean);
-          return Array.from(new Set(parts)).join(' ');
-        },
         mapQueryText(){
           if(!this.club) return '';
-          if(this.club.mapLink){
-            return this.extractMapQuery(this.activeMapLink);
-          }
-          return this.fallbackMapQuery;
+          return this.club.mapLink ? this.extractMapQuery(this.activeMapLink) : '';
         },
         hasPhysicalVenue(){
           if(!this.club) return false;
           const mode = String(this.club.mode || '').trim().toLowerCase();
           const locationText = String(this.club.location || '').trim().toLowerCase();
-          if(this.club.mapLink) return true;
+          if(!this.club.mapLink) return false;
           if(!locationText) return false;
           if(mode === 'online') return false;
           if(locationText.indexOf('online') > -1 || locationText.indexOf('virtual') > -1) return false;
           return true;
         },
         mapEmbedUrl(){
-          if(this.club && this.club.mapLink){
-            const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
-            if(embedFromLink) return embedFromLink;
-            return '';
-          }
+          if(!(this.club && this.club.mapLink)) return '';
           const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
           if(embedFromLink) return embedFromLink;
-          const query = this.mapQueryText || this.fallbackMapQuery;
-          if(!query) return '';
-          return 'https://www.google.com/maps?q=' + encodeURIComponent(query) + '&z=16&output=embed';
+          return '';
         },
         mapOpenUrl(){
           if(!this.club) return '#';
-          if(this.club.mapLink){
-            if(this.resolvedMapLink) return this.toExternalUrl(this.resolvedMapLink);
-            const query = this.fallbackMapQuery;
-            return query
-              ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
-              : this.toExternalUrl(this.club.mapLink);
-          }
-          const query = this.mapQueryText;
-          return query
-            ? 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query)
-            : '#';
+          if(!this.club.mapLink) return '#';
+          if(this.resolvedMapLink) return this.toExternalUrl(this.resolvedMapLink);
+          return this.toExternalUrl(this.club.mapLink);
         },
         mapOverlayText(){
           if(!this.club) return '';
@@ -330,7 +305,7 @@
           return time || mode || 'Find the venue before you arrive';
         },
         showMapPanel(){
-          return !!(this.club && this.hasPhysicalVenue && (this.mapQueryText || this.club.mapLink));
+          return !!(this.club && this.hasPhysicalVenue && this.club.mapLink && this.mapEmbedUrl);
         }
       },
       async mounted(){

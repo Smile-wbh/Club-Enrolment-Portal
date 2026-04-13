@@ -221,7 +221,6 @@
 </div>
 
 <script>
-  const DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
   const CLUB_COVER_MAP = Object.freeze({
     football: '../zp/zq.webp',
     badminton: '../zp/ymq.webp',
@@ -569,7 +568,7 @@
           seats,
           fee: this.formatClubFee(c && c.fee ? c.fee : '£0'),
           cover,
-          mapLink: c && c.mapLink ? c.mapLink : DEFAULT_CLUB_PREVIEW_MAP_LINK,
+          mapLink: c && c.mapLink ? c.mapLink : '',
           onlineLink: c && c.onlineLink,
           venueInfo: c && c.venueInfo,
           whatWeDo: c && c.whatWeDo,

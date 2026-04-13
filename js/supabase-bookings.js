@@ -1,8 +1,6 @@
 (function (window) {
   'use strict';
 
-  var DEFAULT_CLUB_PREVIEW_MAP_LINK = 'https://maps.app.goo.gl/f5FyrhZuWWudMy2VA';
-
   function trimText(value) {
     return String(value || '').trim();
   }
@@ -486,7 +484,7 @@
         category: trimText(club.category) || 'Sports',
         mode: trimText(club.mode) || 'In-person',
         location: trimText(club.location) || 'Location TBD',
-        mapLink: trimText(club.map_link) || DEFAULT_CLUB_PREVIEW_MAP_LINK,
+        mapLink: trimText(club.map_link),
         onlineLink: trimText(club.online_link),
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
