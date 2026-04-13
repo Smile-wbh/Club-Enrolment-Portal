@@ -28,6 +28,11 @@
     return /map_link/i.test(text);
   }
 
+  function isMissingCourseStructuredMapColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /place_id|formatted_address|map_source|\blat\b|\blng\b/i.test(text);
+  }
+
   var CLUB_COVER_MAP = {
     football: '../zp/zq.webp',
     badminton: '../zp/ymq.webp',
@@ -65,8 +70,8 @@
     '../zp/hb2.webp': true,
     '../zp/hb3.webp': true
   };
-  var COURSE_PUBLIC_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url)';
-  var COURSE_PUBLIC_SELECT_LEGACY = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url)';
+  var COURSE_PUBLIC_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, place_id, formatted_address, lat, lng, map_source, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url, map_link, place_id, formatted_address, lat, lng, map_source, location, mode)';
+  var COURSE_PUBLIC_SELECT_LEGACY = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, popularity, created_at, updated_at, club:clubs(name, slug, category, cover_url, map_link, location, mode)';
 
   function normalizeClubCoverSlug(value) {
     return trimText(value)
@@ -192,6 +197,19 @@
       schedule: safeSchedule,
       location: trimText(row.location),
       mapLink: trimText(row.map_link),
+      placeId: trimText(row.place_id),
+      formattedAddress: trimText(row.formatted_address),
+      lat: trimText(row.lat),
+      lng: trimText(row.lng),
+      mapSource: trimText(row.map_source),
+      clubMapLink: trimText(club.map_link),
+      clubPlaceId: trimText(club.place_id),
+      clubFormattedAddress: trimText(club.formatted_address),
+      clubLat: trimText(club.lat),
+      clubLng: trimText(club.lng),
+      clubMapSource: trimText(club.map_source),
+      clubLocation: trimText(club.location),
+      clubMode: trimText(club.mode),
       seats: remaining,
       seatCapacity: capacity,
       seatCapacityPerSlot: capacityPerSlot,
@@ -277,7 +295,7 @@
       .select(COURSE_PUBLIC_SELECT)
       .order('created_at', { ascending: false });
 
-    if (courseResult.error && isMissingCourseMapLinkColumn(courseResult.error)) {
+    if (courseResult.error && (isMissingCourseStructuredMapColumn(courseResult.error) || isMissingCourseMapLinkColumn(courseResult.error))) {
       courseResult = await client
         .from('courses')
         .select(COURSE_PUBLIC_SELECT_LEGACY)

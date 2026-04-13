@@ -30,9 +30,9 @@
       <div class="heroGrid">
         <div>
           <h1 class="heroTitle">{{ club.name }}</h1>
-          <div class="chips" v-if="club.location || club.mapLink || club.onlineLink">
+          <div class="chips" v-if="club.location || hasMapAction || club.onlineLink">
             <span v-if="club.location" class="chip">📍 Venue: {{ club.location }}</span>
-            <a v-if="club.mapLink" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
+            <a v-if="hasMapAction" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
             <a v-if="club.onlineLink" class="chip chip-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">💻 Online Room</a>
           </div>
         </div>
@@ -127,7 +127,7 @@
           <div class="k">Location</div>
           <div class="v">{{ club.location }}</div>
         </div>
-        <div class="infoRow" v-if="club.mapLink">
+        <div class="infoRow" v-if="hasMapAction">
           <div class="k">Map Link</div>
           <div class="v"><a class="info-link" :href="mapOpenUrl" target="_blank" rel="noopener">Open Map</a></div>
         </div>
@@ -171,7 +171,7 @@
 
         <div class="map-band-overlay">
           <span class="map-band-eyebrow">Google Maps</span>
-          <strong>{{ club.location || club.name }}</strong>
+          <strong>{{ club.location || mapQueryText || club.name }}</strong>
           <span>{{ mapOverlayText }}</span>
         </div>
 
@@ -267,35 +267,51 @@
         notesList(){
           return this.toList(this.club ? this.club.notes : '');
         },
+        placeMeta(){
+          if(!this.club) return {};
+          return {
+            placeId: String(this.club.placeId || this.club.place_id || '').trim(),
+            formattedAddress: String(this.club.formattedAddress || this.club.formatted_address || '').trim(),
+            lat: String(this.club.lat || '').trim(),
+            lng: String(this.club.lng || '').trim()
+          };
+        },
         activeMapLink(){
           if(this.resolvedMapLink) return this.resolvedMapLink;
           return this.club && this.club.mapLink ? this.club.mapLink : '';
         },
         mapQueryText(){
           if(!this.club) return '';
-          return this.club.mapLink ? this.extractMapQuery(this.activeMapLink) : '';
+          return this.placeMeta.formattedAddress || (this.club.mapLink ? this.extractMapQuery(this.activeMapLink) : '');
         },
         hasPhysicalVenue(){
           if(!this.club) return false;
           const mode = String(this.club.mode || '').trim().toLowerCase();
-          const locationText = String(this.club.location || '').trim().toLowerCase();
-          if(!this.club.mapLink) return false;
+          const locationText = String(this.club.location || this.placeMeta.formattedAddress || '').trim().toLowerCase();
           if(!locationText) return false;
           if(mode === 'online') return false;
           if(locationText.indexOf('online') > -1 || locationText.indexOf('virtual') > -1) return false;
-          return true;
+          return !!(this.mapEmbedUrl || this.mapOpenUrl !== '#');
         },
         mapEmbedUrl(){
-          if(!(this.club && this.club.mapLink)) return '';
+          if(!this.club) return '';
+          const embedFromMeta = this.buildMapEmbedFromMeta(this.placeMeta);
+          if(embedFromMeta) return embedFromMeta;
+          if(!this.club.mapLink) return '';
           const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
           if(embedFromLink) return embedFromLink;
           return '';
         },
         mapOpenUrl(){
           if(!this.club) return '#';
+          const openFromMeta = this.buildMapOpenFromMeta(this.placeMeta);
+          if(openFromMeta) return openFromMeta;
           if(!this.club.mapLink) return '#';
           if(this.resolvedMapLink) return this.toExternalUrl(this.resolvedMapLink);
           return this.toExternalUrl(this.club.mapLink);
+        },
+        hasMapAction(){
+          return this.mapOpenUrl !== '#';
         },
         mapOverlayText(){
           if(!this.club) return '';
@@ -305,7 +321,7 @@
           return time || mode || 'Find the venue before you arrive';
         },
         showMapPanel(){
-          return !!(this.club && this.hasPhysicalVenue && this.club.mapLink && this.mapEmbedUrl);
+          return !!(this.club && this.hasPhysicalVenue && this.mapEmbedUrl);
         }
       },
       async mounted(){
@@ -380,6 +396,11 @@
             desc: c && c.desc ? c.desc : '',
             cover: this.resolveClubCover(c && c.slug, c && c.cover ? c.cover : ''),
             mapLink: c && c.mapLink ? c.mapLink : '',
+            placeId: c && (c.placeId || c.place_id) ? (c.placeId || c.place_id) : '',
+            formattedAddress: c && (c.formattedAddress || c.formatted_address) ? (c.formattedAddress || c.formatted_address) : '',
+            lat: c && c.lat ? c.lat : '',
+            lng: c && c.lng ? c.lng : '',
+            mapSource: c && (c.mapSource || c.map_source) ? (c.mapSource || c.map_source) : '',
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
             venueInfo: c && c.venueInfo ? c.venueInfo : '',
             whatWeDo: c && c.whatWeDo ? c.whatWeDo : '',
@@ -477,6 +498,36 @@
           if(!raw) return '#';
           if(/^https?:\/\//i.test(raw)) return raw;
           return 'https://' + raw;
+        },
+        buildMapEmbedFromMeta(meta){
+          const data = meta || {};
+          const lat = String(data.lat || '').trim();
+          const lng = String(data.lng || '').trim();
+          const formattedAddress = String(data.formattedAddress || '').trim();
+          if(lat && lng){
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(lat + ',' + lng) + '&z=16&output=embed';
+          }
+          if(formattedAddress){
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(formattedAddress) + '&z=16&output=embed';
+          }
+          return '';
+        },
+        buildMapOpenFromMeta(meta){
+          const data = meta || {};
+          const placeId = String(data.placeId || '').trim();
+          const lat = String(data.lat || '').trim();
+          const lng = String(data.lng || '').trim();
+          const formattedAddress = String(data.formattedAddress || '').trim();
+          if(placeId && formattedAddress){
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress) + '&query_place_id=' + encodeURIComponent(placeId);
+          }
+          if(lat && lng){
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+          }
+          if(formattedAddress){
+            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress);
+          }
+          return '';
         },
         async resolveMapLinkForEmbed(){
           this.resolvedMapLink = '';

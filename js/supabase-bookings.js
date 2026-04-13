@@ -141,6 +141,11 @@
     return !!(config.SUPABASE_URL && config.SUPABASE_ANON_KEY && getSupabaseClientSafe());
   }
 
+  function isMissingStructuredClubMapColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /place_id|formatted_address|map_source|\blat\b|\blng\b/i.test(text);
+  }
+
   function addDays(date, days) {
     var next = new Date(date);
     next.setDate(next.getDate() + days);
@@ -485,6 +490,11 @@
         mode: trimText(club.mode) || 'In-person',
         location: trimText(club.location) || 'Location TBD',
         mapLink: trimText(club.map_link),
+        placeId: trimText(club.place_id),
+        formattedAddress: trimText(club.formatted_address),
+        lat: trimText(club.lat),
+        lng: trimText(club.lng),
+        mapSource: trimText(club.map_source),
         onlineLink: trimText(club.online_link),
         time: timeSummary,
         seats: Number(club.seats || 0) || 20,
@@ -513,9 +523,12 @@
     var startDate = trimText(options && options.startDate) || formatIso(new Date());
     var endDate = trimText(options && options.endDate) || formatIso(addDays(new Date(startDate), 27));
 
+    var clubSelect = 'id, slug, name, category, mode, location, map_link, place_id, formatted_address, lat, lng, map_source, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status';
+    var clubSelectLegacy = 'id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status';
+
     var clubQuery = client
       .from('clubs')
-      .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status')
+      .select(clubSelect)
       .order('name', { ascending: true });
 
     var slotQuery = client
@@ -538,6 +551,15 @@
     var slotError = results[1] && results[1].error;
     var availabilityRows = results[2] && results[2].data ? results[2].data : [];
     var availabilityError = results[2] && results[2].error;
+
+    if (clubError && isMissingStructuredClubMapColumn(clubError)) {
+      var legacyClubResult = await client
+        .from('clubs')
+        .select(clubSelectLegacy)
+        .order('name', { ascending: true });
+      clubRows = legacyClubResult && legacyClubResult.data ? legacyClubResult.data : [];
+      clubError = legacyClubResult && legacyClubResult.error;
+    }
 
     if (clubError) throw clubError;
     if (slotError) throw slotError;

@@ -268,6 +268,11 @@
                       referrerpolicy="no-referrer-when-downgrade"
                     ></iframe>
                   </div>
+                  <input id="regPlaceId" type="hidden">
+                  <input id="regFormattedAddress" type="hidden">
+                  <input id="regLat" type="hidden">
+                  <input id="regLng" type="hidden">
+                  <input id="regMapSource" type="hidden">
                 </div>
                 <div class="form-field span-2">
                   <div>Regular Time</div>
@@ -438,6 +443,11 @@
                         referrerpolicy="no-referrer-when-downgrade"
                       ></iframe>
                     </div>
+                    <input id="clubEditPlaceId" type="hidden">
+                    <input id="clubEditFormattedAddress" type="hidden">
+                    <input id="clubEditLat" type="hidden">
+                    <input id="clubEditLng" type="hidden">
+                    <input id="clubEditMapSource" type="hidden">
                   </div>
                   <div class="form-field span-2">
                     <div>Regular Time</div>
@@ -681,6 +691,11 @@
                       referrerpolicy="no-referrer-when-downgrade"
                     ></iframe>
                   </div>
+                  <input id="coursePlaceId" type="hidden">
+                  <input id="courseFormattedAddress" type="hidden">
+                  <input id="courseLat" type="hidden">
+                  <input id="courseLng" type="hidden">
+                  <input id="courseMapSource" type="hidden">
                 </div>
                 <div class="form-field span-2">
                   <div>Regular Time</div>
@@ -861,6 +876,11 @@
                         referrerpolicy="no-referrer-when-downgrade"
                       ></iframe>
                     </div>
+                    <input id="courseEditPlaceId" type="hidden">
+                    <input id="courseEditFormattedAddress" type="hidden">
+                    <input id="courseEditLat" type="hidden">
+                    <input id="courseEditLng" type="hidden">
+                    <input id="courseEditMapSource" type="hidden">
                   </div>
                   <div class="form-field span-2">
                     <div>Regular Time</div>
@@ -1381,6 +1401,107 @@
         var text = String(query || '').trim();
         if(!text) return '';
         return 'https://www.google.com/maps?q=' + encodeURIComponent(text) + '&output=embed';
+      }
+
+      var googlePlacesApiPromise = null;
+      var googlePlacesAutocompleteRegistry = {};
+
+      function getGoogleMapsApiKey(){
+        var config = window.APP_CONFIG || {};
+        return String(config.GOOGLE_MAPS_API_KEY || config.GOOGLE_MAPS_BROWSER_KEY || '').trim();
+      }
+
+      function hasGooglePlacesApiKey(){
+        return !!getGoogleMapsApiKey();
+      }
+
+      function loadGooglePlacesLibrary(){
+        if(window.google && window.google.maps && window.google.maps.places){
+          return Promise.resolve(window.google.maps.places);
+        }
+        if(googlePlacesApiPromise){
+          return googlePlacesApiPromise;
+        }
+        var apiKey = getGoogleMapsApiKey();
+        if(!apiKey){
+          return Promise.reject(new Error('missing_google_maps_api_key'));
+        }
+
+        googlePlacesApiPromise = new Promise(function(resolve, reject){
+          var callbackName = '__clubDashboardGooglePlacesLoaded';
+          var timeout = window.setTimeout(function(){
+            delete window[callbackName];
+            googlePlacesApiPromise = null;
+            reject(new Error('google_places_load_timeout'));
+          }, 12000);
+
+          window[callbackName] = function(){
+            window.clearTimeout(timeout);
+            delete window[callbackName];
+            resolve(window.google && window.google.maps && window.google.maps.places);
+          };
+
+          var script = document.createElement('script');
+          script.src = 'https://maps.googleapis.com/maps/api/js?key=' + encodeURIComponent(apiKey) + '&libraries=places&v=weekly&callback=' + callbackName;
+          script.async = true;
+          script.defer = true;
+          script.setAttribute('data-google-places-loader', '1');
+          script.onerror = function(){
+            window.clearTimeout(timeout);
+            delete window[callbackName];
+            googlePlacesApiPromise = null;
+            reject(new Error('google_places_load_failed'));
+          };
+          document.head.appendChild(script);
+        });
+
+        return googlePlacesApiPromise;
+      }
+
+      function buildGoogleMapsPlaceUrl(meta, fallbackQuery){
+        var data = meta || {};
+        var queryText = String(fallbackQuery || data.formattedAddress || '').trim();
+        var placeId = String(data.placeId || '').trim();
+        var lat = String(data.lat || '').trim();
+        var lng = String(data.lng || '').trim();
+        if(placeId && queryText){
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(queryText) + '&query_place_id=' + encodeURIComponent(placeId);
+        }
+        if(lat && lng){
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+        }
+        return buildGoogleMapsSearchUrl(queryText);
+      }
+
+      function applyPlaceResultToMapForm(refs, place){
+        if(!refs || !place) return '';
+        var geometry = place.geometry && place.geometry.location ? place.geometry.location : null;
+        var lat = geometry && typeof geometry.lat === 'function' ? String(geometry.lat()) : '';
+        var lng = geometry && typeof geometry.lng === 'function' ? String(geometry.lng()) : '';
+        var formattedAddress = String(place.formatted_address || '').trim();
+        var displayName = String(place.name || '').trim();
+        var queryText = formattedAddress || displayName;
+        var placeId = String(place.place_id || '').trim();
+        writeStructuredMapMeta(refs, {
+          placeId: placeId,
+          formattedAddress: formattedAddress,
+          lat: lat,
+          lng: lng,
+          mapSource: placeId ? 'google_places' : ''
+        });
+        if(refs.mapSearch && queryText){
+          refs.mapSearch.value = queryText;
+        }
+        if(refs.mapLink && queryText){
+          refs.mapLink.value = buildGoogleMapsPlaceUrl({
+            placeId: placeId,
+            formattedAddress: formattedAddress,
+            lat: lat,
+            lng: lng
+          }, queryText);
+          refs.mapLink.setCustomValidity('');
+        }
+        return queryText;
       }
 
       function parseMultiValue(raw, limit){
@@ -2400,6 +2521,11 @@
           location: document.getElementById(isEdit ? 'clubEditLocation' : 'regLocation'),
           mapLink: document.getElementById(isEdit ? 'clubEditMapLink' : 'regMapLink'),
           mapSearch: document.getElementById(isEdit ? 'clubEditMapSearch' : 'regMapSearch'),
+          placeId: document.getElementById(isEdit ? 'clubEditPlaceId' : 'regPlaceId'),
+          formattedAddress: document.getElementById(isEdit ? 'clubEditFormattedAddress' : 'regFormattedAddress'),
+          lat: document.getElementById(isEdit ? 'clubEditLat' : 'regLat'),
+          lng: document.getElementById(isEdit ? 'clubEditLng' : 'regLng'),
+          mapSource: document.getElementById(isEdit ? 'clubEditMapSource' : 'regMapSource'),
           time: document.getElementById(isEdit ? 'clubEditTime' : 'regTime'),
           onlineLink: document.getElementById(isEdit ? 'clubEditOnlineLink' : 'regOnlineLink'),
           fee: document.getElementById(isEdit ? 'clubEditFee' : 'regFee'),
@@ -2413,6 +2539,37 @@
           trainingPlan: document.getElementById(isEdit ? 'clubEditTrainingPlan' : 'regTrainingPlan'),
           notes: document.getElementById(isEdit ? 'clubEditNotes' : 'regNotes')
         };
+      }
+
+      function readStructuredMapMeta(refs){
+        return {
+          placeId: refs && refs.placeId ? String(refs.placeId.value || '').trim() : '',
+          formattedAddress: refs && refs.formattedAddress ? String(refs.formattedAddress.value || '').trim() : '',
+          lat: refs && refs.lat ? String(refs.lat.value || '').trim() : '',
+          lng: refs && refs.lng ? String(refs.lng.value || '').trim() : '',
+          mapSource: refs && refs.mapSource ? String(refs.mapSource.value || '').trim() : ''
+        };
+      }
+
+      function writeStructuredMapMeta(refs, payload){
+        var data = payload || {};
+        if(refs && refs.placeId) refs.placeId.value = String(data.placeId || '').trim();
+        if(refs && refs.formattedAddress) refs.formattedAddress.value = String(data.formattedAddress || '').trim();
+        if(refs && refs.lat) refs.lat.value = String(data.lat || '').trim();
+        if(refs && refs.lng) refs.lng.value = String(data.lng || '').trim();
+        if(refs && refs.mapSource) refs.mapSource.value = String(data.mapSource || '').trim();
+      }
+
+      function markManualMapMeta(refs){
+        if(!refs) return;
+        var hasMapLink = !!normalizeUrl(refs.mapLink ? refs.mapLink.value : '');
+        writeStructuredMapMeta(refs, {
+          placeId: '',
+          formattedAddress: '',
+          lat: '',
+          lng: '',
+          mapSource: hasMapLink ? 'manual_link' : ''
+        });
       }
 
       function bindClubFeeInput(mode){
@@ -2492,12 +2649,12 @@
         var refs = getClubFormRefs(mode);
         var fromLink = extractGoogleMapsQueryFromUrl(refs.mapLink ? refs.mapLink.value : '');
         var directSearch = getClubMapSearchQuery(mode);
-        var query = String(preferredQuery || '').trim() || fromLink || directSearch;
+        var query = String(preferredQuery || '').trim() || directSearch || fromLink;
         if(!query){
           setClubMapPreview(mode, '', '');
           return;
         }
-        setClubMapPreview(mode, query, preferredMeta || (fromLink ? 'Preview based on the current Google Maps link.' : 'Preview based on your search text.'));
+        setClubMapPreview(mode, query, preferredMeta || ((String(preferredQuery || '').trim() || directSearch) ? 'Preview based on your search text.' : 'Preview based on the current Google Maps link.'));
       }
 
       function getClubMapSearchQuery(mode){
@@ -2523,6 +2680,7 @@
           refs.mapLink.value = url;
           refs.mapLink.setCustomValidity('');
         }
+        markManualMapMeta(refs);
         refreshClubMapPreview(mode, query, 'Preview based on your Google Maps search.');
         window.open(url, '_blank', 'noopener');
       }
@@ -2539,6 +2697,7 @@
           refs.mapLink.value = url;
           refs.mapLink.setCustomValidity('');
         }
+        markManualMapMeta(refs);
         refreshClubMapPreview(mode, '', 'Preview based on the current Google Maps link.');
         window.open(url, '_blank', 'noopener');
       }
@@ -2548,18 +2707,43 @@
         var isEdit = mode === 'edit';
         var searchBtn = document.getElementById(isEdit ? 'clubEditMapSearchBtn' : 'regMapSearchBtn');
         var previewBtn = document.getElementById(isEdit ? 'clubEditMapPreviewBtn' : 'regMapPreviewBtn');
+        var autocompleteKey = 'club-' + mode;
+
+        if(refs.mapSearch && hasGooglePlacesApiKey()){
+          refs.mapSearch.addEventListener('focus', function initClubPlacesAutocomplete(){
+            refs.mapSearch.removeEventListener('focus', initClubPlacesAutocomplete);
+            loadGooglePlacesLibrary().then(function(){
+              if(googlePlacesAutocompleteRegistry[autocompleteKey] || !(window.google && window.google.maps && window.google.maps.places)) return;
+              var autocomplete = new window.google.maps.places.Autocomplete(refs.mapSearch, {
+                fields: ['place_id', 'formatted_address', 'geometry', 'name']
+              });
+              googlePlacesAutocompleteRegistry[autocompleteKey] = autocomplete;
+              autocomplete.addListener('place_changed', function(){
+                var place = autocomplete.getPlace();
+                var queryText = applyPlaceResultToMapForm(refs, place);
+                if(queryText){
+                  refreshClubMapPreview(mode, queryText, 'Preview based on your selected Google Maps place.');
+                }
+              });
+            }).catch(function(){});
+          });
+        }
+
         if(refs.mapLink){
           refs.mapLink.addEventListener('input', function(){
+            markManualMapMeta(refs);
             scheduleClubMapPreview(mode, 'Preview based on the current Google Maps link.');
           });
           refs.mapLink.addEventListener('blur', function(){
             var raw = String(refs.mapLink.value || '').trim();
             if(!raw){
+              markManualMapMeta(refs);
               refreshClubMapPreview(mode, '', '');
               return;
             }
             refs.mapLink.value = normalizeUrl(raw);
             refs.mapLink.setCustomValidity('');
+            markManualMapMeta(refs);
             refreshClubMapPreview(mode, '', 'Preview based on the current Google Maps link.');
           });
         }
@@ -2592,12 +2776,18 @@
 
       function readClubFormValues(mode){
         var refs = getClubFormRefs(mode);
+        var mapMeta = readStructuredMapMeta(refs);
         return {
           name: refs.name ? refs.name.value.trim() : '',
           category: refs.category ? refs.category.value : '',
           mode: refs.mode ? refs.mode.value : '',
           location: refs.location ? refs.location.value.trim() : '',
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
+          placeId: mapMeta.placeId,
+          formattedAddress: mapMeta.formattedAddress,
+          lat: mapMeta.lat,
+          lng: mapMeta.lng,
+          mapSource: mapMeta.mapSource || (refs.mapLink && normalizeUrl(refs.mapLink.value) ? 'manual_link' : ''),
           time: refs.time ? refs.time.value.trim() : '',
           onlineLink: refs.onlineLink ? normalizeUrl(refs.onlineLink.value) : '',
           fee: refs.fee ? formatClubFeeText(refs.fee.value) : '',
@@ -2775,6 +2965,11 @@
           mode: values.mode,
           location: values.location,
           mapLink: values.mapLink,
+          placeId: values.placeId,
+          formattedAddress: values.formattedAddress,
+          lat: values.lat,
+          lng: values.lng,
+          mapSource: values.mapSource,
           onlineLink: values.onlineLink,
           time: values.time,
           weeklyTimeEntries: weeklyTimeEntries,
@@ -2882,6 +3077,11 @@
           location: document.getElementById(isEdit ? 'courseEditLocation' : 'courseLocation'),
           mapLink: document.getElementById(isEdit ? 'courseEditMapLink' : 'courseMapLink'),
           mapSearch: document.getElementById(isEdit ? 'courseEditMapSearch' : 'courseMapSearch'),
+          placeId: document.getElementById(isEdit ? 'courseEditPlaceId' : 'coursePlaceId'),
+          formattedAddress: document.getElementById(isEdit ? 'courseEditFormattedAddress' : 'courseFormattedAddress'),
+          lat: document.getElementById(isEdit ? 'courseEditLat' : 'courseLat'),
+          lng: document.getElementById(isEdit ? 'courseEditLng' : 'courseLng'),
+          mapSource: document.getElementById(isEdit ? 'courseEditMapSource' : 'courseMapSource'),
           seats: document.getElementById(isEdit ? 'courseEditSeats' : 'courseSeats'),
           fee: document.getElementById(isEdit ? 'courseEditFee' : 'courseFee'),
           coverFile: document.getElementById(isEdit ? 'courseEditCoverFile' : 'courseCoverFile'),
@@ -3096,12 +3296,12 @@
         var refs = getCourseFormRefs(mode);
         var fromLink = extractGoogleMapsQueryFromUrl(refs.mapLink ? refs.mapLink.value : '');
         var directSearch = getCourseMapSearchQuery(mode);
-        var query = String(preferredQuery || '').trim() || fromLink || directSearch;
+        var query = String(preferredQuery || '').trim() || directSearch || fromLink;
         if(!query){
           setCourseMapPreview(mode, '', '');
           return;
         }
-        setCourseMapPreview(mode, query, preferredMeta || (fromLink ? 'Preview based on the current Google Maps link.' : 'Preview based on your search text.'));
+        setCourseMapPreview(mode, query, preferredMeta || ((String(preferredQuery || '').trim() || directSearch) ? 'Preview based on your search text.' : 'Preview based on the current Google Maps link.'));
       }
 
       function scheduleCourseMapPreview(mode, preferredMeta){
@@ -3131,6 +3331,7 @@
           refs.mapLink.value = url;
           refs.mapLink.setCustomValidity('');
         }
+        markManualMapMeta(refs);
         refreshCourseMapPreview(mode, query, 'Preview based on your Google Maps search.');
         window.open(url, '_blank', 'noopener');
       }
@@ -3147,6 +3348,7 @@
           refs.mapLink.value = url;
           refs.mapLink.setCustomValidity('');
         }
+        markManualMapMeta(refs);
         refreshCourseMapPreview(mode, '', 'Preview based on the current Google Maps link.');
         window.open(url, '_blank', 'noopener');
       }
@@ -3156,18 +3358,43 @@
         var isEdit = mode === 'edit';
         var searchBtn = document.getElementById(isEdit ? 'courseEditMapSearchBtn' : 'courseMapSearchBtn');
         var previewBtn = document.getElementById(isEdit ? 'courseEditMapPreviewBtn' : 'courseMapPreviewBtn');
+        var autocompleteKey = 'course-' + mode;
+
+        if(refs.mapSearch && hasGooglePlacesApiKey()){
+          refs.mapSearch.addEventListener('focus', function initCoursePlacesAutocomplete(){
+            refs.mapSearch.removeEventListener('focus', initCoursePlacesAutocomplete);
+            loadGooglePlacesLibrary().then(function(){
+              if(googlePlacesAutocompleteRegistry[autocompleteKey] || !(window.google && window.google.maps && window.google.maps.places)) return;
+              var autocomplete = new window.google.maps.places.Autocomplete(refs.mapSearch, {
+                fields: ['place_id', 'formatted_address', 'geometry', 'name']
+              });
+              googlePlacesAutocompleteRegistry[autocompleteKey] = autocomplete;
+              autocomplete.addListener('place_changed', function(){
+                var place = autocomplete.getPlace();
+                var queryText = applyPlaceResultToMapForm(refs, place);
+                if(queryText){
+                  refreshCourseMapPreview(mode, queryText, 'Preview based on your selected Google Maps place.');
+                }
+              });
+            }).catch(function(){});
+          });
+        }
+
         if(refs.mapLink){
           refs.mapLink.addEventListener('input', function(){
+            markManualMapMeta(refs);
             scheduleCourseMapPreview(mode, 'Preview based on the current Google Maps link.');
           });
           refs.mapLink.addEventListener('blur', function(){
             var raw = String(refs.mapLink.value || '').trim();
             if(!raw){
+              markManualMapMeta(refs);
               refreshCourseMapPreview(mode, '', '');
               return;
             }
             refs.mapLink.value = normalizeUrl(raw);
             refs.mapLink.setCustomValidity('');
+            markManualMapMeta(refs);
             refreshCourseMapPreview(mode, '', 'Preview based on the current Google Maps link.');
           });
         }
@@ -3286,6 +3513,7 @@
 
       function readCourseFormValues(mode){
         var refs = getCourseFormRefs(mode);
+        var mapMeta = readStructuredMapMeta(refs);
         return {
           title: refs.title ? refs.title.value.trim() : '',
           club: refs.club ? refs.club.value : '',
@@ -3294,6 +3522,11 @@
           time: refs.time ? refs.time.value.trim() : '',
           location: refs.location ? refs.location.value.trim() : '',
           mapLink: refs.mapLink ? normalizeUrl(refs.mapLink.value) : '',
+          placeId: mapMeta.placeId,
+          formattedAddress: mapMeta.formattedAddress,
+          lat: mapMeta.lat,
+          lng: mapMeta.lng,
+          mapSource: mapMeta.mapSource || (refs.mapLink && normalizeUrl(refs.mapLink.value) ? 'manual_link' : ''),
           seats: refs.seats ? Math.max(1, Number(refs.seats.value) || 12) : 12,
           fee: refs.fee ? formatClubFeeText(refs.fee.value) : '',
           schedule: refs.schedule ? refs.schedule.value : '',
@@ -3319,6 +3552,9 @@
 
         var location = values.location;
         if(!location){
+          location = values.formattedAddress;
+        }
+        if(!location){
           location = extractGoogleMapsQueryFromUrl(values.mapLink);
         }
 
@@ -3343,6 +3579,11 @@
           schedule: scheduleList,
           location: location,
           mapLink: values.mapLink,
+          placeId: values.placeId,
+          formattedAddress: values.formattedAddress,
+          lat: values.lat,
+          lng: values.lng,
+          mapSource: values.mapSource,
           seats: values.seats,
           fee: fee,
           cover: cover,
@@ -3522,6 +3763,7 @@
         if(refs.location) refs.location.value = '';
         if(refs.mapLink) refs.mapLink.value = '';
         if(refs.mapSearch) refs.mapSearch.value = '';
+        writeStructuredMapMeta(refs, null);
         refreshClubMapPreview('edit', '', '');
         if(refs.time) refs.time.value = '';
         resetClubTimeBuilder('edit');
@@ -3557,6 +3799,13 @@
         refs.location.value = club.location || '';
         refs.mapLink.value = club.mapLink || '';
         if(refs.mapSearch) refs.mapSearch.value = club.mapLink ? extractGoogleMapsQueryFromUrl(club.mapLink) : '';
+        writeStructuredMapMeta(refs, {
+          placeId: club.placeId,
+          formattedAddress: club.formattedAddress,
+          lat: club.lat,
+          lng: club.lng,
+          mapSource: club.mapSource || (club.mapLink ? 'manual_link' : '')
+        });
         refreshClubMapPreview('edit', '', club.mapLink ? 'Preview based on the current Google Maps link.' : '');
         setClubTimeSlots('edit', club.time || '');
         refs.onlineLink.value = club.onlineLink || '';
@@ -3595,6 +3844,7 @@
         if(refs.location) refs.location.value = '';
         if(refs.mapLink) refs.mapLink.value = '';
         if(refs.mapSearch) refs.mapSearch.value = '';
+        writeStructuredMapMeta(refs, null);
         refreshCourseMapPreview('edit', '', '');
         resetCourseTimeBuilder('edit');
         if(refs.seats) refs.seats.value = '';
@@ -3630,6 +3880,13 @@
         refs.location.value = course.location || '';
         refs.mapLink.value = course.mapLink || '';
         if(refs.mapSearch) refs.mapSearch.value = course.mapLink ? extractGoogleMapsQueryFromUrl(course.mapLink) : '';
+        writeStructuredMapMeta(refs, {
+          placeId: course.placeId,
+          formattedAddress: course.formattedAddress,
+          lat: course.lat,
+          lng: course.lng,
+          mapSource: course.mapSource || (course.mapLink ? 'manual_link' : '')
+        });
         refreshCourseMapPreview('edit', '', course.mapLink ? 'Preview based on the current Google Maps link.' : '');
         setCourseTimeSlots('edit', (Array.isArray(course.schedule) && course.schedule.length) ? course.schedule : (course.time || ''));
         refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;

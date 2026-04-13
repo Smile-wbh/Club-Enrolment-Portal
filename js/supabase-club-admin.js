@@ -43,7 +43,9 @@
     '../zp/gywm.webp': true
   };
 
-  var COURSE_ADMIN_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)';
+  var CLUB_ADMIN_SELECT = 'id, slug, name, category, mode, location, map_link, place_id, formatted_address, lat, lng, map_source, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at';
+  var CLUB_ADMIN_SELECT_LEGACY = 'id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at';
+  var COURSE_ADMIN_SELECT = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, map_link, place_id, formatted_address, lat, lng, map_source, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)';
   var COURSE_ADMIN_SELECT_LEGACY = 'id, slug, club_id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, cover_url, description, lead, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, owner_id, popularity, created_at, updated_at, club:clubs(id, name, slug, category, cover_url)';
 
   function trimText(value) {
@@ -97,6 +99,13 @@
   function toNumber(value, fallback) {
     var numeric = Number(value);
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
+  }
+
+  function toOptionalNumber(value) {
+    var text = trimText(value);
+    if (!text) return null;
+    var numeric = Number(text);
+    return Number.isFinite(numeric) ? numeric : null;
   }
 
   function formatIsoDate(value) {
@@ -209,13 +218,28 @@
     }
   }
 
+  function isMissingStructuredMapColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /(place_id|formatted_address|map_source|lat|lng)/i.test(text);
+  }
+
   function isMissingCourseMapLinkColumn(error) {
     var text = trimText(error && (error.message || error.details || error.hint || error.code));
     return /map_link/i.test(text);
   }
 
-  function withoutCourseMapLink(payload) {
+  function withoutStructuredMapFields(payload) {
     var next = Object.assign({}, payload || {});
+    delete next.place_id;
+    delete next.formatted_address;
+    delete next.lat;
+    delete next.lng;
+    delete next.map_source;
+    return next;
+  }
+
+  function withoutCourseMapLink(payload) {
+    var next = withoutStructuredMapFields(payload);
     delete next.map_link;
     return next;
   }
@@ -267,6 +291,11 @@
       mode: trimText(row.mode),
       location: trimText(row.location),
       mapLink: trimText(row.map_link),
+      placeId: trimText(row.place_id),
+      formattedAddress: trimText(row.formatted_address),
+      lat: trimText(row.lat),
+      lng: trimText(row.lng),
+      mapSource: trimText(row.map_source),
       onlineLink: trimText(row.online_link),
       time: trimText(row.time_text),
       fee: formatClubFeeText(row.fee_text),
@@ -351,6 +380,11 @@
       schedule: safeSchedule,
       location: trimText(row.location),
       mapLink: trimText(row.map_link),
+      placeId: trimText(row.place_id),
+      formattedAddress: trimText(row.formatted_address),
+      lat: trimText(row.lat),
+      lng: trimText(row.lng),
+      mapSource: trimText(row.map_source),
       seats: Math.max(0, toNumber(row.seats, 0)),
       fee: trimText(row.fee_text),
       cover: sanitizeCourseCoverValue(row.cover_url) || sanitizeCourseCoverValue(club.cover_url),
@@ -380,6 +414,11 @@
       mode: trimText(source.mode),
       location: trimText(source.location),
       map_link: trimText(source.mapLink),
+      place_id: trimText(source.placeId),
+      formatted_address: trimText(source.formattedAddress),
+      lat: toOptionalNumber(source.lat),
+      lng: toOptionalNumber(source.lng),
+      map_source: trimText(source.mapSource),
       online_link: trimText(source.onlineLink),
       time_text: trimText(source.time),
       fee_text: formatClubFeeText(source.fee),
@@ -412,6 +451,11 @@
       schedule: toArray(source.schedule),
       location: trimText(source.location),
       map_link: trimText(source.mapLink),
+      place_id: trimText(source.placeId),
+      formatted_address: trimText(source.formattedAddress),
+      lat: toOptionalNumber(source.lat),
+      lng: toOptionalNumber(source.lng),
+      map_source: trimText(source.mapSource),
       seats: Math.max(0, toNumber(source.seats, 0)),
       fee_text: trimText(source.fee),
       cover_url: normalizeCoverValue(source.cover) || null,
@@ -439,9 +483,17 @@
 
     var clubResult = await client
       .from('clubs')
-      .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at')
+      .select(CLUB_ADMIN_SELECT)
       .eq('owner_id', normalizedUserId)
       .order('created_at', { ascending: false });
+
+    if (clubResult.error && isMissingStructuredMapColumn(clubResult.error)) {
+      clubResult = await client
+        .from('clubs')
+        .select(CLUB_ADMIN_SELECT_LEGACY)
+        .eq('owner_id', normalizedUserId)
+        .order('created_at', { ascending: false });
+    }
 
     if (clubResult.error) throw clubResult.error;
 
@@ -476,7 +528,7 @@
       .or('owner_id.eq.' + normalizedUserId + ',club_id.in.(' + clubIds.join(',') + ')')
       .order('created_at', { ascending: false });
 
-    if (coursesResult.error && isMissingCourseMapLinkColumn(coursesResult.error)) {
+    if (coursesResult.error && (isMissingStructuredMapColumn(coursesResult.error) || isMissingCourseMapLinkColumn(coursesResult.error))) {
       coursesResult = await client
         .from('courses')
         .select(COURSE_ADMIN_SELECT_LEGACY)
@@ -502,11 +554,19 @@
   async function createClub(payload, userId) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var clubInput = mapClubInput(payload, userId);
     var result = await client
       .from('clubs')
-      .insert(mapClubInput(payload, userId))
-      .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at')
+      .insert(clubInput)
+      .select(CLUB_ADMIN_SELECT)
       .single();
+    if (result.error && isMissingStructuredMapColumn(result.error)) {
+      result = await client
+        .from('clubs')
+        .insert(withoutStructuredMapFields(clubInput))
+        .select(CLUB_ADMIN_SELECT_LEGACY)
+        .single();
+    }
     if (result.error) throw result.error;
     await syncClubSlots(client, result.data, payload);
     return mapClubRow(result.data);
@@ -515,12 +575,21 @@
   async function updateClub(clubId, payload, userId) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
+    var clubInput = mapClubInput(payload, userId);
     var result = await client
       .from('clubs')
-      .update(mapClubInput(payload, userId))
+      .update(clubInput)
       .eq('id', trimText(clubId))
-      .select('id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, seats, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, owner_id, status, created_at, updated_at')
+      .select(CLUB_ADMIN_SELECT)
       .single();
+    if (result.error && isMissingStructuredMapColumn(result.error)) {
+      result = await client
+        .from('clubs')
+        .update(withoutStructuredMapFields(clubInput))
+        .eq('id', trimText(clubId))
+        .select(CLUB_ADMIN_SELECT_LEGACY)
+        .single();
+    }
     if (result.error) throw result.error;
     await syncClubSlots(client, result.data, payload);
     return mapClubRow(result.data);
@@ -589,7 +658,7 @@
       .select(COURSE_ADMIN_SELECT)
       .single();
 
-    if (result.error && isMissingCourseMapLinkColumn(result.error)) {
+    if (result.error && (isMissingStructuredMapColumn(result.error) || isMissingCourseMapLinkColumn(result.error))) {
       result = await client
         .from('courses')
         .insert(withoutCourseMapLink(courseInput))
@@ -613,7 +682,7 @@
       .select(COURSE_ADMIN_SELECT)
       .single();
 
-    if (result.error && isMissingCourseMapLinkColumn(result.error)) {
+    if (result.error && (isMissingStructuredMapColumn(result.error) || isMissingCourseMapLinkColumn(result.error))) {
       result = await client
         .from('courses')
         .update(withoutCourseMapLink(courseInput))

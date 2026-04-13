@@ -126,6 +126,28 @@
               </ul>
             </article>
 
+            <section class="detail-map-band" v-if="course && showCourseMapPanel">
+              <div class="detail-map-shell">
+                <iframe
+                  class="detail-map-frame"
+                  :src="courseMapEmbedUrl"
+                  loading="lazy"
+                  referrerpolicy="no-referrer-when-downgrade"
+                  allowfullscreen
+                  :title="course.title + ' Google Maps location'"></iframe>
+
+                <div class="detail-map-overlay">
+                  <span class="detail-map-eyebrow">Google Maps</span>
+                  <strong>{{ course.location || courseMapQueryText || course.title }}</strong>
+                  <span>{{ courseMapOverlayText }}</span>
+                </div>
+
+                <a class="detail-map-action" :href="courseMapOpenUrl" target="_blank" rel="noopener">
+                  Open in Google Maps
+                </a>
+              </div>
+            </section>
+
             <section class="detail-related-section" v-if="relatedCourses.length">
               <h2>Recommended Courses</h2>
 
@@ -347,6 +369,8 @@
         bookingModalSchedule: '',
         sessionUserId: '',
         useSupabaseCourses: false,
+        resolvedCourseMapLink: '',
+        courseMapResolvePending: false,
         coursesSupabase: [],
         favoriteIdsSupabase: [],
         courseSyncError: '',
@@ -491,6 +515,63 @@
         if (byId) return byId;
         return this.coursesPool.find((item) => String(item && item.slug) === targetId) || null;
       },
+      activeCourseMapLink() {
+        if (this.resolvedCourseMapLink) return this.resolvedCourseMapLink;
+        return this.courseMapSourceLink;
+      },
+      coursePlaceMeta() {
+        if (!this.course) return {};
+        return {
+          placeId: String(this.course.placeId || this.course.place_id || '').trim(),
+          formattedAddress: String(this.course.formattedAddress || this.course.formatted_address || '').trim(),
+          lat: String(this.course.lat || '').trim(),
+          lng: String(this.course.lng || '').trim()
+        };
+      },
+      courseMapSourceLink() {
+        if (!this.course) return '';
+        return String(this.course.mapLink || '').trim();
+      },
+      courseDisplayLocation() {
+        if (!this.course) return '';
+        return String(this.course.location || '').trim();
+      },
+      courseMapQueryText() {
+        const text = this.cleanMapQueryText(this.coursePlaceMeta.formattedAddress || this.courseDisplayLocation);
+        return text;
+      },
+      hasPhysicalCourseVenue() {
+        if (!this.course) return false;
+        const mode = String(this.course.mode || '').trim().toLowerCase();
+        if (mode === 'online') return false;
+        return !!(this.courseMapEmbedUrl || this.courseMapOpenUrl !== '#');
+      },
+      courseMapEmbedUrl() {
+        if (!this.course) return '';
+        const embedFromMeta = this.buildMapEmbedFromMeta(this.coursePlaceMeta);
+        if (embedFromMeta) return embedFromMeta;
+        const embedFromLink = this.buildMapEmbedFromLink(this.activeCourseMapLink);
+        if (embedFromLink) return embedFromLink;
+        return '';
+      },
+      courseMapOpenUrl() {
+        if (!this.course) return '#';
+        const openFromMeta = this.buildMapOpenFromMeta(this.coursePlaceMeta);
+        if (openFromMeta) return openFromMeta;
+        if (!this.courseMapSourceLink) return '#';
+        if (this.resolvedCourseMapLink) return this.toExternalUrl(this.resolvedCourseMapLink);
+        return this.toExternalUrl(this.courseMapSourceLink);
+      },
+      courseMapOverlayText() {
+        if (!this.course) return '';
+        const schedule = String(this.activeSchedule || this.course.time || '').trim();
+        const mode = String(this.course.mode || this.course.clubMode || '').trim();
+        if (schedule && mode) return mode + ' · ' + schedule;
+        return schedule || mode || 'Check the map before you arrive';
+      },
+      showCourseMapPanel() {
+        return !!(this.course && this.hasPhysicalCourseVenue && this.courseMapEmbedUrl);
+      },
       coachInfo() {
         return this.coachByClub(this.course);
       },
@@ -524,6 +605,7 @@
     watch: {
       course() {
         this.syncSelectedSchedule();
+        this.resolveCourseMapLinkForEmbed();
         if (this.course && this.course.title) {
           document.title = this.course.title + ' - Course Details';
         }
@@ -533,6 +615,7 @@
       this.readCourseIdFromUrl();
       await this.syncSupabaseCourseData();
       this.syncSelectedSchedule();
+      await this.resolveCourseMapLinkForEmbed();
       window.addEventListener('storage', this.onStorageChange);
       window.addEventListener('pageshow', this.refreshLocalState);
       document.addEventListener('visibilitychange', this.onVisibilityChange);
@@ -642,7 +725,20 @@
           detail: detail,
           time: primaryTime,
           schedule: safeSchedule,
-          location: String(course.location || '').trim(),
+          location: String(course.location || course.clubLocation || '').trim(),
+          mapLink: String(course.mapLink || course.map_link || '').trim(),
+          placeId: String(course.placeId || course.place_id || '').trim(),
+          formattedAddress: String(course.formattedAddress || course.formatted_address || '').trim(),
+          lat: String(course.lat || '').trim(),
+          lng: String(course.lng || '').trim(),
+          mapSource: String(course.mapSource || course.map_source || '').trim(),
+          clubMapLink: String(course.clubMapLink || '').trim(),
+          clubPlaceId: String(course.clubPlaceId || course.club_place_id || '').trim(),
+          clubFormattedAddress: String(course.clubFormattedAddress || course.club_formatted_address || '').trim(),
+          clubLat: String(course.clubLat || '').trim(),
+          clubLng: String(course.clubLng || '').trim(),
+          clubLocation: String(course.clubLocation || '').trim(),
+          clubMode: String(course.clubMode || '').trim(),
           fee: String(course.fee || '').trim(),
           seats: remainingSeats,
           seatCapacity: totalCapacity,
@@ -838,6 +934,118 @@
         const clubCover = this.resolveClubCover(slug, LEGACY_GENERIC_COVER_SET[rawClubCover] ? '' : rawClubCover);
         if (clubCover) return clubCover;
         return this.resolveClubCover(slug, '');
+      },
+      toExternalUrl(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '#';
+        if (/^https?:\/\//i.test(raw)) return raw;
+        return 'https://' + raw;
+      },
+      cleanMapQueryText(value) {
+        return String(value || '')
+          .replace(/\((?:in-person|online|virtual)\)/ig, '')
+          .replace(/\s+/g, ' ')
+          .trim();
+      },
+      buildMapEmbedFromMeta(meta) {
+        const data = meta || {};
+        const lat = String(data.lat || '').trim();
+        const lng = String(data.lng || '').trim();
+        const formattedAddress = String(data.formattedAddress || '').trim();
+        if (lat && lng) {
+          return 'https://www.google.com/maps?q=' + encodeURIComponent(lat + ',' + lng) + '&z=16&output=embed';
+        }
+        if (formattedAddress) {
+          return 'https://www.google.com/maps?q=' + encodeURIComponent(formattedAddress) + '&z=16&output=embed';
+        }
+        return '';
+      },
+      buildMapOpenFromMeta(meta) {
+        const data = meta || {};
+        const placeId = String(data.placeId || '').trim();
+        const lat = String(data.lat || '').trim();
+        const lng = String(data.lng || '').trim();
+        const formattedAddress = String(data.formattedAddress || '').trim();
+        if (placeId && formattedAddress) {
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress) + '&query_place_id=' + encodeURIComponent(placeId);
+        }
+        if (lat && lng) {
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
+        }
+        if (formattedAddress) {
+          return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress);
+        }
+        return '';
+      },
+      async resolveCourseMapLinkForEmbed() {
+        this.resolvedCourseMapLink = '';
+        if (!this.course || !this.courseMapSourceLink) return;
+        this.courseMapResolvePending = true;
+        const raw = this.toExternalUrl(this.courseMapSourceLink);
+        try {
+          const parsed = new URL(raw);
+          if (parsed.hostname && parsed.hostname.toLowerCase() === 'maps.app.goo.gl') {
+            const resolver = await fetch('/api/resolve-map?url=' + encodeURIComponent(raw), {
+              method: 'GET',
+              cache: 'no-store'
+            });
+            if (resolver.ok) {
+              const payload = await resolver.json();
+              const finalUrl = String(payload && payload.finalUrl || '').trim();
+              this.resolvedCourseMapLink = finalUrl || raw;
+              this.courseMapResolvePending = false;
+              return;
+            }
+          }
+        } catch (error) {}
+        try {
+          const response = await fetch(raw, {
+            method: 'GET',
+            mode: 'no-cors',
+            redirect: 'follow',
+            cache: 'no-store'
+          });
+          const finalUrl = String(response && response.url || '').trim();
+          this.resolvedCourseMapLink = finalUrl || raw;
+        } catch (error) {
+          this.resolvedCourseMapLink = raw;
+        } finally {
+          this.courseMapResolvePending = false;
+        }
+      },
+      buildMapEmbedFromLink(value) {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        try {
+          const normalized = this.toExternalUrl(raw);
+          const url = new URL(normalized);
+          const href = decodeURIComponent(normalized);
+          const directQuery = url.searchParams.get('q')
+            || url.searchParams.get('query')
+            || url.searchParams.get('destination')
+            || url.searchParams.get('daddr');
+          if (directQuery) {
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(directQuery.trim()) + '&z=16&output=embed';
+          }
+
+          const center = url.searchParams.get('center') || url.searchParams.get('ll');
+          if (center) {
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(center.trim()) + '&z=16&output=embed';
+          }
+
+          const atMatch = href.match(/@(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)/);
+          if (atMatch) {
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(atMatch[1] + ',' + atMatch[2]) + '&z=16&output=embed';
+          }
+
+          const placeMatch = decodeURIComponent(url.pathname || '').match(/\/place\/([^/]+)/);
+          if (placeMatch && placeMatch[1]) {
+            return 'https://www.google.com/maps?q=' + encodeURIComponent(placeMatch[1].replace(/\+/g, ' ').trim()) + '&z=16&output=embed';
+          }
+        } catch (error) {
+          return '';
+        }
+        return '';
       },
       favKey() {
         const email = this.getSessionEmail();
