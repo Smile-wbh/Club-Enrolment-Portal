@@ -432,7 +432,31 @@
           createdTs: Date.now(),
           attachments: this.consultAttachments.slice()
         };
-        this.consultMessages.push(msg);
+        let localAutoReplyText = 'We have received your message. To help us handle it more quickly, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. We will assist you as soon as possible.';
+        if(service && typeof service.resolveSupportAutoReply === 'function'){
+          try{
+            const resolvedReply = await service.resolveSupportAutoReply({
+              text: text,
+              attachments: this.consultAttachments.slice(),
+              category: 'General',
+              currentUserId: this.sessionUserId,
+              currentEmail: this.sessionEmail,
+              currentName: this.sessionNickname || this.sessionEmail
+            });
+            localAutoReplyText = String(resolvedReply && resolvedReply.text || localAutoReplyText).trim() || localAutoReplyText;
+          }catch(e){}
+        }
+        const reply = {
+          id: String(Date.now()) + Math.random().toString(36).slice(2,6) + '-support',
+          role: 'admin',
+          text: localAutoReplyText,
+          userId: this.consultUserId,
+          userEmail: this.sessionEmail,
+          createdAt: new Date().toLocaleString(),
+          createdTs: Date.now() + 1,
+          attachments: []
+        };
+        this.consultMessages.push(msg, reply);
         this.saveConsultMessages();
         this.consultInput = '';
         this.consultAttachments = [];
