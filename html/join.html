@@ -1908,6 +1908,33 @@
         try{ localStorage.removeItem('user_session_v1'); }catch(e){}
         try{ sessionStorage.removeItem('user_session_v1'); }catch(e){}
       },
+      rememberedLoginEmailKey(){
+        return 'remembered_login_email_v1';
+      },
+      readRememberedLoginEmail(){
+        try{
+          return this.normalizeEmail(localStorage.getItem(this.rememberedLoginEmailKey()) || '');
+        }catch(e){
+          return '';
+        }
+      },
+      persistRememberedLoginEmail(email){
+        const normalized = this.normalizeEmail(email);
+        try{
+          if(normalized){
+            localStorage.setItem(this.rememberedLoginEmailKey(), normalized);
+          }else{
+            localStorage.removeItem(this.rememberedLoginEmailKey());
+          }
+        }catch(e){}
+      },
+      syncRememberedLoginEmail(email){
+        if(this.remember){
+          this.persistRememberedLoginEmail(email || this.login.email);
+          return;
+        }
+        this.persistRememberedLoginEmail('');
+      },
       clearSupabaseBrowserSession(){
         const clearStore = (store) => {
           if(!store) return;
@@ -2446,6 +2473,11 @@
         const compat = this.readCompatSession();
         if(!compat){
           this.applyResolvedUser(null);
+          const rememberedEmail = this.readRememberedLoginEmail();
+          if(rememberedEmail){
+            this.remember = true;
+            this.login.email = rememberedEmail;
+          }
           return;
         }
         const legacy = this.findLegacyUserByEmail(compat.email);
@@ -3345,8 +3377,8 @@
           this.loginStatus = '';
 
           if(this.hasSupabaseConfigured()){
-            await this.doLoginWithSupabase();
-            if(!this.loginStatus){
+            const autoLoginSucceeded = await this.autoLoginAfterSignup(email, password);
+            if(autoLoginSucceeded){
               return;
             }
           }
@@ -3385,6 +3417,7 @@
             this.loginStatus = 'Logged in, but the profile could not be loaded.'; return;
           }
           this.seedLegacyUserRecord(resolved);
+          this.syncRememberedLoginEmail(loginEmail);
           this.loginStatus = '';
           if(resolved.isClubManager){
             const prefs = this.getUserSecurityPrefs(resolved.email) || {};
@@ -3403,6 +3436,65 @@
           this.loginStatus = 'Unable to log in right now.';
         }
       },
+      wait(ms){
+        return new Promise(resolve => window.setTimeout(resolve, Math.max(0, Number(ms) || 0)));
+      },
+      async autoLoginAfterSignup(email, password){
+        const loginEmail = this.resolveLoginEmailInput(email);
+        const supabase = this.getSupabaseClientSafe();
+        if(!loginEmail || !supabase){
+          return false;
+        }
+        const maxAttempts = 4;
+        for(let attempt = 0; attempt < maxAttempts; attempt += 1){
+          try{
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email: loginEmail,
+              password
+            });
+            if(error){
+              if(attempt < maxAttempts - 1){
+                await this.wait(700);
+                continue;
+              }
+              this.loginStatus = this.mapAuthErrorMessage(error, 'Unable to log in right now.');
+              return false;
+            }
+            const resolved = await this.resolveSupabaseUser((data && data.user) || (data && data.session && data.session.user));
+            if(!resolved){
+              if(attempt < maxAttempts - 1){
+                await this.wait(700);
+                continue;
+              }
+              this.loginStatus = 'Logged in, but the profile could not be loaded.';
+              return false;
+            }
+            this.seedLegacyUserRecord(resolved);
+            this.syncRememberedLoginEmail(loginEmail);
+            this.loginStatus = '';
+            if(resolved.isClubManager){
+              const prefs = this.getUserSecurityPrefs(resolved.email) || {};
+              const alwaysAskSystem = prefs.alwaysAskSystem !== false;
+              const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
+              if(alwaysAskSystem){
+                this.loginCandidate = resolved;
+                this.showSystemPicker = true;
+              }else{
+                this.enterSelectedSystem(preferredEntrySystem, resolved);
+              }
+            }else{
+              this.enterSelectedSystem('user', resolved);
+            }
+            return true;
+          }catch(e){
+            if(attempt < maxAttempts - 1){
+              await this.wait(700);
+              continue;
+            }
+          }
+        }
+        return false;
+      },
       doLoginLegacy(){
         this.showSystemPicker = false;
         this.loginCandidate = null;
@@ -3414,6 +3506,7 @@
           const users = this.loadAuth();
           const found = users.find(u => (u.email===normalizedEmail || u.nickname===input) && u.password===this.login.password);
           if(found){
+            this.syncRememberedLoginEmail(found.email);
             this.loginStatus = '';
             if(found.isClubManager){
               const prefs = this.getUserSecurityPrefs(found.email) || {};
@@ -3459,6 +3552,7 @@
         location.href = 'join.html?tab=home';
       },
       async logout(){
+        const rememberedEmail = this.readRememberedLoginEmail();
         const supabase = this.getSupabaseClientSafe();
         if(supabase && supabase.auth && typeof supabase.auth.signOut === 'function'){
           try{
@@ -3468,6 +3562,10 @@
         this.applyResolvedUser(null);
         this.clearCompatSession();
         this.clearSupabaseBrowserSession();
+        this.authView = 'login';
+        this.login.password = '';
+        this.loginStatus = '';
+        this.login.email = rememberedEmail || '';
         location.reload();
       },
       openSignup(){
