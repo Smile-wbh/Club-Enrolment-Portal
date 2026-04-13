@@ -89,6 +89,7 @@
                 <button class="group-manage-btn" @click="openGroupManage">Manage</button>
               </div>
               <ul class="side-nav" style="margin-top:8px;">
+                <li v-if="!customGroups.length" class="side-nav-empty">No custom groups yet</li>
                 <li v-for="g in customGroups" :key="g" :class="{ active: isForumFeedActive('group', g) }">
                   <a href="spjs.html" @click.prevent="setForumFeed('group', g)">{{ g }}</a>
                 </li>
@@ -284,17 +285,20 @@
                                     </template>
                                     <template v-else>
                                       <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
-                                      <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
-                                      <template v-if="isAuthorFollowed(p) && customGroups.length">
+                                    <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
+                                    <template v-if="isAuthorFollowed(p)">
+                                      <div class="post-menu-group-head">
                                         <button class="post-menu-item group-toggle" :class="{ active: isPostGroupMenuOpen(p) }" type="button" @click.stop="togglePostGroupMenu(p)">
                                           <span>Custom Groups</span>
                                           <span class="menu-caret" :class="{ open: isPostGroupMenuOpen(p) }"></span>
                                         </button>
-                                        <div class="post-menu-group-panel" v-if="isPostGroupMenuOpen(p)">
-                                          <button class="post-menu-item" v-for="g in customGroups" :key="'post-group-' + p.id + '-' + g" :class="{ active: authorGroupForTarget(p) === g }" type="button" @click.stop="assignAuthorToGroup(p, g)">{{ g }}</button>
-                                          <button class="post-menu-item" v-if="authorGroupForTarget(p)" type="button" @click.stop="clearAuthorGroup(p)">Ungroup</button>
-                                        </div>
-                                      </template>
+                                      </div>
+                                      <div class="post-menu-group-panel" v-if="isPostGroupMenuOpen(p)">
+                                        <button class="post-menu-item add-group-inline" type="button" @click.stop="openGroupManageQuick">+ Add Custom Group</button>
+                                        <button class="post-menu-item" v-for="g in customGroups" :key="'post-group-' + p.id + '-' + g" :class="{ active: authorGroupForTarget(p) === g }" type="button" @click.stop="assignAuthorToGroup(p, g)">{{ g }}</button>
+                                        <button class="post-menu-item" v-if="authorGroupForTarget(p)" type="button" @click.stop="clearAuthorGroup(p)">Ungroup</button>
+                                      </div>
+                                    </template>
                                       <button class="post-menu-item" type="button" @click.stop="hideAuthorForToday(p)">Hide This User Today</button>
                                       <button class="post-menu-item" type="button" @click.stop="blockAuthorFromPost(p)">Block This User</button>
                                       <button class="post-menu-item danger" type="button" @click.stop="reportAuthorFromPost(p)">Report</button>
@@ -535,16 +539,17 @@
                         <div class="profile-follow-menu" v-if="isFollowingProfile && followMenuOpen">
                           <button class="profile-follow-menu-item" type="button" @click="shareCurrentProfile">Share</button>
                           <button class="profile-follow-menu-item" :class="{ active: true }" type="button" @click="openUnfollowConfirm(profileUserName)">Following</button>
-                          <template v-if="customGroups.length">
+                          <div class="profile-follow-menu-group-head">
                             <button class="profile-follow-menu-item group-toggle" :class="{ active: profileGroupMenuOpen }" type="button" @click="toggleProfileGroupMenu">
                               <span>Custom Groups</span>
                               <span class="menu-caret" :class="{ open: profileGroupMenuOpen }"></span>
                             </button>
-                            <div class="profile-follow-menu-group-panel" v-if="profileGroupMenuOpen">
-                              <button class="profile-follow-menu-item" v-for="g in customGroups" :key="'profile-group-' + g" :class="{ active: authorGroupForTarget(profileUserName) === g }" type="button" @click="assignAuthorToGroup(profileUserName, g)">{{ g }}</button>
-                              <button class="profile-follow-menu-item" v-if="authorGroupForTarget(profileUserName)" type="button" @click="clearAuthorGroup(profileUserName)">Ungroup</button>
-                            </div>
-                          </template>
+                          </div>
+                          <div class="profile-follow-menu-group-panel" v-if="profileGroupMenuOpen">
+                            <button class="profile-follow-menu-item add-group-inline" type="button" @click="openGroupManageQuick">+ Add Custom Group</button>
+                            <button class="profile-follow-menu-item" v-for="g in customGroups" :key="'profile-group-' + g" :class="{ active: authorGroupForTarget(profileUserName) === g }" type="button" @click="assignAuthorToGroup(profileUserName, g)">{{ g }}</button>
+                            <button class="profile-follow-menu-item" v-if="authorGroupForTarget(profileUserName)" type="button" @click="clearAuthorGroup(profileUserName)">Ungroup</button>
+                          </div>
                           <button class="profile-follow-menu-item" type="button" @click="hideAuthorForToday(profileUserName)">Hide This User Today</button>
                           <button class="profile-follow-menu-item" type="button" @click="blockAuthorFromPost(profileUserName)">Block This User</button>
                           <button class="profile-follow-menu-item danger" type="button" @click="reportAuthorFromPost(profileUserName)">Report</button>
@@ -638,12 +643,15 @@
                                   <template v-else>
                                     <button class="post-menu-item" type="button" @click.stop="handlePostShare(p)">Share</button>
                                     <button class="post-menu-item" :class="{ active: isAuthorFollowed(p) }" type="button" @click.stop="followAuthorFromPost(p)">{{ isAuthorFollowed(p) ? 'Following' : 'Follow' }}</button>
-                                    <template v-if="isAuthorFollowed(p) && customGroups.length">
-                                      <button class="post-menu-item group-toggle" :class="{ active: isPostGroupMenuOpen(p) }" type="button" @click.stop="togglePostGroupMenu(p)">
-                                        <span>Custom Groups</span>
-                                        <span class="menu-caret" :class="{ open: isPostGroupMenuOpen(p) }"></span>
-                                      </button>
+                                    <template v-if="isAuthorFollowed(p)">
+                                      <div class="post-menu-group-head">
+                                        <button class="post-menu-item group-toggle" :class="{ active: isPostGroupMenuOpen(p) }" type="button" @click.stop="togglePostGroupMenu(p)">
+                                          <span>Custom Groups</span>
+                                          <span class="menu-caret" :class="{ open: isPostGroupMenuOpen(p) }"></span>
+                                        </button>
+                                      </div>
                                       <div class="post-menu-group-panel" v-if="isPostGroupMenuOpen(p)">
+                                        <button class="post-menu-item add-group-inline" type="button" @click.stop="openGroupManageQuick">+ Add Custom Group</button>
                                         <button class="post-menu-item" v-for="g in customGroups" :key="'profile-post-group-' + p.id + '-' + g" :class="{ active: authorGroupForTarget(p) === g }" type="button" @click.stop="assignAuthorToGroup(p, g)">{{ g }}</button>
                                         <button class="post-menu-item" v-if="authorGroupForTarget(p)" type="button" @click.stop="clearAuthorGroup(p)">Ungroup</button>
                                       </div>
@@ -899,7 +907,7 @@
     <div class="modal">
       <div class="modal-head">
         <h3>Manage Custom Groups</h3>
-        <div class="close-x" @click="closeGroupManage">Close</div>
+        <button class="close-x group-modal-close" type="button" @click="closeGroupManage">Close</button>
       </div>
       <div class="modal-body">
         <div class="group-modal-desc">Click a group to edit its name, remove it, or add a new one.</div>
@@ -909,8 +917,8 @@
             <button class="group-chip-close" @click="removeGroup(idx)">×</button>
           </div>
           <div class="group-chip add">
-            <input class="group-chip-input" type="text" v-model.trim="newGroupName" placeholder="New Group">
-            <button class="group-chip-add" @click="addGroup">＋</button>
+            <input class="group-chip-input group-chip-input-add" type="text" v-model.trim="newGroupName" placeholder="New Group (press Enter)" @keydown.enter.prevent="addGroup">
+            <button class="btn primary small group-chip-confirm" type="button" @click="addGroup">Add</button>
           </div>
         </div>
       </div>
@@ -1084,7 +1092,7 @@
         profileSummaryRequestId:0,
         forumFeedMode:'all',
         activeCustomGroup:'',
-        customGroups:['Colleagues','Classmates'],
+        customGroups:[],
         groupEditBaseline:[],
         newGroupName:'',
         followedAuthors:[],
@@ -1123,6 +1131,7 @@
         return !!this.isFollowingProfile && !!this.hoveredProfileFollow;
       },
       profileFollowButtonText(){
+        if(!this.isAuthed) return 'Log in to Follow';
         if(!this.isFollowingProfile) return 'Follow';
         return 'Following';
       },
@@ -1545,10 +1554,10 @@
           try{
             const raw = localStorage.getItem(this.customGroupsKey());
             const parsed = raw ? JSON.parse(raw) : [];
-            const next = this.sanitizeCustomGroups(Array.isArray(parsed) && parsed.length ? parsed : this.customGroups);
-            this.customGroups = next.length ? next : ['Colleagues','Classmates'];
+            const next = this.sanitizeCustomGroups(Array.isArray(parsed) ? parsed : []);
+            this.customGroups = next;
           }catch(e){
-            this.customGroups = this.sanitizeCustomGroups(this.customGroups);
+            this.customGroups = [];
           }
           this.groupEditBaseline = this.customGroups.slice();
         },
@@ -1739,6 +1748,7 @@
         return !!id && this.isAuthorFollowed(post) && this.hoveredPostFollowId === id;
       },
       postFollowButtonText(post){
+        if(!this.isAuthed && post && !this.isMyPost(post)) return 'Log in to Follow';
         if(!this.isAuthorFollowed(post)) return 'Follow';
         return this.isPostFollowUnfollowIntent(post) ? 'Unfollow' : 'Following';
       },
@@ -1786,6 +1796,7 @@
         this.closePostMenu();
       },
       async togglePinPost(post){
+        if(!this.requireForumAuth('manage your posts')) return;
         if(!this.isMyPost(post)) return;
         const nextPinned = !post.pinned;
         if(post.source === 'supabase' && this.hasSupabaseForum()){
@@ -1804,6 +1815,7 @@
         this.closePostMenu();
       },
       async setPostVisibility(post, visibility){
+        if(!this.requireForumAuth('manage your posts')) return;
         if(!this.isMyPost(post)) return;
         const current = String(post.visibility || 'public').trim() || 'public';
         const nextVisibility = current === visibility ? 'public' : visibility;
@@ -1854,6 +1866,7 @@
       },
       handlePostFollowClick(post){
         if(!post || this.isMyPost(post)) return;
+        if(!this.requireForumAuth('follow forum users')) return;
         if(!this.isAuthorFollowed(post)){
           this.followAuthorFromPost(post);
           return;
@@ -1863,6 +1876,7 @@
       followAuthorFromPost(post){
         const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
+        if(!this.requireForumAuth('follow forum users')) return;
         this.ensureAuthorFollowed(name);
         this.hoveredPostFollowId = null;
       },
@@ -1878,6 +1892,7 @@
       hideAuthorForToday(post){
         const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
+        if(!this.requireForumAuth('manage your forum feed')) return;
         this.followMenuOpen = false;
         this.closePostFollowMenu();
         if(!this.hiddenTodayAuthors.includes(name)){
@@ -1892,6 +1907,7 @@
       blockAuthorFromPost(post){
         const name = this.normalizeAuthorTarget(post);
         if(!name || this.isMyPost(post)) return;
+        if(!this.requireForumAuth('manage your forum feed')) return;
         this.followMenuOpen = false;
         this.closePostFollowMenu();
         if(!this.blockedAuthors.includes(name)){
@@ -1906,16 +1922,14 @@
       },
       reportAuthorFromPost(post){
         if(!post) return;
+        if(!this.requireForumAuth('report forum content')) return;
         this.followMenuOpen = false;
         this.closePostMenu();
         alert('Report submitted.');
       },
       async deletePost(post){
         if(!post) return;
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('manage your posts')) return;
         if(!this.canDeletePost(post)) return;
         const postId = this.normalizeId(post.id);
         if(!postId) return;
@@ -2407,6 +2421,7 @@
         if(groupChanged) this.saveFollowGroupState();
       },
       assignAuthorToGroup(target, groupName){
+        if(!this.requireForumAuth('manage custom groups')) return;
         const name = this.ensureAuthorFollowed(target);
         const group = this.normalizeGroupName(groupName);
         if(!name || !group || !this.customGroups.includes(group)) return;
@@ -2418,6 +2433,7 @@
         this.closePostMenu();
       },
       clearAuthorGroup(target){
+        if(!this.requireForumAuth('manage custom groups')) return;
         const name = this.normalizeAuthorTarget(target);
         if(!name || !this.followedAuthorGroups || !this.followedAuthorGroups[name]) return;
         const nextMap = Object.assign({}, this.followedAuthorGroups);
@@ -2430,6 +2446,7 @@
       handleFollowClick(){
         const name = String(this.profileUserName || '').trim();
         if(!name) return;
+        if(!this.requireForumAuth('follow forum users')) return;
         this.moreMenuOpen = false;
         if(!this.isFollowingProfile){
           this.ensureAuthorFollowed(name);
@@ -2459,6 +2476,7 @@
         this.moreMenuOpen = !this.moreMenuOpen;
       },
       notifyMoreAction(text){
+        if(!this.requireForumAuth('use profile actions')) return;
         this.moreMenuOpen = false;
         alert(text);
       },
@@ -2510,6 +2528,24 @@
       },
       goLogin(){
         location.href = 'join.html';
+      },
+      requireForumAuth(actionText='use the forum features'){
+        if(this.isAuthed) return true;
+        const message = 'You can browse Club Forum without logging in. Please log in to ' + actionText + '.';
+        if(window.portalConfirm){
+          window.portalConfirm(message, {
+            title:'Login Required',
+            confirmText:'Go to Login',
+            cancelText:'Stay Here'
+          }).then((confirmed)=>{
+            if(confirmed) this.goLogin();
+          });
+        }else if(window.portalDialogs && typeof window.portalDialogs.nativeConfirm === 'function'){
+          if(window.portalDialogs.nativeConfirm(message)) this.goLogin();
+        }else{
+          this.goLogin();
+        }
+        return false;
       },
       now(){
         return new Date().toLocaleString();
@@ -2829,6 +2865,7 @@
       },
       async likePost(p){
         if(!p) return;
+        if(!this.requireForumAuth('like posts')) return;
         this.closePostMenu();
         if(p.source === 'supabase' && this.hasSupabaseForum()){
           try{
@@ -2877,10 +2914,7 @@
         const activeId = this.normalizeId(this.activeCommentPostId);
         const post = this.posts.find(p=>this.normalizeId(p && p.id) === activeId) || null;
         if(!post) return;
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('comment on posts')) return;
         let text = String(this.inlineCommentText || '').trim();
         if(!text && !this.inlineCommentImageUrl){
           alert('Please enter a comment or upload an image.');
@@ -2918,6 +2952,7 @@
       },
       async likeInlineComment(comment){
         if(!comment) return;
+        if(!this.requireForumAuth('like comments')) return;
         if(comment.source === 'supabase' && this.hasSupabaseForum()){
           try{
             comment.likes = await this.getForumService().likeComment(comment.id);
@@ -2933,6 +2968,7 @@
       },
       openReplyModal(post, comment){
         if(!post || !comment) return;
+        if(!this.requireForumAuth('reply to comments')) return;
         this.replyTargetPostId = this.normalizeId(post.id) || null;
         this.replyTargetCommentId = this.normalizeId(comment.id) || null;
         this.replyTargetAuthor = this.displayNameForEntity(comment);
@@ -2964,10 +3000,7 @@
         const targetPostId = this.normalizeId(this.replyTargetPostId);
         const post = this.posts.find(p=>this.normalizeId(p && p.id) === targetPostId) || null;
         if(!post) return;
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('reply to comments')) return;
         let text = String(this.replyModalText || '').trim();
         if(!text && !this.replyModalImageUrl){
           alert('Please enter a reply or upload an image.');
@@ -3005,10 +3038,7 @@
       },
       deleteComment(post, comment){
         if(!post || !comment) return;
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('manage your comments')) return;
         if(!this.canDeleteComment(comment)) return;
         this.deleteTargetPostId = this.normalizeId(post.id) || null;
         this.deleteTargetCommentId = this.normalizeId(comment.id) || null;
@@ -3020,10 +3050,7 @@
         this.deleteTargetCommentId = null;
       },
       async confirmDeleteComment(){
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('manage your comments')) return;
         const targetPostId = this.normalizeId(this.deleteTargetPostId);
         const post = this.posts.find(p=>this.normalizeId(p && p.id) === targetPostId) || null;
         if(!post){
@@ -3144,10 +3171,7 @@
         this.openPost(this.profileLatestPost.id);
       },
       async openProfileMessage(){
-        if(!this.isAuthed){
-          alert('Please log in before leaving a message.');
-          return;
-        }
+        if(!this.requireForumAuth('send messages')) return;
         const targetId = this.normalizeId(this.profileMessageTargetId || '');
         const targetName = String(this.profileMessageTargetName || '').trim();
         const targetEmail = String(this.profileMessageTargetEmail || '').trim();
@@ -3226,10 +3250,7 @@
         }
       },
       async publishPost(){
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('publish posts')) return;
         const content = String(this.newPost.content || '').trim();
         const imageUrls = Array.isArray(this.newPost.imageUrls) ? this.newPost.imageUrls.slice() : [];
         const videoUrl = String(this.newPost.videoUploadUrl || '').trim();
@@ -3302,6 +3323,14 @@
         };
       },
       openGroupManage(){
+        if(!this.requireForumAuth('manage custom groups')) return;
+        this.groupEditBaseline = this.customGroups.slice();
+        this.showGroupManage = true;
+      },
+      openGroupManageQuick(){
+        if(!this.requireForumAuth('manage custom groups')) return;
+        this.closeProfileFollowMenu();
+        this.closePostMenu();
         this.groupEditBaseline = this.customGroups.slice();
         this.showGroupManage = true;
       },
@@ -3327,7 +3356,7 @@
             nextFollowMap[author] = group;
           }
         });
-        this.customGroups = nextGroups.length ? nextGroups : ['Colleagues','Classmates'];
+        this.customGroups = nextGroups;
         this.followedAuthorGroups = nextFollowMap;
         if(this.forumFeedMode === 'group' && !this.customGroups.includes(this.activeCustomGroup)){
           this.forumFeedMode = 'all';
@@ -3340,6 +3369,7 @@
         this.newGroupName = '';
       },
       addGroup(){
+        if(!this.requireForumAuth('manage custom groups')) return;
         const name = String(this.newGroupName || '').trim();
         if(!name) return;
         if(this.customGroups.includes(name)) return;
@@ -3348,6 +3378,7 @@
         this.newGroupName = '';
       },
       removeGroup(idx){
+        if(!this.requireForumAuth('manage custom groups')) return;
         this.customGroups.splice(idx, 1);
       },
       parseTime(value){
@@ -3711,15 +3742,13 @@
 
       likeCurrent(){
         if(!this.current) return;
+        if(!this.requireForumAuth('like posts')) return;
         this.likePost(this.current);
       },
 
       async addComment(){
         if(!this.current) return;
-        if(!this.isAuthed){
-          this.goLogin();
-          return;
-        }
+        if(!this.requireForumAuth('comment on posts')) return;
         const author = (this.comment.author || '').trim() || 'Anonymous User';
         let text = (this.comment.text || '').trim();
         if(!text){
@@ -3755,6 +3784,7 @@
 
       deleteCurrent(){
         if(!this.current) return;
+        if(!this.requireForumAuth('manage your posts')) return;
         this.deletePost(this.current);
       }
     }
