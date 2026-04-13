@@ -149,10 +149,10 @@
       <div class="container">
         <div class="guest-hero-panel">
           <div class="guest-hero-media" aria-hidden="true">
-            <img src="../zp/hb2.webp" alt="" />
+            <img src="../zp/ydh.webp" alt="" />
           </div>
 
-          <div class="guest-hero-content">
+          <div class="guest-hero-content" :class="{ 'guest-hero-content-login': authView === 'login' || authView === 'signup' }">
             <div class="guest-hero-copy">
               <p class="guest-eyebrow">One account for clubs, bookings, and updates</p>
               <h1>{{ authView === 'login' ? 'Welcome Back to Your Club Dashboard' : 'Create Your Club Enrollment Account' }}</h1>
@@ -175,88 +175,173 @@
               </div>
             </div>
 
-            <div id="auth-entry" ref="authEntry" class="auth-box card guest-auth-box">
+            <div id="auth-entry" ref="authEntry" class="auth-box card guest-auth-box" :class="{ 'login-showcase': authView === 'login' || authView === 'signup' }">
               <div class="auth-head">
-                <div class="auth-title">{{ authView === 'login' ? 'Account Login' : 'Create an Account' }}</div>
+                <template v-if="authView === 'login'">
+                  <div class="auth-title login-auth-title">Welcome to Club Enrollment Portal</div>
+                  <div class="login-auth-subtitle">Please log in using the form below.</div>
+                </template>
+                <template v-else>
+                  <div class="auth-title login-auth-title">Create Your Account</div>
+                  <div class="login-auth-subtitle">Please sign up using the form below.</div>
+                </template>
               </div>
 
               <div class="card-body">
                 <div v-if="authView === 'login'">
-                  <div class="field">
-                    <input v-model.trim="login.email" class="auth-input" placeholder="Email address">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="login-email">Email</label>
+                    <div class="auth-input-shell">
+                      <input id="login-email" v-model.trim="login.email" class="auth-input login-auth-input" placeholder="example@gmail.com">
+                    </div>
                   </div>
-                  <div class="field">
-                    <input type="password" v-model.trim="login.password" class="auth-input" placeholder="Enter password">
-                  </div>
-
-                  <div class="auth-row">
-                    <label class="auth-check">
-                      <input type="checkbox" v-model="remember">
-                      <span>Keep me signed in for 30 days</span>
-                    </label>
-                    <div class="auth-links">
-                      <a href="#" class="auth-link" @click.prevent="forgotPassword">Forgot password</a>
-                      <a href="#" class="auth-link" @click.prevent="openSignup">Sign up</a>
+                  <div class="field login-field">
+                    <div class="login-field-top">
+                      <label class="auth-field-label" for="login-password">Password</label>
+                      <a href="#" class="auth-link login-forgot-link" @click.prevent="forgotPassword">Forgot password?</a>
+                    </div>
+                    <div class="auth-input-shell auth-input-shell-password">
+                      <input :type="showLoginPassword ? 'text' : 'password'" id="login-password" v-model.trim="login.password" class="auth-input login-auth-input login-password-input" placeholder="Password">
+                      <button class="password-toggle-btn" type="button" @click="toggleLoginPassword" :aria-label="showLoginPassword ? 'Hide password' : 'Show password'">
+                        <svg v-if="!showLoginPassword" class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M3 3l18 18"></path>
+                          <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"></path>
+                          <path d="M9.4 5.5A10.7 10.7 0 0 1 12 5c5.4 0 9.3 4.7 10 6-.4.7-1.6 2.4-3.5 4"></path>
+                          <path d="M6.3 6.3C3.7 8.1 2.3 10.5 2 11c.7 1.3 4.6 6 10 6 1.6 0 3-.4 4.3-1"></path>
+                        </svg>
+                        <svg v-else class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
                     </div>
                   </div>
 
-                  <button class="btn primary auth-btn" @click="doLogin">Log In</button>
-                  <div class="auth-divider">or</div>
-                  <button class="btn auth-btn google-auth-btn" @click="loginWithGoogle">
+                  <div class="auth-row login-auth-row">
+                    <label class="auth-check remember-check">
+                      <input type="checkbox" v-model="remember">
+                      <span>Remember me</span>
+                    </label>
+                  </div>
+
+                  <button class="btn primary auth-btn login-submit-btn" @click="doLogin">Log in</button>
+                  <div class="auth-divider login-auth-divider">Or</div>
+                  <button class="btn auth-btn social-auth-btn google-auth-btn" @click="loginWithGoogle">
                     <span class="google-auth-mark">G</span>
                     <span>Continue with Google</span>
                   </button>
-                  <div class="auth-subhint">First-time Google sign-in will create an account automatically with the same email.</div>
+                  <div class="login-signup-link">
+                    <span>Don't have account?</span>
+                    <a href="#" class="auth-link login-signup-action" @click.prevent="openSignup">Sign Up</a>
+                  </div>
 
                   <div class="hint" v-if="loginStatus">{{ loginStatus }}</div>
                 </div>
 
                 <div v-else>
-                  <div class="field">
-                    <input v-model.trim="signup.nickname" class="auth-input" placeholder="Nickname">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="signup-nickname">Nickname</label>
+                    <div class="auth-input-shell">
+                      <input id="signup-nickname" v-model.trim="signup.nickname" class="auth-input login-auth-input" placeholder="Your nickname">
+                    </div>
                   </div>
-                  <div class="field">
-                    <input v-model.trim="signup.email" class="auth-input" placeholder="Email">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="signup-email">Email</label>
+                    <div class="auth-input-shell">
+                      <input id="signup-email" v-model.trim="signup.email" class="auth-input login-auth-input" placeholder="example@gmail.com" @input="handleSignupEmailInput">
+                    </div>
                   </div>
-                  <div class="field">
-                    <input type="password" v-model.trim="signup.password" class="auth-input" placeholder="Password (at least 6 characters)">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="signup-verification-code">Email verification code</label>
+                    <div class="signup-code-row">
+                      <div class="auth-input-shell signup-code-input-shell">
+                        <input id="signup-verification-code" v-model.trim="signup.verificationCode" class="auth-input login-auth-input" inputmode="numeric" maxlength="6" placeholder="Enter the 6-digit code">
+                      </div>
+                      <button
+                        class="btn auth-btn signup-code-send-btn"
+                        type="button"
+                        @click="sendSignupCode"
+                        :disabled="signupCodeSending || signupCodeCountdown > 0"
+                      >
+                        {{ signupCodeSending ? 'Sending...' : (signupCodeCountdown > 0 ? 'Resend ' + signupCodeCountdown + 's' : 'Send code') }}
+                      </button>
+                    </div>
+                    <div
+                      v-if="signupCodeStatus"
+                      class="signup-code-feedback"
+                      :class="signupCodeStatusKind"
+                    >
+                      {{ signupCodeStatus }}
+                    </div>
                   </div>
-                  <div class="field">
-                    <input type="password" v-model.trim="signup.password2" class="auth-input" placeholder="Confirm password">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="signup-password">Password</label>
+                    <div
+                      class="auth-input-shell auth-input-shell-password"
+                      @focusin="showSignupPasswordHint = true"
+                      @focusout="handleSignupPasswordHintBlur"
+                    >
+                      <input :type="showSignupPassword ? 'text' : 'password'" id="signup-password" v-model.trim="signup.password" class="auth-input login-auth-input login-password-input" placeholder="At least 6 characters">
+                      <button class="password-toggle-btn" type="button" @click="toggleSignupPassword" :aria-label="showSignupPassword ? 'Hide password' : 'Show password'">
+                        <svg v-if="!showSignupPassword" class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M3 3l18 18"></path>
+                          <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"></path>
+                          <path d="M9.4 5.5A10.7 10.7 0 0 1 12 5c5.4 0 9.3 4.7 10 6-.4.7-1.6 2.4-3.5 4"></path>
+                          <path d="M6.3 6.3C3.7 8.1 2.3 10.5 2 11c.7 1.3 4.6 6 10 6 1.6 0 3-.4 4.3-1"></path>
+                        </svg>
+                        <svg v-else class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                    <div v-if="showSignupPasswordHint" class="password-rule-hint">
+                      The password must contain capital letters, lowercase letters, numbers and special symbols.
+                    </div>
                   </div>
-                  <div class="auth-row signup-system-row">
-                    <label class="auth-check">
+                  <div class="field login-field">
+                    <label class="auth-field-label" for="signup-password2">Confirm password</label>
+                    <div class="auth-input-shell auth-input-shell-password">
+                      <input :type="showSignupPassword2 ? 'text' : 'password'" id="signup-password2" v-model.trim="signup.password2" class="auth-input login-auth-input login-password-input" placeholder="Repeat your password">
+                      <button class="password-toggle-btn" type="button" @click="toggleSignupPassword2" :aria-label="showSignupPassword2 ? 'Hide password' : 'Show password'">
+                        <svg v-if="!showSignupPassword2" class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M3 3l18 18"></path>
+                          <path d="M10.6 10.7a2 2 0 0 0 2.7 2.7"></path>
+                          <path d="M9.4 5.5A10.7 10.7 0 0 1 12 5c5.4 0 9.3 4.7 10 6-.4.7-1.6 2.4-3.5 4"></path>
+                          <path d="M6.3 6.3C3.7 8.1 2.3 10.5 2 11c.7 1.3 4.6 6 10 6 1.6 0 3-.4 4.3-1"></path>
+                        </svg>
+                        <svg v-else class="password-toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+                          <path d="M2 12s3.8-6 10-6 10 6 10 6-3.8 6-10 6S2 12 2 12z"></path>
+                          <circle cx="12" cy="12" r="3"></circle>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <div class="auth-row login-auth-row signup-system-row">
+                    <label class="auth-check remember-check">
                       <input type="checkbox" v-model="signup.withClubManagement">
                       <span>Enable My Club Dashboard</span>
                     </label>
                   </div>
 
-                  <button class="btn success auth-btn" @click="doSignup">Sign Up</button>
-                  <button class="btn ghost auth-btn ghost-btn" @click="resetSignup">Reset</button>
+                  <button class="btn primary auth-btn login-submit-btn" @click="doSignup">Sign up</button>
+                  <div class="auth-divider login-auth-divider">Or</div>
+                  <button class="btn auth-btn social-auth-btn google-auth-btn" @click="loginWithGoogle">
+                    <span class="google-auth-mark">G</span>
+                    <span>Continue with Google</span>
+                  </button>
 
-                  <div class="auth-row auth-row-end">
-                    <div class="auth-links">
-                      <a href="#" class="auth-link" @click.prevent="openLogin">Back to login</a>
+                  <div class="signup-footer-row">
+                    <button class="signup-inline-action" type="button" @click="resetSignup">Reset</button>
+                    <div class="login-signup-link signup-login-link">
+                      <span>Already have an account?</span>
+                      <a href="#" class="auth-link login-signup-action" @click.prevent="openLogin">Log in</a>
                     </div>
                   </div>
 
                   <div class="hint" v-if="signupStatus">{{ signupStatus }}</div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section class="guest-search-hub">
-      <div class="container">
-        <div class="guest-notice-strip">
-          <div class="guest-notice-frame">
-            <span class="guest-notice-label">Account Tips</span>
-            <div class="guest-notice-copy">
-              <p>Sign in first to access your dashboard, saved bookings, and personal records.</p>
-              <p>After logging in, the page will take you straight to your personal dashboard automatically.</p>
             </div>
           </div>
         </div>
@@ -1130,8 +1215,18 @@
         remember:true,
         authView:'login',
 
-        signup:{ nickname:'', favoriteClub:'', email:'', password:'', password2:'', withClubManagement:false },
+        signup:{ nickname:'', favoriteClub:'', email:'', verificationCode:'', password:'', password2:'', withClubManagement:false },
         login:{ email:'', password:'' },
+        showLoginPassword: false,
+        showSignupPassword: false,
+        showSignupPassword2: false,
+        showSignupPasswordHint: false,
+        signupCodeStatus: '',
+        signupCodeStatusKind: '',
+        signupCodeSending: false,
+        signupCodeCountdown: 0,
+        signupCodeTimer: null,
+        signupCodeEmail: '',
         signupStatus:'',
         loginStatus:'',
         showForgotModal: false,
@@ -1561,6 +1656,7 @@
         window.clearInterval(this.bookingAutoRefreshHandle);
         this.bookingAutoRefreshHandle = null;
       }
+      this.clearSignupCodeCountdown();
     },
     methods:{
       scrollToAuthEntry(){
@@ -2394,10 +2490,15 @@
         if(lower.includes('invalid login credentials')) return 'Incorrect email or password.';
         if(lower.includes('email not confirmed')) return 'Unable to log in with this account right now.';
         if(lower.includes('user already registered')) return 'This email address is already registered.';
+        if(lower.includes('password should contain')) return 'The password must contain capital letters, lowercase letters, numbers and special symbols.';
         if(lower.includes('password should be at least')) return 'Password must be at least 6 characters.';
         if(lower.includes('unable to validate email address')) return 'Enter a valid email address.';
         if(lower.includes('email rate limit exceeded')) return 'Too many email attempts. Please try again later.';
         return text || fallback || 'Something went wrong. Please try again.';
+      },
+      isSignupPasswordValid(password){
+        const value = String(password || '');
+        return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{6,}$/.test(value);
       },
       openProfileFromHeader(tab){
         if(tab === 'messages' || tab === 'message_board'){
@@ -2415,7 +2516,30 @@
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
       },
       isValidEmail(value){
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value || '');
+        const email = String(value || '').trim();
+        if(!email || email.length > 254 || /\s/.test(email)) return false;
+        const parts = email.split('@');
+        if(parts.length !== 2) return false;
+
+        const local = parts[0];
+        const domain = parts[1];
+        if(!local || !domain) return false;
+        if(local.length > 64) return false;
+        if(local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+        if(!/^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local)) return false;
+
+        if(domain.length > 253 || domain.startsWith('.') || domain.endsWith('.')) return false;
+        if(!domain.includes('.')) return false;
+
+        const labels = domain.split('.');
+        if(labels.some(label => !label || label.length > 63)) return false;
+        if(labels.some(label => label.startsWith('-') || label.endsWith('-'))) return false;
+        if(labels.some(label => !/^[A-Za-z0-9-]+$/.test(label))) return false;
+
+        const tld = labels[labels.length - 1];
+        if(!/^[A-Za-z]{2,}$/.test(tld)) return false;
+
+        return true;
       },
       coverKey(){
         return 'spjs_forum_profile_covers_v1';
@@ -3057,6 +3181,182 @@
           this.loginStatus = 'Unable to start Google sign-in right now.';
         }
       },
+      toggleLoginPassword(){
+        this.showLoginPassword = !this.showLoginPassword;
+      },
+      toggleSignupPassword(){
+        this.showSignupPassword = !this.showSignupPassword;
+      },
+      toggleSignupPassword2(){
+        this.showSignupPassword2 = !this.showSignupPassword2;
+      },
+      handleSignupPasswordHintBlur(event){
+        const current = event && event.currentTarget;
+        const next = event && event.relatedTarget;
+        if(current && next && current.contains(next)) return;
+        this.showSignupPasswordHint = false;
+      },
+      clearSignupCodeCountdown(){
+        if(this.signupCodeTimer){
+          window.clearInterval(this.signupCodeTimer);
+          this.signupCodeTimer = null;
+        }
+        this.signupCodeCountdown = 0;
+      },
+      startSignupCodeCountdown(seconds){
+        const total = Math.max(0, Number(seconds) || 0);
+        this.clearSignupCodeCountdown();
+        if(!total) return;
+        this.signupCodeCountdown = total;
+        this.signupCodeTimer = window.setInterval(() => {
+          if(this.signupCodeCountdown <= 1){
+            this.clearSignupCodeCountdown();
+            return;
+          }
+          this.signupCodeCountdown -= 1;
+        }, 1000);
+      },
+      resetSignupCodeState(options){
+        const opts = options && typeof options === 'object' ? options : {};
+        this.signupCodeSending = false;
+        this.signupCodeEmail = '';
+        if(!opts.keepTimer){
+          this.clearSignupCodeCountdown();
+        }
+        if(!opts.keepStatus){
+          this.signupCodeStatus = '';
+          this.signupCodeStatusKind = '';
+        }
+        if(!opts.keepCode && this.signup){
+          this.signup.verificationCode = '';
+        }
+      },
+      handleSignupEmailInput(){
+        const normalized = this.normalizeEmail(this.signup.email);
+        if(normalized && normalized === this.signupCodeEmail) return;
+        if(!normalized && !this.signupCodeEmail && !this.signup.verificationCode && !this.signupCodeStatus && !this.signupCodeCountdown) return;
+        this.resetSignupCodeState();
+      },
+      async readApiJsonResponse(response){
+        try{
+          return await response.json();
+        }catch(e){
+          return {};
+        }
+      },
+      async sendSignupCode(){
+        const email = this.normalizeEmail(this.signup.email);
+        this.signupStatus = '';
+        if(!this.isValidEmail(email)){
+          this.signupCodeStatus = 'Enter a valid email address before requesting a code.';
+          this.signupCodeStatusKind = 'error';
+          return;
+        }
+        if(this.signupCodeSending || this.signupCodeCountdown > 0) return;
+
+        this.signupCodeSending = true;
+        this.signupCodeStatus = '';
+        this.signupCodeStatusKind = '';
+
+        try{
+          const response = await fetch('/api/send-signup-code', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email })
+          });
+          const result = await this.readApiJsonResponse(response);
+          if(!response.ok){
+            if(result && result.retryAfterSeconds){
+              this.startSignupCodeCountdown(result.retryAfterSeconds);
+            }
+            this.signupCodeStatus = (result && result.message) || 'Unable to send the verification code right now.';
+            this.signupCodeStatusKind = 'error';
+            return;
+          }
+          this.signupCodeEmail = email;
+          this.signup.verificationCode = '';
+          this.signupCodeStatus = (result && result.message) || 'A verification code has been sent to your email.';
+          this.signupCodeStatusKind = 'success';
+          this.startSignupCodeCountdown((result && result.retryAfterSeconds) || 60);
+        }catch(e){
+          this.signupCodeStatus = 'Unable to send the verification code right now.';
+          this.signupCodeStatusKind = 'error';
+        }finally{
+          this.signupCodeSending = false;
+        }
+      },
+      async completeSignupWithEmailVerification(){
+        const email = this.normalizeEmail(this.signup.email);
+        const verificationCode = String(this.signup.verificationCode || '').trim();
+
+        this.signupStatus = '';
+        if(!email || !this.signup.password){
+          this.signupStatus = 'Please complete all required fields.'; return;
+        }
+        if(!this.isValidEmail(email)){
+          this.signupStatus = 'Enter a valid email address.'; return;
+        }
+        if(!/^\d{6}$/.test(verificationCode)){
+          this.signupCodeStatus = 'Enter the 6-digit email verification code sent to your email.';
+          this.signupCodeStatusKind = 'error';
+          return;
+        }
+        if(!this.isSignupPasswordValid(this.signup.password)){
+          this.signupStatus = 'The password must contain capital letters, lowercase letters, numbers and special symbols.'; return;
+        }
+        if(this.signup.password !== this.signup.password2){
+          this.signupStatus = 'The two entered passwords do not match. Please try again.'; return;
+        }
+
+        try{
+          const response = await fetch('/api/complete-signup', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              email,
+              code: verificationCode,
+              password: this.signup.password,
+              nickname: String(this.signup.nickname || '').trim(),
+              withClubManagement: !!this.signup.withClubManagement
+            })
+          });
+          const result = await this.readApiJsonResponse(response);
+          if(!response.ok){
+            const message = (result && result.message) || 'Unable to create the account right now.';
+            if(result && result.field === 'verificationCode'){
+              this.signupCodeStatus = message;
+              this.signupCodeStatusKind = 'error';
+            }else{
+              this.signupStatus = message;
+            }
+            return;
+          }
+
+          const password = this.signup.password;
+          const successMessage = (result && result.message) || 'Account created successfully.';
+          this.resetSignup();
+          this.authView = 'login';
+          this.login.email = email;
+          this.login.password = password;
+          this.loginStatus = '';
+
+          if(this.hasSupabaseConfigured()){
+            await this.doLoginWithSupabase();
+            if(!this.loginStatus){
+              return;
+            }
+          }
+
+          this.login.password = '';
+          this.loginStatus = successMessage + ' Please log in.';
+        }catch(e){
+          this.signupStatus = 'Unable to create the account right now.';
+        }
+      },
       async doLoginWithSupabase(){
         this.showSystemPicker = false;
         this.loginCandidate = null;
@@ -3170,113 +3470,30 @@
         this.clearSupabaseBrowserSession();
         location.reload();
       },
-      openSignup(){ this.authView = 'signup'; this.loginStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
-      openLogin(){ this.authView = 'login'; this.signupStatus = ''; this.showSystemPicker = false; this.loginCandidate = null; },
-      async doSignup(){
-        if(this.hasSupabaseConfigured()){
-          return this.doSignupWithSupabase();
-        }
-        return this.doSignupLegacy();
+      openSignup(){
+        this.authView = 'signup';
+        this.loginStatus = '';
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+        this.showLoginPassword = false;
+        this.showSignupPassword = false;
+        this.showSignupPassword2 = false;
+        this.showSignupPasswordHint = false;
+        this.resetSignupCodeState();
       },
-      async doSignupWithSupabase(){
-        const email = this.normalizeEmail(this.signup.email);
-        if(!email || !this.signup.password){
-          this.signupStatus = 'Please complete all required fields.'; return;
-        }
-        if(!this.isValidEmail(email)){
-          this.signupStatus = 'Enter a valid email address.'; return;
-        }
-        if(this.signup.password.length < 6){
-          this.signupStatus = 'Password must be at least 6 characters.'; return;
-        }
-        if(this.signup.password !== this.signup.password2){
-          this.signupStatus = 'The two passwords do not match.'; return;
-        }
-        const supabase = this.getSupabaseClientSafe();
-        if(!supabase){
-          this.signupStatus = 'Supabase is not configured yet. Add js/supabase-config.js first.'; return;
-        }
-        try{
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password: this.signup.password,
-            options: {
-              data: {
-                nickname: String(this.signup.nickname || '').trim(),
-                role: this.signup.withClubManagement ? 'club_manager' : 'member'
-              }
-            }
-          });
-          if(error){
-            this.signupStatus = this.mapAuthErrorMessage(error, 'Unable to create the account right now.');
-            return;
-          }
-          const resolved = await this.resolveSupabaseUser((data && data.user) || null) || {
-            id: String((data && data.user && data.user.id) || ''),
-            email,
-            nickname: String(this.signup.nickname || '').trim() || email.split('@')[0],
-            role: this.signup.withClubManagement ? 'club_manager' : 'member',
-            isClubManager: !!this.signup.withClubManagement,
-            avatar: '',
-            bio: '',
-            gender: '',
-            phone: '',
-            birthday: '',
-            location: '',
-            hobbies: ''
-          };
-          this.seedLegacyUserRecord(resolved);
-          this.authView = 'login';
-          this.login.email = email;
-          if(data && data.session){
-            this.signupStatus = 'Sign-up successful. You are now signed in.';
-            if(resolved.isClubManager){
-              this.loginCandidate = resolved;
-              this.showSystemPicker = true;
-            }else{
-              this.enterSelectedSystem('user', resolved);
-            }
-            return;
-          }
-          this.signupStatus = 'Account created successfully. Please log in.';
-        }catch(e){
-          this.signupStatus = 'Unable to create the account right now.';
-        }
-      },
-      doSignupLegacy(){
-        const email = this.normalizeEmail(this.signup.email);
-        if(!email || !this.signup.password){
-          this.signupStatus = 'Please complete all required fields.'; return;
-        }
-        if(!this.isValidEmail(email)){
-          this.signupStatus = 'Enter a valid email address.'; return;
-        }
-        if(this.signup.password.length < 6){
-          this.signupStatus = 'Password must be at least 6 characters.'; return;
-        }
-        if(this.signup.password !== this.signup.password2){
-          this.signupStatus = 'The two passwords do not match.'; return;
-        }
-        const users = this.loadAuth();
-        if(users.find(u=>u.email === email)){
-          this.signupStatus = 'This email address is already registered.'; return;
-        }
-          users.push({
-            email: email,
-            nickname: this.signup.nickname,
-            password: this.signup.password,
-            isClubManager: !!this.signup.withClubManagement,
-            createdAt: new Date().toLocaleString(),
-            passwordUpdatedAt: new Date().toISOString()
-          });
-        localStorage.setItem('club_users', JSON.stringify(users));
-        this.signupStatus = this.signup.withClubManagement
-          ? 'Sign-up successful! My Club Dashboard has been enabled. You can choose a dashboard after logging in.'
-          : 'Sign-up successful! Please log in.';
+      openLogin(){
         this.authView = 'login';
-        this.login.email = email;
-        // Auto-login after signup? User usually expects to login.
-        // For consistency, user will login manually.
+        this.signupStatus = '';
+        this.showSystemPicker = false;
+        this.loginCandidate = null;
+        this.showLoginPassword = false;
+        this.showSignupPassword = false;
+        this.showSignupPassword2 = false;
+        this.showSignupPasswordHint = false;
+        this.resetSignupCodeState();
+      },
+      async doSignup(){
+        return this.completeSignupWithEmailVerification();
       },
       forgotPassword(){
         this.forgotForm = { email:'', captcha:false };
@@ -3378,8 +3595,12 @@
         }
       },
       resetSignup(){
-        this.signup = { nickname:'', favoriteClub:'', email:'', password:'', password2:'', withClubManagement:false };
+        this.signup = { nickname:'', favoriteClub:'', email:'', verificationCode:'', password:'', password2:'', withClubManagement:false };
         this.signupStatus = '';
+        this.showSignupPassword = false;
+        this.showSignupPassword2 = false;
+        this.showSignupPasswordHint = false;
+        this.resetSignupCodeState({ keepCode: true });
       },
       async onProfileAvatarChange(e){
         const file = (e && e.target && e.target.files && e.target.files[0]) ? e.target.files[0] : null;
