@@ -72,6 +72,26 @@
     '../zp/hb3.webp': true
   };
 
+  var LEGACY_STATIC_CLUB_DESC_FRAGMENTS = {
+    football: ['friendly matches for a range of skill levels', 'match preparation for new and returning members'],
+    badminton: ['regular training and campus competitions', 'doubles practice, casual games, and club match play'],
+    swimming: ['stroke and endurance training for beginners through advanced swimmers', 'fitness training, safety guidance, and technique support'],
+    cycling: ['weekend long-distance sessions with meet-up details', 'group city rides and route planning sessions'],
+    programming: ['learn web, python, and ai fundamentals', 'project-driven coding workshops focused on web development'],
+    tennis: ['doubles training and weekend activities with bookable sessions', 'serve practice, weekend rallies, and welcoming tennis sessions'],
+    music: ['instrument exchange, ensemble rehearsals, and performance sign-up', 'hybrid rehearsal and showcase sessions for ensemble practice'],
+    running: ['weekly group runs and campus running events', 'endurance-building runs and pacing sessions'],
+    basketball: ['campus league sign-up with basic tactical coaching and scrimmages', 'shooting drills, teamwork drills, and half-court games'],
+    golf: ['weekend experience sessions for beginners and casual players', 'swing basics, weekend experience rounds'],
+    rugby: ['inter-school competition sign-up and tactical drills', 'tactical drills, strength work, and preparation for external fixtures'],
+    handball: ['team coordination sessions and small-court games', 'attack and defense structure, movement coordination, and team drills'],
+    gymnastics: ['foundational flexibility and strength training with movement demos', 'focused on flexibility, core movement patterns, and guided open practice'],
+    pingpong: ['indoor table tennis sessions covering footwork, serve-return routines'],
+    volleyball: ['structured volleyball practice in passing, setting, serving, attack timing'],
+    pickleball: ['beginner-friendly pickleball sessions with serving, doubles movement'],
+    baseball: ['fundamentals and live-play baseball practice including throwing, catching, batting']
+  };
+
   function normalizeClubCoverSlug(value) {
     return trimText(value)
       .toLowerCase()
@@ -96,6 +116,18 @@
 
   function normalizeEmail(value) {
     return trimText(value).toLowerCase();
+  }
+
+  function isLegacyStaticClubSeed(club) {
+    var slug = normalizeClubCoverSlug(club && club.slug);
+    if (!slug || !Object.prototype.hasOwnProperty.call(LEGACY_STATIC_CLUB_DESC_FRAGMENTS, slug)) {
+      return false;
+    }
+    var desc = trimText(club && (club.desc || club.description)).toLowerCase();
+    if (!desc) return false;
+    return LEGACY_STATIC_CLUB_DESC_FRAGMENTS[slug].some(function (fragment) {
+      return desc.indexOf(fragment) > -1;
+    });
   }
 
   function getSupabaseClientSafe() {
@@ -472,7 +504,7 @@
         slotsByDay: normalizedByDay
       };
     }).filter(function (club) {
-      return !!club.slug;
+      return !!club.slug && !isLegacyStaticClubSeed(club);
     });
   }
 
@@ -629,6 +661,7 @@
     cancelBooking: cancelBooking,
     mapCreateBookingError: mapCreateBookingError,
     buildAvailabilityKey: buildAvailabilityKey,
-    mapBookingStatus: mapBookingStatus
+    mapBookingStatus: mapBookingStatus,
+    isLegacyStaticClubSeed: isLegacyStaticClubSeed
   };
 })(window);

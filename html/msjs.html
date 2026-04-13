@@ -274,165 +274,7 @@
         sortBy: 'name',
         supabaseClubs: [],
         cloudClubCatalogEnabled: cloudClubCatalogEnabled,
-        detailPageSlugs: [
-          'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
-          'basketball', 'golf', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
-        ],
-        clubs: [
-          {
-            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
-            desc: 'Weekly training and friendly matches for a range of skill levels, with pitch booking and event sign-up support.',
-            location: 'Stadium A (In-person)',
-            time: 'Tue/Thu 18:00-20:00',
-            seats: 12,
-            fee: '£0 (Free)',
-            cover: '../zp/zq.webp',
-          },
-          {
-            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
-            desc: 'Multiple bookable slots with live seat updates, suitable for regular training and campus competitions.',
-            location: 'Indoor Hall B (In-person)',
-            time: 'Mon/Wed 19:00-21:00',
-            seats: 8,
-            fee: '£3/session (Optional)',
-            cover: '../zp/ymq.webp',
-          },
-          {
-            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
-            desc: 'Stroke and endurance training for beginners through advanced swimmers, with lane-based session booking.',
-            location: 'Aquatics Center (In-person)',
-            time: 'Sat 10:00-12:00',
-            seats: 16,
-            fee: '£2/session',
-            cover: '../zp/yy1.webp',
-          },
-          {
-            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
-            desc: 'City rides and weekend long-distance sessions with meet-up details and route plans shared ahead of time.',
-            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
-            time: 'Sun 08:30-11:30',
-            seats: 20,
-            fee: '£0',
-            cover: '../zp/qx.webp',
-          },
-          {
-            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
-            desc: 'Learn Web, Python, and AI fundamentals while sharing projects in a beginner-to-advanced online space.',
-            location: 'Online meeting link (Virtual)',
-            time: 'Fri 20:00-21:30',
-            seats: 40,
-            fee: '£0',
-            cover: '../zp/bc.webp',
-          },
-          {
-            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
-            desc: 'Doubles training and weekend activities with bookable sessions for members at different levels.',
-            location: 'Tennis Court C (In-person)',
-            time: 'Sat 14:00-16:00',
-            seats: 10,
-            fee: '£2/session',
-            cover: '../zp/wq.webp',
-          },
-          {
-            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
-            desc: 'Instrument exchange, ensemble rehearsals, and performance sign-up with shared sheet music and rehearsal plans online.',
-            location: 'Arts Building 2F / online sharing',
-            time: 'Wed 17:00-18:30',
-            seats: 18,
-            fee: '£0',
-            cover: '../zp/yy.webp',
-          },
-          {
-            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
-            desc: 'Weekly group runs and campus running events with activity sign-up and training plans.',
-            location: 'Track meeting point (In-person)',
-            time: 'Tue/Fri 07:00-08:00',
-            seats: 30,
-            fee: '£0',
-            cover: '../zp/pb.webp',
-          },
-          {
-            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Weekly practices and campus league sign-up with basic tactical coaching and scrimmages.',
-            location: 'Basketball Court D (In-person)',
-            time: 'Wed/Sat 18:00-20:00',
-            seats: 18,
-            fee: '£0 (Free)',
-            cover: '../zp/lq.webp',
-          },
-          {
-            id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
-            desc: 'Swing practice and weekend experience sessions for beginners and casual players, with guided technique tips and range-based routines.',
-            location: 'Practice Ground E (In-person)',
-            time: 'Sun 09:30-11:30',
-            seats: 12,
-            fee: '£5/session (Optional)',
-            cover: '../zp/grf.webp',
-          },
-          {
-            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
-            desc: 'Core passing and contact training with support for inter-school competition sign-up and tactical drills.',
-            location: 'Stadium F (In-person)',
-            time: 'Tue/Thu 16:30-18:00',
-            seats: 22,
-            fee: '£0',
-            cover: '../zp/glq.webp',
-          },
-          {
-            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Team coordination sessions and small-court games with grouped practice and event sign-up.',
-            location: 'Sports Hall G (In-person)',
-            time: 'Mon 18:30-20:00',
-            seats: 16,
-            fee: '£0',
-            cover: '../zp/sj.webp',
-          },
-          {
-            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
-            desc: 'Foundational flexibility and strength training with movement demos and grouped practice for beginner to advanced members.',
-            location: 'Gym Hall H (In-person)',
-            time: 'Fri 17:00-18:30',
-            seats: 14,
-            fee: '£0',
-            cover: '../zp/tc.webp',
-          },
-          {
-            id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
-            desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
-            location: 'Multi-Sport Hall I (In-person)',
-            time: 'Wed/Sun (see booking page)',
-            seats: 20,
-            fee: '£0',
-            cover: '../zp/ppq.webp',
-          },
-          {
-            id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
-            location: 'Sports Hall J (In-person)',
-            time: 'Tue/Sat (see booking page)',
-            seats: 22,
-            fee: '£0',
-            cover: '../zp/pq.webp',
-          },
-          {
-            id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
-            location: 'Multi-Purpose Hall K (In-person)',
-            time: 'Thu (see booking page)',
-            seats: 24,
-            fee: '£0',
-            cover: '../zp/pkq.webp',
-          },
-          {
-            id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
-            location: 'Baseball Field L (In-person)',
-            time: 'Sat (see booking page)',
-            seats: 18,
-            fee: '£0',
-            cover: '../zp/bq.webp',
-          }
-        ]
+        clubs: []
       };
     },
     mounted() {
@@ -640,20 +482,34 @@
         }
       },
 
-      hasDetailPage(c) {
-        return !!c && this.detailPageSlugs.includes(c.slug);
+      detailHref(c) {
+        return 'club_detail.html?club=' + encodeURIComponent(c.slug);
       },
 
-      detailHref(c) {
-        if (this.hasDetailPage(c)) return 'club/' + c.slug + '.html';
-        return 'club_detail.html?club=' + encodeURIComponent(c.slug);
+      isLegacyStaticClubRecord(club) {
+        const bookingService = window.clubBookingSupabase || null;
+        if (bookingService && typeof bookingService.isLegacyStaticClubSeed === 'function' && bookingService.isLegacyStaticClubSeed(club)) {
+          return true;
+        }
+        const candidates = [
+          club && club.id,
+          club && club.localId,
+          club && club.dbId
+        ];
+        return candidates.some((value) => String(value || '').trim().toLowerCase().indexOf('embedded-') === 0);
       },
 
       loadRegistry() {
         if (this.isBusinessLocalCacheDisabled()) return [];
         try {
           const raw = localStorage.getItem(this.keyRegistry());
-          return raw ? JSON.parse(raw) : [];
+          const list = raw ? JSON.parse(raw) : [];
+          if (!Array.isArray(list)) return [];
+          const filtered = list.filter((club) => !this.isLegacyStaticClubRecord(club));
+          if (filtered.length !== list.length) {
+            localStorage.setItem(this.keyRegistry(), JSON.stringify(filtered));
+          }
+          return filtered;
         } catch (e) {
           return [];
         }
@@ -751,7 +607,8 @@
         const fallbackBySlug = this.buildClubMapBySlug(mapped.concat(base));
         const supabase = this.applyFallbackCover((this.supabaseClubs || [])
           .map((c) => this.mapRegistryClub(c))
-          .filter((c) => c.slug), fallbackBySlug);
+          .filter((c) => c.slug)
+          .filter((c) => !this.isLegacyStaticClubRecord(c)), fallbackBySlug);
         const seen = new Set();
         const next = [];
         const catalog = this.cloudClubCatalogEnabled ? supabase.concat(mapped, base) : mapped.concat(base);
@@ -796,23 +653,6 @@
 
     const SEARCH_HISTORY_KEY = 'club_portal_search_history';
     const searchRoutes = [
-      { url: 'club/badminton.html', keywords: ['badminton', 'badminton club', 'ymq'] },
-      { url: 'club/tennis.html', keywords: ['tennis', 'tennis club'] },
-      { url: 'club/programming.html', keywords: ['programming', 'programming club', 'web development', 'artificial intelligence', 'coding'] },
-      { url: 'club/swimming.html', keywords: ['swimming', 'swimming club'] },
-      { url: 'club/football.html', keywords: ['football', 'football club'] },
-      { url: 'club/basketball.html', keywords: ['basketball', 'basketball club'] },
-      { url: 'club/volleyball.html', keywords: ['volleyball', 'volleyball club'] },
-      { url: 'club/running.html', keywords: ['running', 'night run', 'running club'] },
-      { url: 'club/cycling.html', keywords: ['cycling', 'cycling club'] },
-      { url: 'club/golf.html', keywords: ['golf', 'golf club'] },
-      { url: 'club/baseball.html', keywords: ['baseball', 'baseball club'] },
-      { url: 'club/pingpong.html', keywords: ['table tennis', 'ping pong', 'pingpong'] },
-      { url: 'club/music.html', keywords: ['music', 'music club', 'music society'] },
-      { url: 'club/gymnastics.html', keywords: ['gymnastics', 'gymnastics club'] },
-      { url: 'club/pickleball.html', keywords: ['pickleball'] },
-      { url: 'club/rugby.html', keywords: ['rugby', 'rugby club'] },
-      { url: 'club/handball.html', keywords: ['handball', 'handball club'] },
       { url: 'specialty.html', keywords: ['booking', 'time slot', 'schedule', 'registration', 'session', 'book'] },
       { url: 'mfms.html', keywords: ['courses', 'teaching', 'tutorials', 'learning', 'course content'] },
       { url: 'spjs.html', keywords: ['forum', 'community', 'posts', 'discussion'] },
@@ -833,7 +673,15 @@
       try {
         const rawHistory = localStorage.getItem(SEARCH_HISTORY_KEY);
         const history = rawHistory ? JSON.parse(rawHistory) : [];
-        return Array.isArray(history) ? history : [];
+        if (!Array.isArray(history)) return [];
+        const filteredHistory = history.filter(function (item) {
+          const url = String(item && item.url || '').trim();
+          return url.indexOf('club/') !== 0;
+        });
+        if (filteredHistory.length !== history.length) {
+          localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(filteredHistory));
+        }
+        return filteredHistory;
       } catch (error) {
         return [];
       }

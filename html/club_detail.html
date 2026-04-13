@@ -364,7 +364,25 @@
           try{
             const raw = localStorage.getItem(this.keyRegistry());
             const list = raw ? JSON.parse(raw) : [];
-            return Array.isArray(list) ? list : [];
+            if(!Array.isArray(list)) return [];
+            const filtered = list.filter(function(item){
+              var bookingService = window.clubBookingSupabase || null;
+              if(bookingService && typeof bookingService.isLegacyStaticClubSeed === 'function' && bookingService.isLegacyStaticClubSeed(item)){
+                return false;
+              }
+              const candidates = [
+                item && item.id,
+                item && item.localId,
+                item && item.dbId
+              ];
+              return !candidates.some(function(value){
+                return String(value || '').trim().toLowerCase().indexOf('embedded-') === 0;
+              });
+            });
+            if(filtered.length !== list.length){
+              localStorage.setItem(this.keyRegistry(), JSON.stringify(filtered));
+            }
+            return filtered;
           }catch(e){
             return [];
           }
@@ -450,7 +468,12 @@
               const foundCloud = Array.isArray(cloud && cloud.clubs)
                 ? cloud.clubs.find(function(item){ return item && item.slug === normalizedSlug; })
                 : null;
-              if(foundCloud) return this.normalizeClub(foundCloud);
+              if(foundCloud){
+                if(window.clubBookingSupabase && typeof window.clubBookingSupabase.isLegacyStaticClubSeed === 'function' && window.clubBookingSupabase.isLegacyStaticClubSeed(foundCloud)){
+                  return null;
+                }
+                return this.normalizeClub(foundCloud);
+              }
             }catch(error){
               console.warn('Club detail cloud sync failed, using local registry fallback.', error);
             }

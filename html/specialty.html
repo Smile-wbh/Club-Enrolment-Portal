@@ -457,105 +457,7 @@
         supabaseClubs: [],
         cloudBookingCatalogEnabled: cloudBookingCatalogEnabled,
         useSupabaseBookings: false,
-        detailPageSlugs: [
-          'football', 'badminton', 'swimming', 'cycling', 'programming', 'tennis', 'music', 'running',
-          'basketball', 'golf', 'rugby', 'handball', 'gymnastics', 'pingpong', 'volleyball', 'pickleball', 'baseball'
-        ],
-        clubs: [
-          {
-            id: 1, slug: 'football', name: 'Football Club', category: 'Sports', mode: 'In-person',
-            location: 'Stadium A (In-person)',
-            seats: 12, fee: '£0 (Free)', cover: '../zp/zq.webp', slots: []
-          },
-          {
-            id: 2, slug: 'badminton', name: 'Badminton Club', category: 'Sports', mode: 'In-person',
-            location: 'Indoor Hall B (In-person)',
-            seats: 8, fee: '£3/session (Optional)', cover: '../zp/ymq.webp', slots: []
-          },
-          {
-            id: 3, slug: 'swimming', name: 'Swimming Club', category: 'Sports', mode: 'In-person',
-            location: 'Aquatics Center (In-person)',
-            seats: 16, fee: '£2/session', cover: '../zp/yy1.webp', slots: []
-          },
-          {
-            id: 4, slug: 'cycling', name: 'Cycling Club', category: 'Sports', mode: 'Hybrid',
-            location: 'Meeting point: Campus Gate (In-person) / group updates (Online)',
-            seats: 20, fee: '£0', cover: '../zp/qx.webp', slots: []
-          },
-          {
-            id: 5, slug: 'programming', name: 'Programming Club', category: 'Academic', mode: 'Online',
-            location: 'Online meeting link (Virtual)',
-            seats: 40, fee: '£0', cover: '../zp/bc.webp', slots: []
-          },
-          {
-            id: 6, slug: 'tennis', name: 'Tennis Club', category: 'Sports', mode: 'In-person',
-            location: 'Tennis Court C (In-person)',
-            seats: 10, fee: '£2/session', cover: '../zp/wq.webp', slots: []
-          },
-          {
-            id: 7, slug: 'music', name: 'Music Society', category: 'Arts', mode: 'Hybrid',
-            location: 'Arts Building 2F / online sharing',
-            seats: 18, fee: '£0', cover: '../zp/yy.webp', slots: []
-          },
-          {
-            id: 8, slug: 'running', name: 'Running Club', category: 'Sports', mode: 'In-person',
-            location: 'Track meeting point (In-person)',
-            seats: 30, fee: '£0', cover: '../zp/pb.webp', slots: []
-          },
-          {
-            id: 9, slug: 'basketball', name: 'Basketball Club', category: 'Sports', mode: 'In-person',
-            location: 'Basketball Court D (In-person)',
-            seats: 18, fee: '£0 (Free)', cover: '../zp/lq.webp', slots: []
-          },
-          {
-            id: 10, slug: 'golf', name: 'Golf Club', category: 'Sports', mode: 'In-person',
-            location: 'Practice Ground E (In-person)',
-            seats: 12, fee: '£5/session (Optional)', cover: '../zp/grf.webp', slots: []
-          },
-          {
-            id: 11, slug: 'rugby', name: 'Rugby Club', category: 'Sports', mode: 'In-person',
-            location: 'Stadium F (In-person)',
-            seats: 22, fee: '£0', cover: '../zp/glq.webp', slots: []
-          },
-          {
-            id: 12, slug: 'handball', name: 'Handball Club', category: 'Sports', mode: 'In-person',
-            location: 'Sports Hall G (In-person)',
-            seats: 16, fee: '£0', cover: '../zp/sj.webp', slots: []
-          },
-          {
-            id: 13, slug: 'gymnastics', name: 'Gymnastics Club', category: 'Sports', mode: 'In-person',
-            location: 'Gym Hall H (In-person)',
-            seats: 14, fee: '£0', cover: '../zp/tc.webp', slots: []
-          },
-          {
-            id: 14, slug: 'pingpong', name: 'Table Tennis Club', category: 'Sports', mode: 'In-person',
-            desc: 'Indoor table tennis sessions covering footwork, serve-return routines, control drills, and friendly small-match play.',
-            time: 'Wed/Sun (see booking page)',
-            location: 'Multi-Sport Hall I (In-person)',
-            seats: 20, fee: '£0', cover: '../zp/ppq.webp', slots: []
-          },
-          {
-            id: 15, slug: 'volleyball', name: 'Volleyball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Structured volleyball practice in passing, setting, serving, attack timing, and team-rotation play.',
-            time: 'Tue/Sat (see booking page)',
-            location: 'Sports Hall J (In-person)',
-            seats: 22, fee: '£0', cover: '../zp/pq.webp', slots: []
-          },
-          {
-            id: 16, slug: 'pickleball', name: 'Pickleball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Beginner-friendly pickleball sessions with serving, doubles movement, kitchen-line control, and social matches.',
-            time: 'Thu (see booking page)',
-            location: 'Multi-Purpose Hall K (In-person)',
-            seats: 24, fee: '£0', cover: '../zp/pkq.webp', slots: []
-          },
-          {
-            id: 17, slug: 'baseball', name: 'Baseball Club', category: 'Sports', mode: 'In-person',
-            desc: 'Fundamentals and live-play baseball practice including throwing, catching, batting, base running, and defensive shape.',
-            time: 'Sat (see booking page)',
-            location: 'Baseball Field L (In-person)',
-            seats: 18, fee: '£0', cover: '../zp/bq.webp', slots: []
-          }
-        ]
+        clubs: []
       };
     },
     computed: {
@@ -1007,19 +909,32 @@
         try {
           const raw = JSON.parse(localStorage.getItem(key) || '[]');
           if (!Array.isArray(raw)) return [];
+          const filtered = raw.filter((club) => !this.isLegacyStaticClubRecord(club));
           let changed = false;
-          const next = raw.map((club) => {
+          const next = filtered.map((club) => {
             const hydrated = this.hydrateStoredClubSchedule(club, source);
             if (hydrated !== club) changed = true;
             return hydrated;
           });
-          if (changed) {
+          if (changed || filtered.length !== raw.length) {
             localStorage.setItem(key, JSON.stringify(next));
           }
           return next;
         } catch (error) {
           return [];
         }
+      },
+      isLegacyStaticClubRecord(club) {
+        const bookingService = window.clubBookingSupabase || null;
+        if (bookingService && typeof bookingService.isLegacyStaticClubSeed === 'function' && bookingService.isLegacyStaticClubSeed(club)) {
+          return true;
+        }
+        const candidates = [
+          club && club.id,
+          club && club.localId,
+          club && club.dbId
+        ];
+        return candidates.some((value) => String(value || '').trim().toLowerCase().indexOf('embedded-') === 0);
       },
       mergeSlotsByTime(primary, secondary) {
         const byTime = {};
@@ -1161,9 +1076,7 @@
         this.sortBy = 'name';
       },
       detailHref(club) {
-        return this.detailPageSlugs.includes(club.slug)
-          ? `club/${club.slug}.html`
-          : `club_detail.html?club=${encodeURIComponent(club.slug)}`;
+        return `club_detail.html?club=${encodeURIComponent(club.slug)}`;
       },
       readRecentBookingSuccessParams(params) {
         const query = params instanceof URLSearchParams ? params : new URLSearchParams(location.search);
@@ -1616,7 +1529,8 @@
         const fallbackBySlug = this.buildClubMapBySlug(registry.concat(extra, base));
         const supabase = this.applyFallbackCover((this.supabaseClubs || [])
           .map((club) => this.normalizeStoredClub(club, 'supabase'))
-          .filter(Boolean), fallbackBySlug);
+          .filter(Boolean)
+          .filter((club) => !this.isLegacyStaticClubRecord(club)), fallbackBySlug);
         const bySlug = {};
         const catalog = this.cloudBookingCatalogEnabled
           ? supabase.concat(registry, extra, base)

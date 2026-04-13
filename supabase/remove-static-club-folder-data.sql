@@ -1,14 +1,18 @@
--- One-time cleanup for seed/demo content used during development.
--- Review the slug/title lists below before running this in production.
--- Only run this if you want to remove the demo clubs, demo courses, and demo forum posts
--- created by:
---   1. seed-booking-demo.sql
---   2. seed-course-demo.sql
---   3. seed-forum-demo.sql
+-- Remove legacy static club-folder demo content from Supabase.
+-- Review the slug/title lists below before running in production.
+--
+-- What this removes:
+--   - clubs that matched the old html/club/*.html static pages
+--   - related demo courses tied to those legacy club examples
+--   - related demo forum posts that referenced those same examples
+--
+-- Notes:
+--   - deleting clubs will cascade to club slots, club memberships, and club bookings
+--   - courses and forum posts are deleted explicitly because their club_id uses SET NULL
 
 begin;
 
-with demo_course_slugs as (
+with static_course_slugs as (
   select unnest(array[
     'badminton-serve-fundamentals',
     'football-passing-basics',
@@ -26,9 +30,9 @@ with demo_course_slugs as (
   ]::text[]) as slug
 )
 delete from public.courses
-where slug in (select slug from demo_course_slugs);
+where slug in (select slug from static_course_slugs);
 
-with demo_post_titles as (
+with static_post_titles as (
   select unnest(array[
     'I keep swallowing water during freestyle breathing. How can I fix it?',
     'Beginner doubles positioning: how should front and rear players coordinate?',
@@ -39,9 +43,9 @@ with demo_post_titles as (
   ]::text[]) as title
 )
 delete from public.forum_posts
-where title in (select title from demo_post_titles);
+where title in (select title from static_post_titles);
 
-with demo_club_slugs as (
+with static_club_slugs as (
   select unnest(array[
     'football',
     'badminton',
@@ -63,6 +67,6 @@ with demo_club_slugs as (
   ]::text[]) as slug
 )
 delete from public.clubs
-where slug in (select slug from demo_club_slugs);
+where slug in (select slug from static_club_slugs);
 
 commit;

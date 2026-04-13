@@ -60,7 +60,11 @@ default_club_slugs as (
     'golf',
     'rugby',
     'handball',
-    'gymnastics'
+    'gymnastics',
+    'pingpong',
+    'volleyball',
+    'pickleball',
+    'baseball'
   ]::text[]) as slug
 )
 delete from public.clubs
