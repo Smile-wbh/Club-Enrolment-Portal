@@ -1880,7 +1880,8 @@
         myClubNames: new Set(),
         myClubSlugs: new Set(),
         myClubIds: new Set(),
-        useCloudData: false
+        useCloudData: false,
+        bookingSyncIssue: false
       };
       var clubTimeBuilderState = {
         create: [],
@@ -2180,6 +2181,7 @@
         await ensureDashboardLocalMigration(state.sessionUserId, state.sessionEmail, state.sessionNick, sessionAvatar);
 
         state.useCloudData = false;
+        state.bookingSyncIssue = false;
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           try{
             var service = getAdminService();
@@ -2193,7 +2195,8 @@
             console.warn('Club dashboard Supabase sync failed, using browser fallback.', error);
             state.clubs = safeParse(KEYS.clubs, []);
             state.members = safeParse(KEYS.members, []);
-            state.bookings = safeParse(KEYS.bookings, []);
+            state.bookings = [];
+            state.bookingSyncIssue = true;
             state.courses = safeParse(KEYS.courses, []);
           }
         }else{
@@ -3034,7 +3037,10 @@
       function renderActivities(){
         var tbody = document.getElementById('activityTableBody');
         if(state.myBookings.length === 0){
-          tbody.innerHTML = '<tr><td colspan="4" class="empty-row">No booking activity records.</td></tr>';
+          var emptyMessage = state.bookingSyncIssue
+            ? 'Booking records are temporarily unavailable. Please refresh and try again.'
+            : 'No booking activity records.';
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-row">' + emptyMessage + '</td></tr>';
           return;
         }
 
