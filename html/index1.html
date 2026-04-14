@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Enrollment Portal</title>
-  <link rel="stylesheet" href="../css/index1.css" />
+  <link rel="stylesheet" href="../css/index1.css?v=20260414-club-setup-2" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
 <body>
@@ -16,7 +16,7 @@
           <img src="../zp/gywm.webp" alt="Platform logo" />
         </span>
         <span class="brand-text">
-          <strong>Club Enrollment Portal</strong>
+          <strong>Club Registration Portal</strong>
           <em>Booking platform for campus and community clubs</em>
         </span>
       </a>
@@ -254,17 +254,13 @@
 
           <section class="panel more-panel">
             <div class="panel-head">
-              <h2>More Clubs</h2>
-              <a href="msjs.html">View All</a>
+              <h2>Create Your Own Club</h2>
             </div>
 
-            <div class="mini-club-list">
-              <a href="msjs.html">Club Preview</a>
-              <a href="specialty.html">Club Booking</a>
-              <a href="mfms.html">Club Courses</a>
-              <a href="spjs.html">Club Forum</a>
-              <a href="tzgg.html">Support Center</a>
-              <a href="join.html">User Dashboard</a>
+            <div class="home-club-setup-card">
+              <p class="home-club-setup-question" id="homeClubSetupQuestion">Would you like to create your own club?</p>
+              <p class="home-club-setup-copy" id="homeClubSetupCopy">Use the button below to confirm your registration and go straight to My Club Dashboard.</p>
+              <button class="home-club-setup-btn" id="homeClubSetupBtn" type="button">Register Now</button>
             </div>
           </section>
         </aside>
@@ -327,6 +323,7 @@
     initBanner();
     initSearch();
     initFeaturedClubs();
+    initClubSetupCard();
   });
 
   const FEATURED_FALLBACK_CLUBS = [
@@ -770,8 +767,190 @@
       }
     });
   }
+
+  function normalizeEmail(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function readCompatSession() {
+    const stores = [window.localStorage, window.sessionStorage];
+    for (let i = 0; i < stores.length; i += 1) {
+      try {
+        const raw = stores[i].getItem('user_session_v1');
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (normalizeEmail(parsed && parsed.email)) return parsed;
+      } catch (error) {}
+    }
+    return null;
+  }
+
+  function persistCompatSession(sessionData) {
+    if (!sessionData) return;
+    const text = JSON.stringify(sessionData);
+    try { window.localStorage.setItem('user_session_v1', text); } catch (error) {}
+    try { window.sessionStorage.setItem('user_session_v1', text); } catch (error) {}
+  }
+
+  function readLegacyUsers() {
+    try {
+      const raw = window.localStorage.getItem('club_users');
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function persistLegacyUsers(users) {
+    try {
+      window.localStorage.setItem('club_users', JSON.stringify(Array.isArray(users) ? users : []));
+    } catch (error) {}
+  }
+
+  function getSupabaseClientSafe() {
+    try {
+      return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function updateLegacyClubManagerState(session) {
+    if (!session || !normalizeEmail(session.email)) return session;
+    const email = normalizeEmail(session.email);
+    const users = readLegacyUsers();
+    const index = users.findIndex(function (item) {
+      return normalizeEmail(item && item.email) === email;
+    });
+    const nextUser = Object.assign({}, index > -1 ? users[index] : {}, {
+      userId: String((session && session.userId) || '').trim(),
+      email: email,
+      nickname: String((session && session.nickname) || '').trim() || email.split('@')[0],
+      isClubManager: true,
+      role: String(session && session.role) === 'admin' ? 'admin' : 'club_manager'
+    });
+    if (index > -1) {
+      users.splice(index, 1, nextUser);
+    } else {
+      users.push(nextUser);
+    }
+    persistLegacyUsers(users);
+    return nextUser;
+  }
+
+  async function syncClubManagerProfile(session) {
+    const client = getSupabaseClientSafe();
+    const userId = String((session && session.userId) || '').trim();
+    const email = normalizeEmail(session && session.email);
+    if (!client || !userId || !email) return;
+    try {
+      await client.from('profiles').upsert({
+        id: userId,
+        email: email,
+        nickname: String((session && session.nickname) || '').trim() || email.split('@')[0],
+        role: String(session && session.role) === 'admin' ? 'admin' : 'club_manager'
+      });
+    } catch (error) {}
+  }
+
+  function getClubSetupCardState() {
+    const session = readCompatSession();
+    const isClubManager = !!(session && session.isClubManager);
+    return {
+      session: session,
+      isClubManager: isClubManager
+    };
+  }
+
+  function renderClubSetupCard() {
+    const question = document.getElementById('homeClubSetupQuestion');
+    const copy = document.getElementById('homeClubSetupCopy');
+    const button = document.getElementById('homeClubSetupBtn');
+    if (!question || !copy || !button) return;
+
+    const state = getClubSetupCardState();
+    if (state.isClubManager) {
+      question.textContent = 'Your account already has club management access.';
+      copy.textContent = 'Use the button below to open My Club Dashboard and start creating or managing your club.';
+      button.textContent = 'Open My Club Dashboard';
+      return;
+    }
+
+    question.textContent = 'Would you like to create your own club?';
+    copy.textContent = 'Use the button below to confirm your registration and go straight to My Club Dashboard.';
+    button.textContent = 'Register Now';
+  }
+
+  async function promptConfirm(message, options) {
+    if (window.portalConfirm) {
+      return window.portalConfirm(message, options || {});
+    }
+    return window.confirm(String(message || ''));
+  }
+
+  async function promptAlert(message, options) {
+    if (window.portalAlert) {
+      return window.portalAlert(message, options || {});
+    }
+    window.alert(String(message || ''));
+  }
+
+  async function enableClubManagerAccess() {
+    const session = readCompatSession();
+    if (!session || !normalizeEmail(session.email)) {
+      const shouldLogin = await promptConfirm('Please sign in before registering your club. Would you like to go to the login page now?', {
+        title: 'Sign In Required',
+        confirmText: 'Go to Login',
+        cancelText: 'Not Now'
+      });
+      if (shouldLogin) {
+        window.location.href = 'join.html?view=login#auth-entry';
+      }
+      return;
+    }
+
+    if (session.isClubManager) {
+      window.location.href = 'club_management_dashboard.html';
+      return;
+    }
+
+    const shouldRegister = await promptConfirm('Would you like to register your club now?', {
+      title: 'Register Club Management System',
+      hideHeaderClose: true,
+      wide: true,
+      confirmText: 'Yes',
+      cancelText: 'No'
+    });
+    if (!shouldRegister) return;
+
+    const nextSession = Object.assign({}, session, {
+      isClubManager: true,
+      role: String(session.role) === 'admin' ? 'admin' : 'club_manager'
+    });
+    persistCompatSession(nextSession);
+    updateLegacyClubManagerState(nextSession);
+    await syncClubManagerProfile(nextSession);
+    renderClubSetupCard();
+    window.location.href = 'club_management_dashboard.html';
+  }
+
+  function initClubSetupCard() {
+    const button = document.getElementById('homeClubSetupBtn');
+    if (!button) return;
+    renderClubSetupCard();
+    button.addEventListener('click', function () {
+      enableClubManagerAccess().catch(function () {
+        promptAlert('We could not complete club registration right now. Please try again later.', {
+          title: 'Register Club Management System',
+          confirmText: 'OK'
+        });
+      });
+    });
+  }
 </script>
-<script src="../js/portal-header-auth.js"></script>
+<script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
+<script src="../js/portal-header-auth.js?v=20260414-delete-2"></script>
 <script src="../js/chat-widget.js"></script>
 </body>
 </html>

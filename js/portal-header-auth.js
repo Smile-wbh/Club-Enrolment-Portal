@@ -11,9 +11,17 @@
     return pagePrefix + '../' + relativePath;
   }
 
-    function ensureHeaderStyles() {
-      return;
-    }
+  function ensureHeaderStyles() {
+    if (!document || document.getElementById('portalHeaderAccountDeleteStyles')) return;
+    var style = document.createElement('style');
+    style.id = 'portalHeaderAccountDeleteStyles';
+    style.textContent = [
+      '.portal-profile-divider{height:1px;margin:4px 4px 6px;background:rgba(148,163,184,.28);}',
+      '.portal-profile-item-danger{color:#b42318 !important;font-weight:700;}',
+      '.portal-profile-item-danger:hover{background:#fff0ee !important;color:#912018 !important;}'
+    ].join('');
+    document.head && document.head.appendChild(style);
+  }
 
   function readSession() {
     var stores = [window.localStorage, window.sessionStorage];
@@ -77,6 +85,382 @@
     if (!text) return 0;
     var parsed = Date.parse(text);
     return Number.isNaN(parsed) ? 0 : parsed;
+  }
+
+  function isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
+  }
+
+  function getSupabaseClientSafe() {
+    try {
+      return typeof window.getSupabaseClient === 'function' ? window.getSupabaseClient() : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function readJsonObject(key) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      var parsed = raw ? JSON.parse(raw) : null;
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function filterLocalArray(key, predicate) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      var next = parsed.filter(predicate);
+      window.localStorage.setItem(key, JSON.stringify(next));
+    } catch (error) {}
+  }
+
+  function removePendingRecordIfOwned(key, email, userId) {
+    try {
+      var raw = window.localStorage.getItem(key);
+      if (!raw) return;
+      var parsed = JSON.parse(raw);
+      var target = parsed && typeof parsed === 'object' && parsed.order && typeof parsed.order === 'object'
+        ? parsed.order
+        : parsed;
+      if (!target || typeof target !== 'object') return;
+      if (rowMatchesUser(target, email, userId, ['userEmail', 'ownerEmail'], ['userId', 'ownerId'])) {
+        window.localStorage.removeItem(key);
+      }
+    } catch (error) {}
+  }
+
+  function rowMatchesUser(row, email, userId, emailKeys, idKeys) {
+    var emailMatch = false;
+    var idMatch = false;
+    (emailKeys || []).forEach(function (key) {
+      if (email && normalizeEmail(row && row[key]) === email) {
+        emailMatch = true;
+      }
+    });
+    (idKeys || []).forEach(function (key) {
+      if (userId && String((row && row[key]) || '').trim() === userId) {
+        idMatch = true;
+      }
+    });
+    return emailMatch || idMatch;
+  }
+
+  function isForumEntryOwnedByUser(item, email, userId, aliases) {
+    var ownerEmail = normalizeEmail(item && item.ownerEmail);
+    var authorEmail = normalizeEmail(item && item.authorEmail);
+    var ownerId = String((item && (item.ownerId || item.userId || item.authorId)) || '').trim();
+    var author = String((item && item.author) || '').trim().toLowerCase();
+    if (email && (ownerEmail === email || authorEmail === email)) return true;
+    if (userId && ownerId === userId) return true;
+    return !ownerEmail && !authorEmail && !!author && aliases.indexOf(author) > -1;
+  }
+
+  function pruneForumComments(list, email, userId, aliases) {
+    return (Array.isArray(list) ? list : []).reduce(function (result, item) {
+      if (!item || typeof item !== 'object') return result;
+      if (isForumEntryOwnedByUser(item, email, userId, aliases)) {
+        return result;
+      }
+      var next = Object.assign({}, item);
+      if (Array.isArray(item.replies)) {
+        next.replies = pruneForumComments(item.replies, email, userId, aliases);
+      }
+      result.push(next);
+      return result;
+    }, []);
+  }
+
+  function clearStoredAccountData(session) {
+    var email = normalizeEmail(session && session.email);
+    var userId = String((session && session.userId) || '').trim();
+    var aliases = currentAliases(session, { nickname: session && session.nickname });
+    var rememberedLoginEmail = '';
+
+    if (!email && !userId) return;
+
+    try {
+      rememberedLoginEmail = normalizeEmail(window.localStorage.getItem('remembered_login_email_v1') || '');
+      if (rememberedLoginEmail && rememberedLoginEmail === email) {
+        window.localStorage.removeItem('remembered_login_email_v1');
+      }
+    } catch (error) {}
+
+    filterLocalArray('club_users', function (item) {
+      return normalizeEmail(item && item.email) !== email;
+    });
+
+    filterLocalArray('specialty_bookings_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['userEmail', 'ownerEmail'], ['userId', 'ownerId']);
+    });
+
+    filterLocalArray('mfms_teaching_bookings_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['userEmail', 'ownerEmail'], ['userId', 'ownerId']);
+    });
+
+    filterLocalArray('mfms_fav_courses_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['ownerEmail', 'userEmail'], ['ownerId', 'userId']);
+    });
+
+    filterLocalArray('club_registry_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['ownerEmail', 'userEmail'], ['ownerId', 'userId']);
+    });
+
+    filterLocalArray('specialty_clubs_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['ownerEmail', 'userEmail'], ['ownerId', 'userId']);
+    });
+
+    filterLocalArray('club_members_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['userEmail', 'ownerEmail'], ['userId', 'ownerId']);
+    });
+
+    filterLocalArray('mfms_courses_v1', function (item) {
+      return !rowMatchesUser(item, email, userId, ['ownerEmail'], ['ownerId', 'userId']);
+    });
+
+    filterLocalArray('chat_messages_v1', function (item) {
+      var messageUserId = String((item && item.userId) || '').trim();
+      var sessionScopedChatUserId = email ? ('user:' + email) : '';
+      var emailMatch = email && normalizeEmail(item && item.userEmail) === email;
+      var idMatch = !!sessionScopedChatUserId && messageUserId === sessionScopedChatUserId;
+      var userMatch = userId && messageUserId === userId;
+      return !(emailMatch || idMatch || userMatch);
+    });
+
+    filterLocalArray('user_message_board_v1', function (item) {
+      var fromEmail = normalizeEmail(item && item.fromEmail);
+      var targetEmail = normalizeEmail(item && item.targetEmail);
+      var fromUserId = String((item && item.fromUserId) || '').trim();
+      var targetUserId = String((item && item.targetUserId) || '').trim();
+      var fromName = String((item && item.fromName) || '').trim().toLowerCase();
+      var targetName = String((item && item.targetName) || '').trim().toLowerCase();
+      var matchesEmail = email && (fromEmail === email || targetEmail === email);
+      var matchesUserId = userId && (fromUserId === userId || targetUserId === userId);
+      var matchesAlias = (!!fromName && aliases.indexOf(fromName) > -1)
+        || (!!targetName && aliases.indexOf(targetName) > -1);
+      return !(matchesEmail || matchesUserId || matchesAlias);
+    });
+
+    filterLocalArray('user_login_history_v1', function (item) {
+      return normalizeEmail(item && item.email) !== email;
+    });
+
+    try {
+      var rawForumPosts = window.localStorage.getItem('spjs_forum_posts_v1');
+      var forumPosts = rawForumPosts ? JSON.parse(rawForumPosts) : [];
+      if (Array.isArray(forumPosts)) {
+        var nextForumPosts = forumPosts.reduce(function (result, item) {
+          if (!item || typeof item !== 'object') return result;
+          if (isForumEntryOwnedByUser(item, email, userId, aliases)) {
+            return result;
+          }
+          var nextItem = Object.assign({}, item);
+          nextItem.comments = pruneForumComments(item.comments, email, userId, aliases);
+          result.push(nextItem);
+          return result;
+        }, []);
+        window.localStorage.setItem('spjs_forum_posts_v1', JSON.stringify(nextForumPosts));
+      }
+    } catch (error) {}
+
+    try {
+      var securitySettings = readJsonObject('user_security_settings_v1');
+      if (securitySettings && email) {
+        delete securitySettings[email];
+        window.localStorage.setItem('user_security_settings_v1', JSON.stringify(securitySettings));
+      }
+    } catch (error) {}
+
+    try {
+      var profileCovers = readJsonObject('spjs_forum_profile_covers_v1');
+      var coverKey = email ? ('email:' + email) : '';
+      if (profileCovers && coverKey) {
+        delete profileCovers[coverKey];
+        window.localStorage.setItem('spjs_forum_profile_covers_v1', JSON.stringify(profileCovers));
+      }
+    } catch (error) {}
+
+    try {
+      for (var i = window.localStorage.length - 1; i >= 0; i -= 1) {
+        var key = String(window.localStorage.key(i) || '');
+        var normalizedKey = key.toLowerCase();
+        if (email && normalizedKey === ('mfms_favs_v1:' + email)) {
+          window.localStorage.removeItem(key);
+          continue;
+        }
+        if (email && normalizedKey === ('local_business_migration_v1:' + email)) {
+          window.localStorage.removeItem(key);
+        }
+      }
+    } catch (error) {}
+
+    try {
+      if (email) window.localStorage.removeItem('user_notifications_seen_v1:' + email);
+      if (userId) window.localStorage.removeItem('user_notifications_seen_v1:' + userId);
+      window.localStorage.removeItem('chat_user_id_v1');
+    } catch (error) {}
+
+    removePendingRecordIfOwned('specialty_pending_payment_v1', email, userId);
+    removePendingRecordIfOwned('mfms_pending_course_booking_v1', email, userId);
+
+    try {
+      window.localStorage.removeItem('user_session_v1');
+    } catch (error) {}
+    try {
+      window.sessionStorage.removeItem('user_session_v1');
+    } catch (error) {}
+
+    clearStoredSupabaseAuth();
+  }
+
+  function showPortalConfirm(message, options) {
+    if (window.portalConfirm) {
+      return window.portalConfirm(message, options || {});
+    }
+    return Promise.resolve(window.confirm(String(message || '')));
+  }
+
+  function showPortalAlert(message, options) {
+    if (window.portalAlert) {
+      return window.portalAlert(message, options || {});
+    }
+    window.alert(String(message || ''));
+    return Promise.resolve();
+  }
+
+  async function getCurrentAccessToken() {
+    var client = getSupabaseClientSafe();
+    if (!client || !client.auth || typeof client.auth.getSession !== 'function') {
+      return '';
+    }
+    try {
+      var result = await client.auth.getSession();
+      return String((result && result.data && result.data.session && result.data.session.access_token) || '').trim();
+    } catch (error) {
+      return '';
+    }
+  }
+
+  async function requestAccountDeletion(accessToken) {
+    var response = await window.fetch('/api/delete-account', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: 'Bearer ' + accessToken
+      },
+      body: JSON.stringify({})
+    });
+    var result = {};
+    try {
+      result = await response.json();
+    } catch (error) {}
+    if (!response.ok) {
+      var failure = new Error((result && result.message) || 'Unable to delete this account right now.');
+      failure.code = result && result.error;
+      throw failure;
+    }
+    return result || {};
+  }
+
+  function mapDeleteAccountError(error) {
+    var text = String((error && error.message) || '').trim();
+    var lower = text.toLowerCase();
+    if (!text) return 'Unable to delete this account right now. Please try again.';
+    if (
+      lower.indexOf('sign in again') > -1
+      || lower.indexOf('unauthorized') > -1
+      || lower.indexOf('invalid jwt') > -1
+      || lower.indexOf('jwt expired') > -1
+      || lower.indexOf('session') > -1
+    ) {
+      return 'Please sign in again, then retry deleting this account.';
+    }
+    return text;
+  }
+
+  async function startDeleteAccountFlow(options) {
+    var session = readSession();
+    var config = options && typeof options === 'object' ? options : {};
+    var redirectUrl = String(config.redirectUrl || 'join.html').trim() || 'join.html';
+    var accessToken = '';
+    var hasCloudSession = false;
+    var message = '';
+
+    if (window.__portalDeleteAccountPending) {
+      return false;
+    }
+
+    if (!session || !normalizeEmail(session.email)) {
+      await showPortalAlert('Please sign in before deleting this account.', {
+        title: 'Delete Account',
+        confirmText: 'OK'
+      });
+      return false;
+    }
+
+    accessToken = await getCurrentAccessToken();
+    hasCloudSession = !!accessToken;
+
+    if (!hasCloudSession && isUuid(session.userId)) {
+      await showPortalAlert('Please sign in again before deleting this account so the cloud data can be removed as well.', {
+        title: 'Delete Account',
+        confirmText: 'OK'
+      });
+      return false;
+    }
+
+    message = hasCloudSession
+      ? 'This will permanently delete your account and remove your profile, clubs, courses, bookings, messages, forum content, and uploaded data.\n\nThis action cannot be undone.'
+      : 'This will permanently remove the saved account and related browser data on this device.\n\nThis action cannot be undone.';
+
+    var confirmed = await showPortalConfirm(message, {
+      title: 'Delete Account',
+      confirmText: 'Delete Account',
+      cancelText: 'Keep Account',
+      confirmVariant: 'danger',
+      hideHeaderClose: true
+    });
+
+    if (!confirmed) {
+      return false;
+    }
+
+    window.__portalDeleteAccountPending = true;
+    try {
+      if (hasCloudSession) {
+        await requestAccountDeletion(accessToken);
+      }
+
+      clearStoredAccountData(session);
+
+      var client = getSupabaseClientSafe();
+      if (client && client.auth && typeof client.auth.signOut === 'function') {
+        try {
+          await client.auth.signOut();
+        } catch (error) {}
+      }
+
+      await showPortalAlert('Your account has been deleted. You will be returned to the login page.', {
+        title: 'Account Deleted',
+        confirmText: 'OK'
+      });
+
+      window.location.replace(redirectUrl);
+      return true;
+    } catch (error) {
+      await showPortalAlert(mapDeleteAccountError(error), {
+        title: 'Delete Account',
+        confirmText: 'OK'
+      });
+      return false;
+    } finally {
+      window.__portalDeleteAccountPending = false;
+    }
   }
 
   function notificationSeenKey(session) {
@@ -218,7 +602,7 @@
   }
 
   function buildProfileMenuHtml(pagePrefix, session, unreadCount) {
-    return getUserCenterItems(pagePrefix, session)
+    var itemsHtml = getUserCenterItems(pagePrefix, session)
       .map(function (item) {
         var className = 'portal-profile-item' + (item.active ? ' active' : '');
         var badge = item.label === 'Messages' && unreadCount > 0
@@ -228,6 +612,9 @@
         return '<a class="' + className + extraClass + '" href="' + item.href + '"><span>' + item.label + '</span>' + badge + '</a>';
       })
       .join('');
+    return itemsHtml
+      + '<div class="portal-profile-divider" role="separator"></div>'
+      + '<button class="portal-profile-item portal-profile-item-danger" type="button" data-portal-delete-account="true">Delete Account</button>';
   }
 
   function removeDynamicNavLinks(nav) {
@@ -349,6 +736,14 @@
       return;
     }
 
+    var deleteAccountTarget = event.target.closest('[data-portal-delete-account]');
+    if (deleteAccountTarget) {
+      event.preventDefault();
+      closeAllProfileMenus();
+      startDeleteAccountFlow();
+      return;
+    }
+
     var toggle = event.target.closest('[data-portal-profile-toggle="true"]');
     if (toggle) {
       event.preventDefault();
@@ -392,6 +787,8 @@
       renderActions();
     }
   });
+
+    window.portalDeleteAccountFlow = startDeleteAccountFlow;
 
     renderActions();
     if (document.readyState === 'loading' && !document.querySelector('.top-actions')) {
