@@ -1869,6 +1869,11 @@ img{
   flex-direction: column;
   gap: 4px;
 }
+.header-profile-divider{
+  height: 1px;
+  margin: 4px 4px 6px;
+  background: rgba(148, 163, 184, 0.28);
+}
 .header-profile-item{
   width: 100%;
   border: none;
@@ -1916,6 +1921,14 @@ img{
   background: #dff0c0;
   color: #173510;
   font-weight: 700;
+}
+.header-profile-item.danger{
+  color: #b42318;
+  font-weight: 700;
+}
+.header-profile-item.danger:hover{
+  background: #fff0ee;
+  color: #912018;
 }
 .header-logout-btn{
   height: clamp(40px, 3.4vw, 52px);

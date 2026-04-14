@@ -16,7 +16,7 @@
   <script src="../js/supabase-courses.js"></script>
   <script src="../js/supabase-forum.js"></script>
   <script src="../js/supabase-support.js"></script>
-  <script src="../js/custom-dialogs.js"></script>
+  <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
   <link rel="stylesheet" href="../css/join.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <style>
@@ -124,7 +124,7 @@
             <img src="../zp/gywm.webp" alt="Platform logo" />
           </span>
           <span class="guest-brand-text">
-            <strong>Club Enrollment Portal</strong>
+            <strong>Club Registration Portal</strong>
             <em>Booking platform for campus and community clubs</em>
           </span>
         </a>
@@ -459,6 +459,8 @@
                   <span class="header-item-badge" v-if="unreadNotificationCount">{{ unreadNotificationCount > 99 ? '99+' : unreadNotificationCount }}</span>
                 </button>
                 <a class="header-profile-item" v-if="hasClubManagement" href="club_management_dashboard.html">My Club Dashboard</a>
+                <div class="header-profile-divider" role="separator"></div>
+                <button class="header-profile-item danger" type="button" @click="confirmDeleteAccount">Delete Account</button>
               </div>
           </div>
           <button class="header-logout-btn" @click="logout">Log Out</button>
@@ -1757,6 +1759,38 @@
         this.dashboardTab = tab;
         this.headerProfileOpen = false;
         this.closeForumMenus();
+      },
+      async confirmDeleteAccount(){
+        this.headerProfileOpen = false;
+        const ready = await this.ensureDeleteAccountFlowReady();
+        if(!ready){
+          alert('Account deletion is unavailable right now. Please refresh and try again.');
+          return;
+        }
+        await window.portalDeleteAccountFlow({
+          redirectUrl: 'join.html'
+        });
+      },
+      ensureDeleteAccountFlowReady(){
+        if(typeof window.portalDeleteAccountFlow === 'function'){
+          return Promise.resolve(true);
+        }
+        return new Promise((resolve) => {
+          const existing = document.querySelector('script[data-portal-delete-loader="true"]');
+          const finish = () => resolve(typeof window.portalDeleteAccountFlow === 'function');
+          if(existing){
+            existing.addEventListener('load', finish, { once: true });
+            existing.addEventListener('error', () => resolve(false), { once: true });
+            return;
+          }
+          const script = document.createElement('script');
+          script.src = '../js/portal-header-auth.js?v=20260414-delete-2';
+          script.async = true;
+          script.setAttribute('data-portal-delete-loader', 'true');
+          script.addEventListener('load', finish, { once: true });
+          script.addEventListener('error', () => resolve(false), { once: true });
+          document.head.appendChild(script);
+        });
       },
       notificationSeenKey(){
         const userKey = String(this.sessionUserId || this.sessionEmail || '').trim();
@@ -4361,6 +4395,7 @@
     }
   })
 </script>
+<script src="../js/portal-header-auth.js?v=20260414-delete-2"></script>
 <script src="../js/chat-widget.js"></script>
 </body>
 </html>
