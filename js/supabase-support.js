@@ -187,7 +187,10 @@
   var SUPPORT_DEFAULT_REPLY = 'We have received your message. To help us handle it more quickly, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. We will assist you as soon as possible.';
   var SUPPORT_AUTO_REPLY_CACHE_TTL = 5 * 60 * 1000;
   var SUPPORT_DYNAMIC_CONTEXT_CACHE_TTL = 2 * 60 * 1000;
-  var SUPPORT_COURSE_SELECT = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, created_at, club:clubs(name, slug, category)';
+  var SUPPORT_CLUB_SELECT = 'id, slug, name, category, mode, location, map_link, time_text, fee_text, seats, description, venue_info, what_we_do, audience, training_plan, notes, tags, status';
+  var SUPPORT_COURSE_SELECT = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, description, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, created_at, club:clubs(name, slug, category, location, mode)';
+  var SUPPORT_COURSE_SELECT_LEGACY = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, description, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, created_at, club:clubs(name, slug, category)';
+  var SUPPORT_FORUM_POST_SELECT = 'id, title, content, post_type, channel, likes_count, created_at, club:clubs(name, slug)';
   var supportAutoReplyRulesCache = null;
   var supportAutoReplyRulesFetchedAt = 0;
   var supportDynamicContextCache = null;
@@ -277,10 +280,28 @@
       isActive: true
     },
     {
+      ruleName: 'teaching-course-info',
+      keywords: ['teaching', 'class', 'classes', 'lesson', 'lessons', 'learn', 'learning', 'coach', 'instructor', 'teacher', 'teaching content', 'teaching method', 'teaching methods', 'method', 'methods', 'content', 'contents', 'item', 'items', 'syllabus', 'topic', 'topics', 'what learn', '教学', '上课', '课程内容', '教练', '老师', '教学内容', '内容', '项目', '教学方法'],
+      responseText: 'We have received your teaching question. Please tell us the course name if you know it, and we can help you check the course overview, coach, teaching focus, schedule, location, fee, and remaining seats.',
+      priority: 55,
+      requiresHuman: false,
+      isDefault: false,
+      isActive: true
+    },
+    {
       ruleName: 'club-course-info',
       keywords: ['club', 'course', 'info', 'information', 'detail', 'details', '俱乐部', '课程', '信息', '详情', '介绍'],
       responseText: 'We have received your information request. Please tell us which club or course you want to know about, and we can help you check the introduction, schedule, location, fee, and available booking slots.',
       priority: 60,
+      requiresHuman: false,
+      isDefault: false,
+      isActive: true
+    },
+    {
+      ruleName: 'forum-community',
+      keywords: ['forum', 'post', 'posts', 'community', 'comment', 'comments', 'thread', 'threads', '论坛', '帖子', '评论', '社区', '动态'],
+      responseText: 'We have received your forum question. Please tell us the club, course, or topic you are interested in, and we can help you check recent public posts and discussion topics.',
+      priority: 65,
       requiresHuman: false,
       isDefault: false,
       isActive: true
@@ -367,6 +388,22 @@
 
   function buildSupportSlotTime(start, end) {
     return supportShortTime(start) + '-' + supportShortTime(end);
+  }
+
+  function supportTextPreview(value, maxLength) {
+    var text = trimText(value).replace(/\s+/g, ' ');
+    if (!text) return '';
+    return text.length > (maxLength || 180)
+      ? (text.slice(0, maxLength || 180).replace(/[,:;.\- ]+$/, '') + '...')
+      : text;
+  }
+
+  function supportListPreview(list, maxItems) {
+    return (Array.isArray(list) ? list : [])
+      .map(trimText)
+      .filter(Boolean)
+      .slice(0, maxItems || 3)
+      .join('; ');
   }
 
   function supportTimeSortValue(value) {
@@ -456,7 +493,8 @@
     return JSON.parse(JSON.stringify(context || {
       todayIso: '',
       clubs: [],
-      courses: []
+      courses: [],
+      forumPosts: []
     }));
   }
 
@@ -475,7 +513,8 @@
       return {
         todayIso: formatSupportIso(new Date()),
         clubs: [],
-        courses: []
+        courses: [],
+        forumPosts: []
       };
     }
 
@@ -484,14 +523,15 @@
       return {
         todayIso: formatSupportIso(new Date()),
         clubs: [],
-        courses: []
+        courses: [],
+        forumPosts: []
       };
     }
 
     var todayIso = formatSupportIso(new Date());
     var clubPromise = client
       .from('clubs')
-      .select('id, slug, name, category, mode, location, map_link, time_text, fee_text, seats, status')
+      .select(SUPPORT_CLUB_SELECT)
       .eq('status', 'approved')
       .order('name', { ascending: true });
 
@@ -511,11 +551,19 @@
       .select(SUPPORT_COURSE_SELECT)
       .order('created_at', { ascending: false });
 
-    var results = await Promise.all([clubPromise, slotPromise, availabilityPromise, coursePromise]);
+    var forumPromise = client
+      .from('forum_posts')
+      .select(SUPPORT_FORUM_POST_SELECT)
+      .eq('visibility', 'public')
+      .order('created_at', { ascending: false })
+      .limit(80);
+
+    var results = await Promise.all([clubPromise, slotPromise, availabilityPromise, coursePromise, forumPromise]);
     var clubResult = results[0] || {};
     var slotResult = results[1] || {};
     var availabilityResult = results[2] || {};
     var courseResult = results[3] || {};
+    var forumResult = results[4] || {};
 
     if (clubResult.error) throw clubResult.error;
     if (slotResult.error) throw slotResult.error;
@@ -523,11 +571,12 @@
     if (courseResult.error && isSupportMissingCourseMapLinkColumn(courseResult.error)) {
       courseResult = await client
         .from('courses')
-        .select('id, slug, club_id, title, level, mode, time_text, schedule, location, fee_text, seats, created_at, club:clubs(name, slug, category)')
+        .select(SUPPORT_COURSE_SELECT_LEGACY)
         .order('created_at', { ascending: false });
     }
 
     if (courseResult.error) throw courseResult.error;
+    if (forumResult.error) throw forumResult.error;
 
     var courseRows = Array.isArray(courseResult.data) ? courseResult.data : [];
     var courseIds = courseRows.map(function (row) {
@@ -570,6 +619,13 @@
         timeText: trimText(club && club.time_text),
         feeText: formatSupportFee(club && club.fee_text, '£0'),
         seats: Number(club && club.seats || 0),
+        description: trimText(club && club.description),
+        venueInfo: trimText(club && club.venue_info),
+        whatWeDo: trimText(club && club.what_we_do),
+        audience: trimText(club && club.audience),
+        trainingPlan: trimText(club && club.training_plan),
+        notes: trimText(club && club.notes),
+        tags: Array.isArray(club && club.tags) ? club.tags.map(trimText).filter(Boolean) : [],
         todaySlots: todaySlots,
         totalRemainingToday: todaySlots.reduce(function (sum, slot) {
           return sum + Math.max(0, Number(slot.remaining || 0));
@@ -604,6 +660,14 @@
         feeText: formatSupportFee(row.fee_text, ''),
         timeText: primaryTime,
         schedule: schedule.length ? schedule : (primaryTime ? [primaryTime] : []),
+        description: trimText(row.description),
+        detail: trimText(row.detail),
+        coachName: trimText(row.coach_name),
+        coachTitle: trimText(row.coach_title),
+        coachBio: trimText(row.coach_bio),
+        learningPoints: Array.isArray(row.learning_points) ? row.learning_points.map(trimText).filter(Boolean) : [],
+        audienceTips: Array.isArray(row.audience_tips) ? row.audience_tips.map(trimText).filter(Boolean) : [],
+        notesList: Array.isArray(row.notes_list) ? row.notes_list.map(trimText).filter(Boolean) : [],
         totalRemainingSeats: Math.max(totalCapacity - bookedCount, 0),
         totalCapacity: totalCapacity,
         perSlotSeats: perSlotSeats
@@ -612,10 +676,27 @@
       return !!course.title;
     });
 
+    var forumPosts = (Array.isArray(forumResult.data) ? forumResult.data : []).map(function (row) {
+      return {
+        id: normalizeId(row && row.id),
+        title: trimText(row && row.title),
+        content: trimText(row && row.content),
+        postType: trimText(row && row.post_type),
+        channel: trimText(row && row.channel),
+        likesCount: Number(row && row.likes_count || 0),
+        clubName: trimText(row && row.club && row.club.name),
+        clubSlug: trimText(row && row.club && row.club.slug),
+        createdAt: trimText(row && row.created_at)
+      };
+    }).filter(function (post) {
+      return !!(post.title || post.content);
+    });
+
     supportDynamicContextCache = {
       todayIso: todayIso,
       clubs: clubs,
-      courses: courses
+      courses: courses,
+      forumPosts: forumPosts
     };
     supportDynamicContextFetchedAt = now;
     return cloneSupportDynamicContext(supportDynamicContextCache);
@@ -645,12 +726,212 @@
     }) : [];
   }
 
+  async function fetchSupportUserCourseBookings(currentUserId) {
+    if (!isConfigured() || !normalizeId(currentUserId)) return [];
+    var client = getSupabaseClientSafe();
+    if (!client) return [];
+    var result = await client
+      .from('course_bookings')
+      .select('status, selected_schedule, booked_at, course:courses(title, location, fee_text)')
+      .eq('user_id', normalizeId(currentUserId))
+      .order('booked_at', { ascending: false })
+      .limit(30);
+    if (result.error) throw result.error;
+    return Array.isArray(result.data) ? result.data.map(function (row) {
+      return {
+        status: trimText(row && row.status),
+        selectedSchedule: trimText(row && row.selected_schedule),
+        bookedAt: trimText(row && row.booked_at),
+        courseTitle: trimText(row && row.course && row.course.title),
+        location: trimText(row && row.course && row.course.location),
+        feeText: trimText(row && row.course && row.course.fee_text)
+      };
+    }) : [];
+  }
+
   function formatSupportSlotList(slots, maxItems) {
     return (Array.isArray(slots) ? slots : []).filter(function (slot) {
       return Number(slot && slot.remaining || 0) > 0;
     }).slice(0, maxItems || 3).map(function (slot) {
       return slot.time + ' (' + Math.max(0, Number(slot.remaining || 0)) + ' left)';
     }).join(', ');
+  }
+
+  function buildSupportForumAliases(post) {
+    return [
+      post.title,
+      post.clubName,
+      post.clubSlug,
+      post.postType,
+      post.channel,
+      post.content
+    ];
+  }
+
+  function buildSupportClubAliases(club) {
+    return [
+      club.name,
+      club.slug,
+      club.category,
+      club.location
+    ];
+  }
+
+  function buildSupportCourseAliases(course) {
+    return [
+      course.title,
+      course.slug,
+      course.clubName,
+      course.clubSlug,
+      course.coachName,
+      course.coachTitle
+    ];
+  }
+
+  function supportPrefersCourseReply(text) {
+    var normalizedText = normalizeSupportLookupText(text);
+    if (!normalizedText) return false;
+    return [
+      'course',
+      'courses',
+      'class',
+      'classes',
+      'lesson',
+      'lessons',
+      'teaching',
+      'coach',
+      'instructor',
+      'syllabus',
+      'item',
+      'items',
+      'content',
+      'contents',
+      'learn',
+      'learning',
+      '课程',
+      '上课',
+      '教学',
+      '教练',
+      '内容'
+    ].some(function (keyword) {
+      return normalizedText.indexOf(keyword) > -1;
+    });
+  }
+
+  function extractSupportCourseInfoNeeds(text) {
+    var normalizedText = normalizeSupportLookupText(text);
+    return {
+      overview: /overview|summary|introduction|detail|details|about|概述|简介|介绍|详情/.test(normalizedText),
+      coach: /coach|teacher|instructor|tutor|教练|老师|授课教师/.test(normalizedText),
+      focus: /focus|content|contents|syllabus|topic|topics|teaching method|teaching methods|method|methods|learning point|learning points|教学重点|课程内容|教学内容|教学方法|内容|项目/.test(normalizedText),
+      schedule: /schedule|time|times|timetable|lesson time|上课时间|时间|课程安排|安排/.test(normalizedText),
+      location: /location|address|venue|place|地点|位置|地址|授课地点/.test(normalizedText),
+      fee: /fee|fees|price|prices|cost|costs|payment|收费|费用|价格/.test(normalizedText),
+      seats: /seat|seats|space|spaces|availability|available|remaining|名额|剩余名额|余位/.test(normalizedText)
+    };
+  }
+
+  function supportHasSpecificCourseInfoNeed(needs) {
+    return !!(needs && (needs.overview || needs.coach || needs.focus || needs.schedule || needs.location || needs.fee || needs.seats));
+  }
+
+  function buildSupportTeachingFollowup(courses, subjectLabel) {
+    var list = (Array.isArray(courses) ? courses : []).slice(0, 4);
+    if (!list.length) return '';
+    if (list.length === 1) {
+      return 'I found a related course for ' + subjectLabel + ': ' + list[0].title + '. Please tell me whether you want the course overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
+    }
+    return 'I found these related courses for ' + subjectLabel + ': ' + list.map(function (course) {
+      return course.title;
+    }).join('; ') + '. Please tell me which course you want, and whether you need the course overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
+  }
+
+  function buildSupportTeachingDirectReply(course, needs) {
+    var parts = [];
+    if (!course) return '';
+    parts.push('Teaching details for ' + course.title + '.');
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.overview) {
+      parts.push('Overview: ' + (supportTextPreview(course.detail || course.description, 180) || 'not provided yet') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.coach) {
+      parts.push('Teaching team: ' + ([course.coachName, course.coachTitle].filter(Boolean).join(' - ') || 'not provided') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.focus) {
+      parts.push('Learning focus: ' + (supportListPreview(course.learningPoints, 4) || supportTextPreview(course.detail || course.description, 140) || 'not provided yet') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.schedule) {
+      parts.push('Schedule: ' + (course.schedule.join(' / ') || 'not provided') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.location) {
+      parts.push('Location: ' + (course.location || 'not provided') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.fee) {
+      parts.push('Fee: ' + (course.feeText || 'free') + '.');
+    }
+    if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.seats) {
+      parts.push('Remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + '.');
+    }
+    return parts.join(' ');
+  }
+
+  function appendUniqueSupportEntities(target, items) {
+    var seen = {};
+    (Array.isArray(target) ? target : []).forEach(function (item) {
+      if (!item) return;
+      seen[normalizeId(item.id) || trimText(item.slug) || trimText(item.name) || trimText(item.title)] = true;
+    });
+    (Array.isArray(items) ? items : []).forEach(function (item) {
+      if (!item) return;
+      var key = normalizeId(item.id) || trimText(item.slug) || trimText(item.name) || trimText(item.title);
+      if (!key || seen[key]) return;
+      seen[key] = true;
+      target.push(item);
+    });
+    return target;
+  }
+
+  function resolveSupportConversationEntities(payload, context) {
+    var clubs = Array.isArray(context && context.clubs) ? context.clubs : [];
+    var courses = Array.isArray(context && context.courses) ? context.courses : [];
+    var currentText = trimText(payload && payload.text);
+    var threadSubject = trimText(payload && payload.threadSubject);
+    var historyTexts = (Array.isArray(payload && payload.threadHistory) ? payload.threadHistory : []).map(function (entry) {
+      return trimText(entry && (entry.text || entry.messageText));
+    }).filter(Boolean);
+
+    var currentCourseMatches = pickSupportMatches(currentText, courses, buildSupportCourseAliases, 4);
+    var currentClubMatches = pickSupportMatches(currentText, clubs, buildSupportClubAliases, 3);
+
+    var inferredCourses = appendUniqueSupportEntities([], currentCourseMatches.slice());
+    var inferredClubs = appendUniqueSupportEntities([], currentClubMatches.slice());
+
+    if (threadSubject) {
+      appendUniqueSupportEntities(inferredCourses, pickSupportMatches(threadSubject, courses, buildSupportCourseAliases, 4));
+      appendUniqueSupportEntities(inferredClubs, pickSupportMatches(threadSubject, clubs, buildSupportClubAliases, 3));
+    }
+
+    historyTexts.forEach(function (text) {
+      appendUniqueSupportEntities(inferredCourses, pickSupportMatches(text, courses, buildSupportCourseAliases, 4));
+      appendUniqueSupportEntities(inferredClubs, pickSupportMatches(text, clubs, buildSupportClubAliases, 3));
+    });
+
+    if (!inferredCourses.length && inferredClubs.length) {
+      appendUniqueSupportEntities(inferredCourses, courses.filter(function (course) {
+        var courseClubName = normalizeSupportLookupText(course.clubName);
+        var courseClubSlug = normalizeSupportLookupText(course.clubSlug);
+        return inferredClubs.some(function (club) {
+          return (courseClubName && courseClubName === normalizeSupportLookupText(club.name))
+            || (courseClubSlug && courseClubSlug === normalizeSupportLookupText(club.slug));
+        });
+      }).slice(0, 6));
+    }
+
+    return {
+      currentCourses: currentCourseMatches,
+      currentClubs: currentClubMatches,
+      courses: inferredCourses,
+      clubs: inferredClubs
+    };
   }
 
   function buildBookingScheduleReply(payload, fallbackText, context) {
@@ -705,6 +986,20 @@
     var text = trimText(payload && payload.text);
     var clubs = Array.isArray(context && context.clubs) ? context.clubs : [];
     var courses = Array.isArray(context && context.courses) ? context.courses : [];
+    var prefersCourse = supportPrefersCourseReply(text);
+    var matchedCourses = pickSupportMatches(text, courses, function (course) {
+      return [course.title, course.slug, course.clubName, course.coachName, course.coachTitle];
+    }, 1);
+    if (prefersCourse && matchedCourses.length) {
+      var preferredCourse = matchedCourses[0];
+      var preferredOverview = supportTextPreview(preferredCourse.detail || preferredCourse.description, 180);
+      var preferredCoaching = supportTextPreview([preferredCourse.coachName, preferredCourse.coachTitle, preferredCourse.coachBio].filter(Boolean).join(' - '), 160);
+      var preferredLearning = supportListPreview(preferredCourse.learningPoints, 3);
+      return 'Here is the current information for ' + preferredCourse.title + '. Schedules: ' + (preferredCourse.schedule.join(' / ') || 'not provided') + '. Location: ' + (preferredCourse.location || 'not provided') + '. Fee: ' + (preferredCourse.feeText || 'free') + '. Total remaining seats: ' + Math.max(0, Number(preferredCourse.totalRemainingSeats || 0)) + '.'
+        + (preferredOverview ? (' Overview: ' + preferredOverview + '.') : '')
+        + (preferredCoaching ? (' Teaching team: ' + preferredCoaching + '.') : '')
+        + (preferredLearning ? (' Learning focus: ' + preferredLearning + '.') : '');
+    }
     var matchedClubs = pickSupportMatches(text, clubs, function (club) {
       return [club.name, club.slug];
     }, 1);
@@ -713,14 +1008,53 @@
       var extra = Number(club.totalRemainingToday || 0) > 0
         ? (' Today\'s bookable slots: ' + formatSupportSlotList(club.todaySlots, 3) + '.')
         : '';
-      return 'Here is the current information for ' + club.name + '. Location: ' + (club.location || 'not provided') + '. Regular time: ' + (club.timeText || 'not provided yet') + '. Fee: ' + (club.feeText || 'free') + '.' + extra;
+      var intro = supportTextPreview(club.description || club.whatWeDo || club.venueInfo, 180);
+      var training = supportTextPreview(club.trainingPlan || club.notes || club.audience, 160);
+      var tags = supportListPreview(club.tags, 4);
+      return 'Here is the current information for ' + club.name + '. Category: ' + (club.category || 'not provided') + '. Location: ' + (club.location || 'not provided') + '. Regular time: ' + (club.timeText || 'not provided yet') + '. Fee: ' + (club.feeText || 'free') + '.'
+        + (intro ? (' Overview: ' + intro + '.') : '')
+        + (training ? (' Training and notes: ' + training + '.') : '')
+        + (tags ? (' Tags: ' + tags + '.') : '')
+        + extra;
     }
-    var matchedCourses = pickSupportMatches(text, courses, function (course) {
-      return [course.title, course.slug, course.clubName];
-    }, 1);
     if (matchedCourses.length) {
       var course = matchedCourses[0];
-      return 'Here is the current information for ' + course.title + '. Schedules: ' + (course.schedule.join(' / ') || 'not provided') + '. Location: ' + (course.location || 'not provided') + '. Fee: ' + (course.feeText || 'free') + '. Total remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + '.';
+      var overview = supportTextPreview(course.detail || course.description, 180);
+      var coaching = supportTextPreview([course.coachName, course.coachTitle, course.coachBio].filter(Boolean).join(' - '), 160);
+      var learning = supportListPreview(course.learningPoints, 3);
+      return 'Here is the current information for ' + course.title + '. Schedules: ' + (course.schedule.join(' / ') || 'not provided') + '. Location: ' + (course.location || 'not provided') + '. Fee: ' + (course.feeText || 'free') + '. Total remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + '.'
+        + (overview ? (' Overview: ' + overview + '.') : '')
+        + (coaching ? (' Teaching team: ' + coaching + '.') : '')
+        + (learning ? (' Learning focus: ' + learning + '.') : '');
+    }
+    return fallbackText;
+  }
+
+  function buildTeachingCourseReply(payload, fallbackText, context) {
+    var text = trimText(payload && payload.text);
+    var needs = extractSupportCourseInfoNeeds(text);
+    var entityContext = resolveSupportConversationEntities(payload, context);
+    var matchedCourses = entityContext.courses.slice(0, 4);
+    var matchedClubs = entityContext.clubs.slice(0, 2);
+    if (matchedCourses.length) {
+      var course = matchedCourses[0];
+      if (entityContext.currentCourses.length || entityContext.currentClubs.length) {
+        return buildSupportTeachingFollowup(matchedCourses, trimText(entityContext.currentClubs[0] && entityContext.currentClubs[0].name) || trimText(entityContext.currentCourses[0] && entityContext.currentCourses[0].title) || 'your question') || fallbackText;
+      }
+      if (supportHasSpecificCourseInfoNeed(needs) && matchedCourses.length === 1) {
+        return buildSupportTeachingDirectReply(course, needs) || fallbackText;
+      }
+      return buildSupportTeachingFollowup(matchedCourses, trimText(matchedClubs[0] && matchedClubs[0].name) || trimText(course.title) || 'your question') || fallbackText;
+    }
+    var courses = Array.isArray(context && context.courses) ? context.courses : [];
+    if (!fallbackText) return '';
+    var openCourses = courses.filter(function (item) {
+      return Number(item.totalRemainingSeats || 0) > 0;
+    }).slice(0, 4);
+    if (openCourses.length) {
+      return 'Courses you can currently ask about include: ' + openCourses.map(function (item) {
+        return item.title + ' (' + (item.schedule.join(' / ') || 'schedule not provided') + ', ' + Math.max(0, Number(item.totalRemainingSeats || 0)) + ' seats left)';
+      }).join('; ') + '. Please tell me which course you want, and whether you need the course overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
     }
     return fallbackText;
   }
@@ -746,6 +1080,26 @@
     return fallbackText;
   }
 
+  function buildForumCommunityReply(payload, fallbackText, context) {
+    var text = trimText(payload && payload.text);
+    var posts = Array.isArray(context && context.forumPosts) ? context.forumPosts : [];
+    var matchedPosts = pickSupportMatches(text, posts, buildSupportForumAliases, 3);
+    if (matchedPosts.length) {
+      return 'Recent public forum topics related to your question include: ' + matchedPosts.map(function (post) {
+        var title = post.title || supportTextPreview(post.content, 60) || 'Untitled post';
+        var meta = [post.clubName, post.postType, post.channel].filter(Boolean).join(' / ');
+        return title + (meta ? (' [' + meta + ']') : '');
+      }).join('; ') + '.';
+    }
+    var recentPosts = posts.slice(0, 4);
+    if (recentPosts.length) {
+      return 'Recent public forum topics include: ' + recentPosts.map(function (post) {
+        return (post.title || supportTextPreview(post.content, 56) || 'Untitled post') + (post.clubName ? (' [' + post.clubName + ']') : '');
+      }).join('; ') + '.';
+    }
+    return fallbackText;
+  }
+
   async function buildPaymentRefundReply(payload, fallbackText) {
     var orderIds = extractSupportOrderIds(payload && payload.text);
     if (!orderIds.length || !normalizeId(payload && payload.currentUserId)) {
@@ -760,6 +1114,27 @@
         return 'We could not find that order ID in your current club bookings. Please double-check the order ID and send it again, or include the club name and booking date.';
       }
       return 'We found your order ' + match.orderId + ': ' + (match.clubName || 'Club booking') + ', ' + (match.dayIso || 'date not provided') + ' ' + (match.slotTime || '').trim() + '. Booking status: ' + (match.status || 'unknown') + '. Payment status: ' + (match.paymentStatus || 'unknown') + '. If you need a refund review, please reply with the reason for the request.';
+    } catch (error) {
+      return fallbackText;
+    }
+  }
+
+  async function buildDashboardRecordsReply(payload, fallbackText) {
+    if (!normalizeId(payload && payload.currentUserId)) return fallbackText;
+    try {
+      var clubBookings = await fetchSupportUserBookings(payload.currentUserId);
+      var courseBookings = await fetchSupportUserCourseBookings(payload.currentUserId);
+      var latestClub = clubBookings[0];
+      var latestCourse = courseBookings[0];
+      var parts = [];
+      parts.push('In your dashboard, we currently found ' + clubBookings.length + ' club booking record(s) and ' + courseBookings.length + ' course booking record(s).');
+      if (latestClub) {
+        parts.push('Latest club booking: ' + (latestClub.clubName || 'Club booking') + ' on ' + (latestClub.dayIso || 'date not provided') + ' ' + (latestClub.slotTime || '') + ' [' + (latestClub.status || 'unknown') + '/' + (latestClub.paymentStatus || 'unknown') + '].');
+      }
+      if (latestCourse) {
+        parts.push('Latest course booking: ' + (latestCourse.courseTitle || 'Course booking') + ' ' + (latestCourse.selectedSchedule || '') + ' [' + (latestCourse.status || 'booked') + '].');
+      }
+      return parts.join(' ');
     } catch (error) {
       return fallbackText;
     }
@@ -781,6 +1156,25 @@
 
   function fallbackSupportAutoReplyRules() {
     return FALLBACK_SUPPORT_AUTO_REPLY_RULES.map(cloneSupportAutoReplyRule);
+  }
+
+  function mergeSupportAutoReplyRules(rows) {
+    var merged = {};
+    fallbackSupportAutoReplyRules().forEach(function (rule) {
+      merged[trimText(rule.ruleName)] = rule;
+    });
+    (Array.isArray(rows) ? rows : []).forEach(function (rule) {
+      var key = trimText(rule && rule.ruleName);
+      if (!key) return;
+      merged[key] = rule;
+    });
+    return Object.keys(merged).map(function (key) {
+      return cloneSupportAutoReplyRule(merged[key]);
+    }).sort(function (a, b) {
+      var priorityDelta = Number(a.priority || 0) - Number(b.priority || 0);
+      if (priorityDelta) return priorityDelta;
+      return trimText(a.ruleName).localeCompare(trimText(b.ruleName));
+    });
   }
 
   async function fetchSupportAutoReplyRules() {
@@ -813,7 +1207,7 @@
           return rule.isActive && trimText(rule.responseText);
         });
 
-      supportAutoReplyRulesCache = rows.length ? rows : fallbackSupportAutoReplyRules();
+      supportAutoReplyRulesCache = mergeSupportAutoReplyRules(rows);
       supportAutoReplyRulesFetchedAt = now;
       return supportAutoReplyRulesCache.map(cloneSupportAutoReplyRule);
     } catch (error) {
@@ -868,19 +1262,44 @@
 
     var rules = await fetchSupportAutoReplyRules();
     var rule = pickSupportAutoReplyRule(text, rules);
+    var context = null;
+    if (isConfigured()) {
+      try {
+        context = await fetchSupportDynamicContext();
+      } catch (error) {
+        context = null;
+      }
+    }
     if (rule && trimText(rule.responseText)) {
       var resolvedText = trimText(rule.responseText);
-      if (isConfigured()) {
+      if (context) {
         try {
-          var context = await fetchSupportDynamicContext();
           if (trimText(rule.ruleName) === 'booking-schedule') {
             resolvedText = trimText(buildBookingScheduleReply(payload, resolvedText, context)) || resolvedText;
+          } else if (trimText(rule.ruleName) === 'teaching-course-info') {
+            resolvedText = trimText(buildTeachingCourseReply(payload, resolvedText, context)) || resolvedText;
           } else if (trimText(rule.ruleName) === 'club-course-info') {
             resolvedText = trimText(buildClubCourseInfoReply(payload, resolvedText, context)) || resolvedText;
+          } else if (trimText(rule.ruleName) === 'forum-community') {
+            resolvedText = trimText(buildForumCommunityReply(payload, resolvedText, context)) || resolvedText;
           } else if (trimText(rule.ruleName) === 'maps-location') {
             resolvedText = trimText(buildMapsLocationReply(payload, resolvedText, context)) || resolvedText;
           } else if (trimText(rule.ruleName) === 'payment-refund') {
             resolvedText = trimText(await buildPaymentRefundReply(payload, resolvedText)) || resolvedText;
+          } else if (trimText(rule.ruleName) === 'dashboard-records') {
+            resolvedText = trimText(await buildDashboardRecordsReply(payload, resolvedText)) || resolvedText;
+          }
+        } catch (error) {}
+      }
+      if (trimText(rule.ruleName) === 'default' && context) {
+        try {
+          var inferredTeachingReply = trimText(buildTeachingCourseReply(payload, '', context));
+          if (inferredTeachingReply) {
+            resolvedText = inferredTeachingReply;
+            rule = {
+              ruleName: 'teaching-course-followup',
+              requiresHuman: false
+            };
           }
         } catch (error) {}
       }
@@ -994,6 +1413,26 @@
       });
   }
 
+  async function fetchSupportThreadHistory(client, threadId) {
+    if (!client || !normalizeId(threadId)) return [];
+    var result = await client
+      .from('support_messages')
+      .select('id, sender_role, sender_name, message_text, created_at')
+      .eq('thread_id', normalizeId(threadId))
+      .order('created_at', { ascending: false })
+      .limit(12);
+    if (result.error) throw result.error;
+    return (Array.isArray(result.data) ? result.data : []).map(function (row) {
+      return {
+        id: normalizeId(row && row.id),
+        role: trimText(row && row.sender_role),
+        senderName: trimText(row && row.sender_name),
+        text: trimText(row && row.message_text),
+        createdAt: trimText(row && row.created_at)
+      };
+    });
+  }
+
   async function sendSupportMessage(payload, currentUserId, currentEmail, currentName) {
     var client = getSupabaseClientSafe();
     if (!client) throw new Error('Supabase is not configured.');
@@ -1039,10 +1478,19 @@
       thread_category: thread && thread.category
     }, currentEmail);
 
+    var threadHistory = [];
+    try {
+      threadHistory = await fetchSupportThreadHistory(client, thread && thread.id);
+    } catch (error) {}
+
     var autoReply = await resolveSupportAutoReply({
       text: text,
       attachments: attachments,
       category: trimText(payload && payload.category) || 'General',
+      threadId: normalizeId(thread && thread.id),
+      threadSubject: trimText(thread && thread.subject),
+      threadCategory: trimText(thread && thread.category),
+      threadHistory: threadHistory,
       currentUserId: currentUserId,
       currentEmail: currentEmail,
       currentName: currentName
