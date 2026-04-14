@@ -236,7 +236,7 @@
   var FALLBACK_SUPPORT_AUTO_REPLY_RULES = Object.freeze([
     {
       ruleName: 'human-handoff',
-      keywords: ['转人工', '人工', '人工客服', '客服', '真人', '人工服务', 'human', 'agent', 'representative', 'customer service'],
+      keywords: ['human', 'agent', 'representative', 'customer service', 'support staff', 'live support'],
       responseText: SUPPORT_HUMAN_HANDOFF_REPLY,
       priority: 5,
       requiresHuman: true,
@@ -245,7 +245,7 @@
     },
     {
       ruleName: 'booking-schedule',
-      keywords: ['booking', 'book', 'slot', 'schedule', 'reservation', '预约', '时段', '时间段', '预定', '可预约', '名额'],
+      keywords: ['booking', 'book', 'slot', 'schedule', 'reservation', 'availability', 'available seat', 'seats'],
       responseText: 'We have received your booking question. Please provide the club or course name, the relevant date and time slot, and we will help you confirm availability, remaining seats, and booking status.',
       priority: 20,
       requiresHuman: false,
@@ -254,7 +254,7 @@
     },
     {
       ruleName: 'payment-refund',
-      keywords: ['pay', 'payment', 'fee', 'refund', 'order', '付款', '支付', '费用', '退款', '订单'],
+      keywords: ['pay', 'payment', 'fee', 'refund', 'order', 'charge', 'billing'],
       responseText: 'We have received your payment question. Please provide the order ID, the club or course name, and the relevant date and time. If a refund is involved, the final outcome will follow the club or course policy.',
       priority: 30,
       requiresHuman: false,
@@ -263,7 +263,7 @@
     },
     {
       ruleName: 'maps-location',
-      keywords: ['map', 'location', 'address', 'venue', '地图', '位置', '地点', '地址'],
+      keywords: ['map', 'location', 'address', 'venue', 'place', 'directions'],
       responseText: 'We have received your location question. Please provide the club or course name, along with the map link or location details you entered, and we will help you verify whether the map is displaying correctly.',
       priority: 40,
       requiresHuman: false,
@@ -272,7 +272,7 @@
     },
     {
       ruleName: 'registration-publish',
-      keywords: ['register', 'registration', 'publish', 'approved', 'review', '注册', '发布', '审核', '审批'],
+      keywords: ['register', 'registration', 'publish', 'approved', 'review', 'approval', 'submit'],
       responseText: 'We have received your registration or publishing question. Please let us know whether this is about club registration or course publishing, and tell us which step you are stuck on so we can help you continue.',
       priority: 50,
       requiresHuman: false,
@@ -281,7 +281,7 @@
     },
     {
       ruleName: 'teaching-course-info',
-      keywords: ['teaching', 'class', 'classes', 'lesson', 'lessons', 'learn', 'learning', 'coach', 'instructor', 'teacher', 'teaching content', 'teaching method', 'teaching methods', 'method', 'methods', 'content', 'contents', 'item', 'items', 'syllabus', 'topic', 'topics', 'what learn', '教学', '上课', '课程内容', '教练', '老师', '教学内容', '内容', '项目', '教学方法'],
+      keywords: ['teaching', 'class', 'classes', 'lesson', 'lessons', 'learn', 'learning', 'coach', 'instructor', 'teacher', 'teaching content', 'teaching method', 'teaching methods', 'method', 'methods', 'content', 'contents', 'item', 'items', 'syllabus', 'topic', 'topics', 'what learn', 'curriculum', 'lesson plan'],
       responseText: 'We have received your teaching question. Please tell us the course name if you know it, and we can help you check the course overview, coach, teaching focus, schedule, location, fee, and remaining seats.',
       priority: 55,
       requiresHuman: false,
@@ -290,7 +290,7 @@
     },
     {
       ruleName: 'club-course-info',
-      keywords: ['club', 'course', 'info', 'information', 'detail', 'details', '俱乐部', '课程', '信息', '详情', '介绍'],
+      keywords: ['club', 'course', 'info', 'information', 'detail', 'details', 'about', 'introduction'],
       responseText: 'We have received your information request. Please tell us which club or course you want to know about, and we can help you check the introduction, schedule, location, fee, and available booking slots.',
       priority: 60,
       requiresHuman: false,
@@ -299,7 +299,7 @@
     },
     {
       ruleName: 'forum-community',
-      keywords: ['forum', 'post', 'posts', 'community', 'comment', 'comments', 'thread', 'threads', '论坛', '帖子', '评论', '社区', '动态'],
+      keywords: ['forum', 'post', 'posts', 'community', 'comment', 'comments', 'thread', 'threads', 'discussion', 'activity'],
       responseText: 'We have received your forum question. Please tell us the club, course, or topic you are interested in, and we can help you check recent public posts and discussion topics.',
       priority: 65,
       requiresHuman: false,
@@ -308,7 +308,7 @@
     },
     {
       ruleName: 'cancel-reschedule',
-      keywords: ['cancel', 'cancellation', 'reschedule', 'change booking', 'change slot', '取消', '改期', '更改时间', '换时间'],
+      keywords: ['cancel', 'cancellation', 'reschedule', 'change booking', 'change slot', 'change time', 'switch time'],
       responseText: 'If you need to cancel or change a booking, please send the club or course name, the date and time, and the reason for the change. We can then help you check the next available step.',
       priority: 70,
       requiresHuman: false,
@@ -317,7 +317,7 @@
     },
     {
       ruleName: 'dashboard-records',
-      keywords: ['dashboard', 'record', 'records', 'history', 'my booking', 'bookings', '我的预约', '记录', '历史'],
+      keywords: ['dashboard', 'record', 'records', 'history', 'my booking', 'bookings', 'booking history', 'support history'],
       responseText: 'You can review your club bookings, course bookings, and support records in the user dashboard. If anything is missing, please send the related club or course name and the booking date.',
       priority: 80,
       requiresHuman: false,
@@ -326,7 +326,7 @@
     },
     {
       ruleName: 'attachments-proof',
-      keywords: ['attachment', 'attachments', 'upload', 'image', 'images', 'screenshot', 'screenshots', 'file', '附件', '上传', '截图', '图片'],
+      keywords: ['attachment', 'attachments', 'upload', 'image', 'images', 'screenshot', 'screenshots', 'file', 'files', 'photo', 'photos'],
       responseText: 'You can include screenshots or other attachments to help us review the issue more quickly. If you are reporting a booking or payment problem, please also include the club or course name and the relevant date and time.',
       priority: 90,
       requiresHuman: false,
@@ -335,7 +335,7 @@
     },
     {
       ruleName: 'login-account',
-      keywords: ['login', 'log in', 'sign in', 'signup', 'sign up', 'account', 'password', '登录', '注册账号', '账户', '密码'],
+      keywords: ['login', 'log in', 'sign in', 'signup', 'sign up', 'account', 'password', 'register account', 'credentials'],
       responseText: 'If you are having trouble logging in or creating an account, please tell us which step failed and what message you saw on screen. A screenshot is especially helpful for account issues.',
       priority: 100,
       requiresHuman: false,
@@ -363,7 +363,7 @@
   function normalizeSupportLookupText(value) {
     return trimText(value)
       .toLowerCase()
-      .replace(/[^a-z0-9\u4e00-\u9fff]+/g, ' ')
+      .replace(/[^a-z0-9]+/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
   }
@@ -808,11 +808,8 @@
       'contents',
       'learn',
       'learning',
-      '课程',
-      '上课',
-      '教学',
-      '教练',
-      '内容'
+      'curriculum',
+      'lesson plan'
     ].some(function (keyword) {
       return normalizedText.indexOf(keyword) > -1;
     });
@@ -821,13 +818,13 @@
   function extractSupportCourseInfoNeeds(text) {
     var normalizedText = normalizeSupportLookupText(text);
     return {
-      overview: /overview|summary|introduction|detail|details|about|概述|简介|介绍|详情/.test(normalizedText),
-      coach: /coach|teacher|instructor|tutor|教练|老师|授课教师/.test(normalizedText),
-      focus: /focus|content|contents|syllabus|topic|topics|teaching method|teaching methods|method|methods|learning point|learning points|教学重点|课程内容|教学内容|教学方法|内容|项目/.test(normalizedText),
-      schedule: /schedule|time|times|timetable|lesson time|上课时间|时间|课程安排|安排/.test(normalizedText),
-      location: /location|address|venue|place|地点|位置|地址|授课地点/.test(normalizedText),
-      fee: /fee|fees|price|prices|cost|costs|payment|收费|费用|价格/.test(normalizedText),
-      seats: /seat|seats|space|spaces|availability|available|remaining|名额|剩余名额|余位/.test(normalizedText)
+      overview: /overview|summary|introduction|detail|details|about/.test(normalizedText),
+      coach: /coach|teacher|instructor|tutor/.test(normalizedText),
+      focus: /focus|content|contents|syllabus|topic|topics|teaching method|teaching methods|method|methods|learning point|learning points|curriculum/.test(normalizedText),
+      schedule: /schedule|time|times|timetable|lesson time/.test(normalizedText),
+      location: /location|address|venue|place/.test(normalizedText),
+      fee: /fee|fees|price|prices|cost|costs|payment/.test(normalizedText),
+      seats: /seat|seats|space|spaces|availability|available|remaining/.test(normalizedText)
     };
   }
 
@@ -945,7 +942,7 @@
       return [course.title, course.slug, course.clubName];
     }, 2);
     var normalizedText = normalizeSupportLookupText(text);
-    var asksForCourse = normalizedText.indexOf('course') > -1 || normalizedText.indexOf('课程') > -1;
+    var asksForCourse = normalizedText.indexOf('course') > -1;
 
     if (matchedClubs.length) {
       var club = matchedClubs[0];

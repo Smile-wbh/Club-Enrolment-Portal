@@ -39,7 +39,7 @@ Use the Vercel dashboard import flow.
    leave empty
 8. Deploy
 
-This repo already includes [vercel.json](/Users/wbh/Desktop/俱乐部管理系统%20%203/vercel.json), so:
+This repo already includes [vercel.json](../vercel.json), so:
 
 - `/` opens `/html/index1.html`
 - `/login` opens `/html/join.html`
@@ -87,7 +87,7 @@ After the first Vercel deployment:
 
 For a full post-deploy check, use:
 
-- [online-qa-checklist.md](/Users/wbh/Desktop/俱乐部管理系统%20%203/docs/online-qa-checklist.md#L1)
+- [online-qa-checklist.md](./online-qa-checklist.md)
 
 ## What Is Still Preview-Only
 

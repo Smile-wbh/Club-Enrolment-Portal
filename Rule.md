@@ -1,80 +1,81 @@
-# 平台规则与管理条例 (Platform Rules & Regulations)
+# Platform Rules and Governance Policy
 
-本文件依据四大核心系统架构，明确了各方角色的权利与义务，确保平台生态的良性循环。
-
----
-
-## 1. 用户使用守则 (User Code of Conduct)
-**适用范围**：俱乐部使用系统
-
-### 1.1 账号与身份
-*   **真实性**：注册账号时应使用真实有效的邮箱，禁止使用临时邮箱恶意注册。
-*   **安全性**：用户有责任保管好自己的账号密码，禁止借予他人使用。
-
-### 1.2 预约与出席 (Booking & Attendance)
-*   **预约限制**：为防止资源浪费，每位用户同一时间段内仅限预约一个活动。
-*   **No-show (爽约) 规则**：
-    *   **定义**：预约成功后，未在规定时间内取消且未到场签到。
-    *   **惩罚机制**：
-        *   累计 **1次** 爽约：发送警告提醒。
-        *   累计 **3次** 爽约：账号将被暂时锁定，**7天内** 禁止进行任何新预约。
-*   **取消政策**：如需取消预约，请至少提前 **2小时** 操作，以便名额释放给其他用户。
-
-### 1.3 社区互动
-*   **文明发言**：在论坛 (`spjs.html`) 和评论区，禁止发布辱骂、诽谤、色情或政治敏感内容。
-*   **友善交流**：尊重他人观点，禁止引战或人身攻击。
+This document follows the four-core-system platform architecture and defines the rights and responsibilities of each role to keep the platform healthy and sustainable.
 
 ---
 
-## 2. 俱乐部注册规范 (Registration Standards)
-**适用范围**：俱乐部注册系统
+## 1. User Code of Conduct
+**Scope:** club usage system
 
-### 2.1 命名规范
-*   **唯一性**：俱乐部名称不得与平台现有俱乐部重复。
-*   **合法性**：不得包含“官方”、“系统”等易产生误导的词汇，不得包含违法违规词汇。
+### 1.1 Account and Identity
+* **Authenticity:** users must register with a real and valid email address. Malicious registration with temporary email services is prohibited.
+* **Security:** users are responsible for keeping their account credentials safe and must not lend their accounts to others.
 
-### 2.2 资料要求
-*   **简介真实**：描述内容必须客观真实，不得夸大宣传或发布虚假承诺。
-*   **图片合规**：封面图和详情图必须清晰，版权清晰，严禁使用低俗图片。
+### 1.2 Booking and Attendance
+* **Booking limit:** to avoid wasting resources, each user may hold only one booking in the same time period.
+* **No-show policy:**
+  * **Definition:** a booking is confirmed, but the user neither cancels within the allowed time nor checks in on site.
+  * **Penalty rules:**
+    * After **1** no-show: send a warning reminder.
+    * After **3** no-shows: temporarily lock the account and block all new bookings for **7 days**.
+* **Cancellation policy:** cancellations should be made at least **2 hours** in advance so the seat can be released to other users.
 
-### 2.3 审核流程
-*   所有新提交的俱乐部申请，将在提交后的 **24小时内** 由管理员进行人工审核。
-*   审核不通过的申请，管理员将注明驳回原因，申请人修改后可再次提交。
-
----
-
-## 3. 俱乐部运营管理规定 (Operation Protocols)
-**适用范围**：俱乐部管理系统
-
-### 3.1 负责人义务
-*   **信息维护**：负责人需保证俱乐部页面信息的时效性，活动时间变更需第一时间更新。
-*   **履约责任**：严禁无故取消已开放预约的活动。如遇不可抗力需取消，必须提前通知所有已预约用户并做好解释工作。
-
-### 3.2 权限滥用禁止
-*   禁止利用俱乐部公告或私信功能发送骚扰广告。
-*   禁止恶意标记用户为“爽约”以报复用户。
+### 1.3 Community Interaction
+* **Respectful speech:** abusive, defamatory, explicit, or politically sensitive content is prohibited in the forum (`spjs.html`) and comment areas.
+* **Friendly discussion:** respect other people's views and do not provoke arguments or engage in personal attacks.
 
 ---
 
-## 4. 后台管理与监管制度 (Admin Governance Policy)
-**适用范围**：后台管理系统
+## 2. Club Registration Standards
+**Scope:** club registration system
 
-### 4.1 审核标准 (Audit Criteria)
-*   **严谨性**：管理员需严格按照注册规范审核每一个新俱乐部申请。
-*   **中立性**：审核过程需保持公正，不得因个人喜好偏袒或刁难特定申请。
+### 2.1 Naming Rules
+* **Uniqueness:** a club name must not duplicate an existing club on the platform.
+* **Legality:** names must not include misleading words such as "official" or "system", and must not contain illegal or prohibited wording.
 
-### 4.2 违规处理流程 (Violation Handling)
-管理员有权对违反平台规则的用户或俱乐部进行以下处罚：
+### 2.2 Content Requirements
+* **Accurate introduction:** descriptions must be objective and truthful, without exaggerated promotion or false promises.
+* **Compliant images:** cover images and detail images must be clear, properly licensed, and free from inappropriate content.
 
-1.  **内容移除**：直接删除违规的帖子、评论或俱乐部介绍。
-2.  **账号禁言**：
-    *   轻微违规：禁言 **24小时**。
-    *   严重违规（如发广告、辱骂）：禁言 **7天** 或 **30天**。
-3.  **封号/下架**：
-    *   对于恶意破坏平台秩序的用户，实行**永久封号**。
-    *   对于长期无人管理或存在欺诈行为的俱乐部，实行**强制下架**。
+### 2.3 Review Process
+* Every newly submitted club application should be manually reviewed by an administrator within **24 hours** after submission.
+* If the review is rejected, the administrator should provide a reason so the applicant can revise and resubmit.
 
-### 4.3 数据隐私
-*   管理员在查看后台数据时，必须严格遵守用户隐私保护协议，不得泄露用户的个人联系方式和隐私信息。
-### 5语言习惯
-*   我需要使用中文和我聊天，输出的对话都要是中文，与项目代码无关。但项目代码的内容我需要英文
+---
+
+## 3. Club Operation Protocols
+**Scope:** club management system
+
+### 3.1 Responsibilities of Club Owners
+* **Information maintenance:** club owners must keep club page information up to date, especially when activity times change.
+* **Delivery responsibility:** cancelling open bookings without a valid reason is prohibited. If cancellation is unavoidable, all booked users must be notified in advance and given a clear explanation.
+
+### 3.2 Abuse of Permissions
+* Sending spam or promotional harassment through club announcements or private messages is prohibited.
+* Maliciously marking users as no-shows in retaliation is prohibited.
+
+---
+
+## 4. Admin Governance Policy
+**Scope:** admin system
+
+### 4.1 Audit Criteria
+* **Rigour:** administrators must review each new club application strictly according to the registration standards.
+* **Neutrality:** the review process must remain fair and unbiased, without favoritism or unfair obstruction.
+
+### 4.2 Violation Handling
+Administrators may take the following actions against users or clubs that violate platform rules:
+
+1. **Content removal:** directly remove violating posts, comments, or club introductions.
+2. **Account muting:**
+   * Minor violations: mute the account for **24 hours**.
+   * Serious violations such as advertising spam or abusive language: mute the account for **7 days** or **30 days**.
+3. **Account suspension or delisting:**
+   * Users who maliciously disrupt platform order may receive a **permanent ban**.
+   * Clubs that remain unmanaged for a long time or show fraudulent behaviour may be **forcibly delisted**.
+
+### 4.3 Data Privacy
+* Administrators must strictly follow the user privacy policy when viewing backend data and must not disclose personal contact details or private information.
+
+## 5. Language Preference
+* Please keep our conversation in Chinese. This preference applies to chat only and does not apply to the project code, which should remain in English.

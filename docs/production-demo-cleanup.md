@@ -4,7 +4,7 @@ Use this once when you are ready to remove the development seed data from produc
 
 Main cleanup script:
 
-- [cleanup-production-demo-data.sql](/Users/wbh/Desktop/俱乐部管理系统%20%203/supabase/cleanup-production-demo-data.sql)
+- [cleanup-production-demo-data.sql](../supabase/cleanup-production-demo-data.sql)
 
 What it removes:
 
@@ -20,7 +20,7 @@ Important warning:
 Recommended order:
 
 1. Add your real clubs, real courses, and real forum content first if needed.
-2. Review the slug/title lists inside [cleanup-production-demo-data.sql](/Users/wbh/Desktop/俱乐部管理系统%20%203/supabase/cleanup-production-demo-data.sql).
+2. Review the slug/title lists inside [cleanup-production-demo-data.sql](../supabase/cleanup-production-demo-data.sql).
 3. Run the script in Supabase `SQL Editor`.
 4. Refresh these pages and confirm they now show only real cloud data:
    - `https://club-enrolment-portal.vercel.app/html/msjs.html`

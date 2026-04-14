@@ -49,8 +49,9 @@
 
   function normalizeBookingStatus(value) {
     var text = trimText(value);
-    if (text === '已预约') return 'Booked';
-    if (text === '已取消') return 'Cancelled';
+    var normalizedText = text.toLowerCase();
+    if (normalizedText === 'booked') return 'Booked';
+    if (normalizedText === 'cancelled' || normalizedText === 'canceled') return 'Cancelled';
     return text || 'Booked';
   }
 

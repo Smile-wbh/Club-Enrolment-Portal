@@ -1,90 +1,91 @@
-# 俱乐部管理系统 (Club Management System) - 四大核心系统架构
+# Club Management System - Four Core System Architecture
 
-本项目根据最新业务规划，划分为 **四个独立的核心大页面/子系统**。每个系统针对不同的用户角色和业务需求，确保功能清晰、职责分明。
-
----
-
-## 1. 俱乐部使用系统 (User Interaction System)
-**面向对象**：普通用户 (General Users)
-**核心功能**：浏览、预约、学习、交流
-**主要页面**：`index1.html` (首页), `msjs.html`, `specialty.html`, `mfms.html`, `spjs.html`, `tzgg.html`, `join.html`
-
-本系统是平台的主入口，为用户提供一站式的俱乐部服务体验。
-
-*   **首页展示 (`index1.html`)**：
-    *   作为平台的门户，展示精选俱乐部和平台介绍。
-*   **浏览与预览 (`msjs.html`)**：
-    *   用户可以浏览所有已注册且审核通过的俱乐部。
-    *   查看俱乐部详情、位置和特色。
-*   **活动预约 (`specialty.html`)**：
-    *   用户登录后，可预约俱乐部的特定活动。
-    *   支持查看剩余名额、活动时间、地点。
-*   **教学课程 (`mfms.html`)**：
-    *   提供专业教练的教学课程预约服务。
-    *   展示课程内容、价格及排期。
-*   **社区论坛 (`spjs.html`)**：
-    *   用户交流互动的空间，支持发布帖子、评论和点赞。
-    *   获取最新活动资讯和用户心得。
-*   **咨询服务 (`tzgg.html`)**：
-    *   提供官方联系方式和常见问题解答 (FAQ)。
-    *   用户可提交工单进行一对一咨询。
-*   **个人中心 (`join.html`)**：
-    *   管理个人资料、查看我的预约、我的帖子。
-    *   **入口跳转**：提供跳转至“俱乐部注册”或“俱乐部管理”的入口。
+This project is organised around **four independent core pages or subsystems** based on the latest business plan. Each system serves different user roles and operational goals so that responsibilities stay clear and features remain well separated.
 
 ---
 
-## 2. 俱乐部注册系统 (Club Registration System)
-**面向对象**：有意向创建俱乐部的用户 (Prospective Owners)
-**核心功能**：提交申请、入驻平台
-**主要页面**：`cart.html` (注册视图)
+## 1. User Interaction System
+**Audience:** general users  
+**Core functions:** browse, book, learn, and interact  
+**Main pages:** `index1.html` (home), `msjs.html`, `specialty.html`, `mfms.html`, `spjs.html`, `tzgg.html`, `join.html`
 
-本系统专门用于新俱乐部的孵化与入驻，引导用户完成从“普通用户”到“俱乐部负责人”的身份转变。
+This system is the main platform entry point and provides a one-stop club service experience for ordinary users.
 
-*   **入驻申请流程**：
-    *   **资格验证**：需先登录用户账号。
-    *   **信息填报**：填写俱乐部名称、分类、详细简介、封面图片等核心信息。
-    *   **提交审核**：申请提交后进入“待审核”状态，需等待管理员批准。
-*   **状态反馈**：
-    *   用户可在个人中心或注册页查看申请进度（审核中、已通过、已驳回）。
-
----
-
-## 3. 俱乐部管理系统 (Club Management System)
-**面向对象**：已拥有俱乐部的负责人 (Club Owners)
-**核心功能**：内容维护、成员管理、排课
-**主要页面**：`cart.html` (管理视图)
-
-本系统是俱乐部负责人的运营后台，用于维护俱乐部的主页内容和日常运营。
-
-*   **内容修改**：
-    *   **基本信息**：修改俱乐部简介、更新封面图。
-    *   **公告发布**：发布最新活动通知或紧急调整。
-*   **活动/课程管理**：
-    *   **排课系统**：设置活动时间、地点、最大容纳人数。
-    *   **名额调整**：根据实际情况增加或减少开放名额。
-*   **成员管理**：
-    *   查看已预约的用户名单。
-    *   处理签到 (Check-in) 或标记爽约 (No-show)。
+* **Home page (`index1.html`):**
+  * Acts as the public portal of the platform.
+  * Shows featured clubs and a platform introduction.
+* **Browse and preview (`msjs.html`):**
+  * Lets users browse all registered and approved clubs.
+  * Shows club details, locations, and key highlights.
+* **Activity booking (`specialty.html`):**
+  * Allows logged-in users to book specific club activities.
+  * Supports viewing remaining seats, time slots, and locations.
+* **Teaching courses (`mfms.html`):**
+  * Provides course booking services led by professional coaches.
+  * Displays course content, pricing, and schedule details.
+* **Community forum (`spjs.html`):**
+  * Gives users a place to post, comment, like, and interact.
+  * Helps users keep up with current activities and community insights.
+* **Consultation service (`tzgg.html`):**
+  * Provides official contact details and frequently asked questions.
+  * Allows users to submit one-to-one support requests.
+* **User center (`join.html`):**
+  * Manages profile details and shows bookings and posts.
+  * Includes entry points to club registration and club management.
 
 ---
 
-## 4. 后台管理系统 (Admin Supervision System)
-**面向对象**：平台超级管理员 (Super Admins)
-**核心功能**：全局监管、审核、数据统计
-**主要页面**：`admin/` 系列页面 (后台看板)
+## 2. Club Registration System
+**Audience:** prospective club owners  
+**Core functions:** submit applications and onboard to the platform  
+**Main page:** `cart.html` (registration view)
 
-本系统是整个平台的控制中心，确保网站内容的合规性、安全性和平台的健康运行。
+This system is designed for incubating new clubs and guiding users through the transition from general user to club owner.
 
-*   **全局监管**：
-    *   监控全站的帖子、评论和咨询内容。
-    *   处理用户投诉和违规行为（如禁言、封号）。
-*   **审核中心**：
-    *   **俱乐部审核**：对“俱乐部注册系统”提交的申请进行人工复核。
-    *   **标准**：确保名称合规、信息真实、图片无违规。
-*   **规则制定与执行**：
-    *   设定预约规则（如爽约惩罚）。
-    *   设定内容发布规范（敏感词过滤）。
-*   **数据统计 (Dashboard)**：
-    *   **核心指标**：用户增长量、日活跃度、总预约数。
-    *   **热度分析**：最受欢迎的俱乐部排名、热门课程统计。
+* **Application flow:**
+  * **Eligibility check:** the user must log in first.
+  * **Information form:** the user fills in the club name, category, detailed introduction, cover image, and other core information.
+  * **Submit for review:** the application enters a pending review state after submission and waits for administrator approval.
+* **Status feedback:**
+  * Users can review the application progress from the user center or registration page, such as pending, approved, or rejected.
+
+---
+
+## 3. Club Management System
+**Audience:** existing club owners  
+**Core functions:** content maintenance, member management, and scheduling  
+**Main page:** `cart.html` (management view)
+
+This system is the operating backend for club owners and is used to maintain the club homepage and day-to-day operations.
+
+* **Content updates:**
+  * **Basic information:** edit the club introduction and update cover images.
+  * **Announcements:** publish activity notices and urgent schedule changes.
+* **Activity and course management:**
+  * **Scheduling:** set activity times, locations, and maximum capacity.
+  * **Seat adjustment:** increase or reduce available seats based on actual needs.
+* **Member management:**
+  * Review booked user lists.
+  * Process check-ins or mark no-shows.
+
+---
+
+## 4. Admin Supervision System
+**Audience:** platform super administrators  
+**Core functions:** global supervision, review, and analytics  
+**Main pages:** `admin/` page group (admin dashboard)
+
+This system is the control center of the entire platform and ensures that site content stays compliant, safe, and healthy.
+
+* **Global supervision:**
+  * Monitor posts, comments, and support content across the site.
+  * Handle user complaints and violations such as muting or banning accounts.
+* **Review center:**
+  * **Club review:** manually review applications submitted from the club registration system.
+  * **Standards:** verify compliant naming, truthful information, and acceptable images.
+* **Rule setting and enforcement:**
+  * Define booking rules such as no-show penalties.
+  * Define publishing rules such as sensitive-word filtering.
+* **Data dashboard:**
+  * **Core metrics:** user growth, daily activity, and total bookings.
+  * **Popularity analysis:** rankings for the most popular clubs and trending courses.
