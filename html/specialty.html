@@ -1143,9 +1143,61 @@
       slotsForDay(day) {
         return this.slotsForClubDay(this.currentClub, day);
       },
-      bookedCountFor(clubSlug, slotId, dayIso) {
+      findSupabaseClubBySlug(clubSlug) {
+        const slug = String(clubSlug || '').trim();
+        if (!slug) return null;
+        return (Array.isArray(this.supabaseClubs) ? this.supabaseClubs : []).find((club) => (
+          club && String(club.slug || '').trim() === slug
+        )) || null;
+      },
+      resolveCloudSlot(clubSlug, dayIso, slot) {
+        if (!this.useSupabaseBookings) return null;
+        const club = this.findSupabaseClubBySlug(clubSlug);
+        if (!club) return null;
+        const safeDayIso = String(dayIso || '').trim();
+        const slotId = String(slot && (slot.dbId || slot.id) || '').trim();
+        const slotTime = String(slot && slot.time || '').trim();
+        const daySlots = club.slotsByDay && Array.isArray(club.slotsByDay[safeDayIso])
+          ? club.slotsByDay[safeDayIso]
+          : [];
+
+        if (this.isUuid(slotId)) {
+          const directMatch = daySlots.find((item) => {
+            const itemId = String(item && (item.dbId || item.id) || '').trim();
+            return itemId === slotId;
+          });
+          if (directMatch) {
+            return {
+              clubId: String(club.dbId || club.id || '').trim(),
+              slotId: String(directMatch.dbId || directMatch.id || '').trim(),
+              slot: directMatch
+            };
+          }
+        }
+
+        if (!slotTime) return null;
+        const timeMatch = daySlots.find((item) => String(item && item.time || '').trim() === slotTime);
+        if (!timeMatch) return null;
+        const resolvedSlotId = String(timeMatch.dbId || timeMatch.id || '').trim();
+        if (!this.isUuid(resolvedSlotId)) return null;
+        return {
+          clubId: String(club.dbId || club.id || '').trim(),
+          slotId: resolvedSlotId,
+          slot: timeMatch
+        };
+      },
+      bookedCountFor(clubSlug, slotId, dayIso, slot) {
         if (this.useSupabaseBookings) {
-          return Number(this.bookingAvailabilityMap[String(slotId || '').trim() + '|' + String(dayIso || '').trim()] || 0);
+          const directKey = String(slotId || '').trim() + '|' + String(dayIso || '').trim();
+          if (Object.prototype.hasOwnProperty.call(this.bookingAvailabilityMap || {}, directKey)) {
+            return Number(this.bookingAvailabilityMap[directKey] || 0);
+          }
+          const resolved = this.resolveCloudSlot(clubSlug, dayIso, slot);
+          if (resolved) {
+            const resolvedKey = resolved.slotId + '|' + String(dayIso || '').trim();
+            return Number(this.bookingAvailabilityMap[resolvedKey] || 0);
+          }
+          return 0;
         }
         return this.bookings.filter((booking) => (
           booking.clubSlug === clubSlug &&
@@ -1168,7 +1220,9 @@
         return !!startTs && startTs <= Date.now();
       },
       remainingFor(club, slot, dayIso) {
-        return Math.max(0, (slot.capacity || club.seats || 0) - this.bookedCountFor(club.slug, slot.id, dayIso));
+        const resolved = this.resolveCloudSlot(club && club.slug, dayIso, slot);
+        const capacity = Number((resolved && resolved.slot && resolved.slot.capacity) || slot.capacity || club.seats || 0);
+        return Math.max(0, capacity - this.bookedCountFor(club.slug, slot.id, dayIso, slot));
       },
       clubAvailableSlotCount(club, day) {
         const dayIso = day && day.iso ? day.iso : this.formatIso(new Date());
@@ -1297,12 +1351,17 @@
       },
       isBooked(slot, day) {
         if (!this.isAuthed || !this.currentClub) return false;
+        const resolved = this.resolveCloudSlot(this.selectedClubSlug, day.iso, slot);
         return this.bookings.some((booking) => (
           booking.clubSlug === this.selectedClubSlug &&
           booking.dayIso === day.iso &&
-          booking.slotId === slot.id &&
           booking.userEmail === this.sessionEmail &&
-          booking.status !== 'Cancelled'
+          booking.status !== 'Cancelled' &&
+          (
+            booking.slotId === slot.id ||
+            booking.slotTime === slot.time ||
+            (resolved && booking.slotId === resolved.slotId)
+          )
         ));
       },
       checkTimeConflict(slot, day) {
@@ -1405,10 +1464,13 @@
 
         const baseFee = this.parseFeeAmount(this.currentClub.fee);
         const serviceFee = baseFee > 0 ? 1 : 0;
-        const clubDbId = this.isUuid(this.currentClub.dbId) ? String(this.currentClub.dbId).trim() : '';
+        const resolved = this.resolveCloudSlot(this.selectedClubSlug, this.pendingBooking.dayIso, this.pendingBooking.slot);
+        const clubDbId = this.isUuid(this.currentClub.dbId)
+          ? String(this.currentClub.dbId).trim()
+          : (resolved && this.isUuid(resolved.clubId) ? resolved.clubId : '');
         const slotDbId = this.isUuid(this.pendingBooking.slot && this.pendingBooking.slot.dbId)
           ? String(this.pendingBooking.slot.dbId).trim()
-          : '';
+          : (resolved ? resolved.slotId : '');
         const pendingOrder = {
           orderId: this.createPaymentOrderId(),
           bookingSource: this.useSupabaseBookings && !!(clubDbId && slotDbId) ? 'supabase' : 'local',
