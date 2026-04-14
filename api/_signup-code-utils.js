@@ -6,6 +6,32 @@ const SIGNUP_CODE_RETRY_SECONDS = 60;
 const SIGNUP_CODE_EXPIRY_MINUTES = 10;
 const MAX_CODE_ATTEMPTS = 5;
 const EMAIL_DOMAIN_CACHE_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_ALLOWED_SIGNUP_EMAIL_DOMAINS = Object.freeze([
+  'gmail.com',
+  'outlook.com',
+  'qq.com',
+  '163.com',
+  '126.com',
+  'yeah.net'
+]);
+const DEFAULT_ALLOWED_ACADEMIC_EMAIL_DOMAINS = Object.freeze([
+  'edu',
+  'edu.cn',
+  'edu.hk',
+  'edu.au',
+  'edu.sg',
+  'edu.my',
+  'edu.tw',
+  'edu.ph',
+  'edu.mo',
+  'ac.uk',
+  'ac.jp',
+  'ac.kr',
+  'ac.nz',
+  'ac.in',
+  'ac.th',
+  'ac.id'
+]);
 const DEFAULT_BLOCKED_EMAIL_DOMAINS = Object.freeze([
   '10minutemail.com',
   'dispostable.com',
@@ -204,9 +230,10 @@ async function domainCanReceiveEmail(domain) {
 
 async function validateSignupEmailAccess(config, email) {
   const domain = getEmailDomain(email);
-  const allowedDomains = Array.isArray(config && config.allowedSignupEmailDomains)
-    ? config.allowedSignupEmailDomains
-    : [];
+  const allowedDomains = DEFAULT_ALLOWED_SIGNUP_EMAIL_DOMAINS.concat(
+    Array.isArray(config && config.allowedSignupEmailDomains) ? config.allowedSignupEmailDomains : []
+  );
+  const allowedAcademicDomains = DEFAULT_ALLOWED_ACADEMIC_EMAIL_DOMAINS.slice();
   const blockedDomains = DEFAULT_BLOCKED_EMAIL_DOMAINS.concat(
     Array.isArray(config && config.blockedSignupEmailDomains) ? config.blockedSignupEmailDomains : []
   );
@@ -227,11 +254,11 @@ async function validateSignupEmailAccess(config, email) {
     };
   }
 
-  if (allowedDomains.length && !matchesAnyDomainRule(domain, allowedDomains)) {
+  if (allowedDomains.length && !matchesAnyDomainRule(domain, allowedDomains) && !matchesAnyDomainRule(domain, allowedAcademicDomains)) {
     return {
       ok: false,
       error: 'email_domain_not_allowed',
-      message: 'Please use an approved email domain for registration.'
+      message: 'Please use Gmail, Outlook, QQ Mail, NetEase Mail, or a valid school email address for registration.'
     };
   }
 
