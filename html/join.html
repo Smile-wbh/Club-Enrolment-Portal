@@ -3420,15 +3420,8 @@
           this.syncRememberedLoginEmail(loginEmail);
           this.loginStatus = '';
           if(resolved.isClubManager){
-            const prefs = this.getUserSecurityPrefs(resolved.email) || {};
-            const alwaysAskSystem = prefs.alwaysAskSystem !== false;
-            const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
-            if(alwaysAskSystem){
-              this.loginCandidate = resolved;
-              this.showSystemPicker = true;
-            }else{
-              this.enterSelectedSystem(preferredEntrySystem, resolved);
-            }
+            this.loginCandidate = resolved;
+            this.showSystemPicker = true;
           }else{
             this.enterSelectedSystem('user', resolved);
           }
@@ -3473,15 +3466,8 @@
             this.syncRememberedLoginEmail(loginEmail);
             this.loginStatus = '';
             if(resolved.isClubManager){
-              const prefs = this.getUserSecurityPrefs(resolved.email) || {};
-              const alwaysAskSystem = prefs.alwaysAskSystem !== false;
-              const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
-              if(alwaysAskSystem){
-                this.loginCandidate = resolved;
-                this.showSystemPicker = true;
-              }else{
-                this.enterSelectedSystem(preferredEntrySystem, resolved);
-              }
+              this.loginCandidate = resolved;
+              this.showSystemPicker = true;
             }else{
               this.enterSelectedSystem('user', resolved);
             }
@@ -3509,15 +3495,8 @@
             this.syncRememberedLoginEmail(found.email);
             this.loginStatus = '';
             if(found.isClubManager){
-              const prefs = this.getUserSecurityPrefs(found.email) || {};
-              const alwaysAskSystem = prefs.alwaysAskSystem !== false;
-              const preferredEntrySystem = prefs.preferredEntrySystem === 'club' ? 'club' : 'user';
-              if(alwaysAskSystem){
-                this.loginCandidate = found;
-                this.showSystemPicker = true;
-              }else{
-                this.enterSelectedSystem(preferredEntrySystem, found);
-              }
+              this.loginCandidate = found;
+              this.showSystemPicker = true;
             }else{
               this.enterSelectedSystem('user', found);
             }
@@ -3563,9 +3542,9 @@
         this.clearCompatSession();
         this.clearSupabaseBrowserSession();
         this.authView = 'login';
+        this.login.email = rememberedEmail || '';
         this.login.password = '';
         this.loginStatus = '';
-        this.login.email = rememberedEmail || '';
         location.reload();
       },
       openSignup(){
