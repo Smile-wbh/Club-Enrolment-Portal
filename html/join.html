@@ -2272,6 +2272,40 @@
           return 'join.html';
         }
       },
+      googleLoginFlowKey(){
+        return 'join_google_login_flow_v1';
+      },
+      markPendingGoogleLoginFlow(){
+        try{
+          sessionStorage.setItem(this.googleLoginFlowKey(), 'pending');
+        }catch(e){}
+      },
+      clearPendingGoogleLoginFlow(){
+        try{
+          sessionStorage.removeItem(this.googleLoginFlowKey());
+        }catch(e){}
+      },
+      hasPendingGoogleLoginFlow(){
+        try{
+          return sessionStorage.getItem(this.googleLoginFlowKey()) === 'pending';
+        }catch(e){
+          return false;
+        }
+      },
+      handleGooglePostLoginRouting(resolved){
+        if(!resolved || !this.hasPendingGoogleLoginFlow()) return false;
+        this.clearPendingGoogleLoginFlow();
+        this.applyResolvedUser(resolved);
+        this.syncRememberedLoginEmail(resolved.email);
+        this.loginStatus = '';
+        if(resolved.isClubManager){
+          this.loginCandidate = resolved;
+          this.showSystemPicker = true;
+          return true;
+        }
+        this.enterSelectedSystem('user', resolved);
+        return true;
+      },
       isClubManagerRole(role){
         const value = String(role || '').trim().toLowerCase();
         return value === 'club_manager' || value === 'admin';
@@ -2501,6 +2535,9 @@
       async bootstrapAuthState(){
         const supabaseUser = await this.syncSessionFromSupabase();
         if(supabaseUser){
+          if(this.handleGooglePostLoginRouting(supabaseUser)){
+            return;
+          }
           this.applyResolvedUser(supabaseUser);
           return;
         }
@@ -2523,6 +2560,7 @@
         if(!supabase || !supabase.auth || typeof supabase.auth.onAuthStateChange !== 'function') return;
         const result = supabase.auth.onAuthStateChange((event, session) => {
           if(event === 'SIGNED_OUT' || !session || !session.user){
+            this.clearPendingGoogleLoginFlow();
             this.clearCompatSession();
             this.applyResolvedUser(null);
             return;
@@ -2530,6 +2568,9 @@
           const target = ((this.readCompatSession() || {}).entrySystem) || 'user';
           Promise.resolve(this.syncSessionFromSupabase(target)).then((resolved) => {
             if(!resolved) return;
+            if(this.handleGooglePostLoginRouting(resolved)){
+              return this.loadAuthedData();
+            }
             this.applyResolvedUser(resolved);
             return this.loadAuthedData();
           });
@@ -3234,6 +3275,7 @@
           return;
         }
         try{
+          this.markPendingGoogleLoginFlow();
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -3241,9 +3283,11 @@
             }
           });
           if(error){
+            this.clearPendingGoogleLoginFlow();
             this.loginStatus = this.mapAuthErrorMessage(error, 'Unable to start Google sign-in right now.');
           }
         }catch(e){
+          this.clearPendingGoogleLoginFlow();
           this.loginStatus = 'Unable to start Google sign-in right now.';
         }
       },
