@@ -457,7 +457,9 @@
         supabaseClubs: [],
         cloudBookingCatalogEnabled: cloudBookingCatalogEnabled,
         useSupabaseBookings: false,
-        clubs: []
+        clubs: [],
+        liveBookingSyncTimer: 0,
+        liveBookingSyncInFlight: false
       };
     },
     computed: {
@@ -571,10 +573,12 @@
         this.bookings = this.loadBookings();
         window.addEventListener('storage', this.onStorageChange);
         window.addEventListener('pageshow', this.refreshLocalState);
+        window.addEventListener('focus', this.onWindowFocus);
         document.addEventListener('visibilitychange', this.onVisibilityChange);
         document.addEventListener('click', this.handleDocumentClick);
         document.addEventListener('keydown', this.handleEscapeKey);
         await this.syncSupabaseBookingData();
+        this.startLiveBookingSync();
 
         const params = new URLSearchParams(location.search);
         const clubSlug = params.get('club');
@@ -592,7 +596,7 @@
         if (clubSlug) {
           const found = this.clubs.find((club) => club.slug === clubSlug);
           if (found) {
-            this.selectClub(found, false);
+            await this.selectClub(found, false);
             if (this.recentBookingSuccess && this.recentBookingSuccess.clubSlug === found.slug) {
               this.stripBookingReturnParams();
             }
@@ -602,9 +606,11 @@
     beforeDestroy() {
       window.removeEventListener('storage', this.onStorageChange);
       window.removeEventListener('pageshow', this.refreshLocalState);
+      window.removeEventListener('focus', this.onWindowFocus);
       document.removeEventListener('visibilitychange', this.onVisibilityChange);
       document.removeEventListener('click', this.handleDocumentClick);
       document.removeEventListener('keydown', this.handleEscapeKey);
+      this.stopLiveBookingSync();
     },
     methods: {
       formatIso(date) {
@@ -1021,9 +1027,11 @@
           endDate: this.formatIso(end)
         };
       },
-      async syncSupabaseBookingData() {
+      async syncSupabaseBookingData(options = {}) {
         const service = this.getBookingService();
+        const preserveExisting = !!(options && options.preserveExisting);
         if (!service || !service.isConfigured()) {
+          if (preserveExisting) return false;
           this.supabaseClubs = [];
           this.bookingAvailabilityMap = {};
           this.cloudBookingCatalogEnabled = false;
@@ -1033,7 +1041,7 @@
         }
 
         try {
-          const range = this.bookingRange(42);
+          const range = options && options.range ? options.range : this.bookingRange(42);
           const catalog = await service.fetchClubCatalog(range);
           this.supabaseClubs = Array.isArray(catalog.clubs) ? catalog.clubs : [];
           this.bookingAvailabilityMap = catalog && catalog.availabilityMap ? catalog.availabilityMap : {};
@@ -1049,6 +1057,9 @@
           return true;
         } catch (error) {
           console.warn('Unable to sync club bookings from Supabase.', error);
+          if (preserveExisting) {
+            return false;
+          }
           this.supabaseClubs = [];
           this.bookingAvailabilityMap = {};
           this.cloudBookingCatalogEnabled = false;
@@ -1177,7 +1188,13 @@
           }, 0);
         }, 0);
       },
-      selectClub(club, updateUrl = true) {
+      async selectClub(club, updateUrl = true) {
+        const requestedSlug = String(club && club.slug || '').trim();
+        if (requestedSlug && this.hasSupabaseBookings()) {
+          await this.refreshLiveAvailability({ preserveExisting: true });
+          club = this.clubs.find((item) => item && item.slug === requestedSlug) || club;
+        }
+
         this.currentClub = club;
         this.selectedClubSlug = club.slug;
         this.viewState = 'schedule';
@@ -1193,6 +1210,31 @@
           window.scrollTo({ top: 0, behavior: 'smooth' });
           this.jumpToRecentPaidSlot();
         });
+      },
+      async refreshLiveAvailability(options = {}) {
+        if (!this.hasSupabaseBookings()) return false;
+        if (this.liveBookingSyncInFlight) return false;
+        this.liveBookingSyncInFlight = true;
+        try {
+          return await this.syncSupabaseBookingData(Object.assign({ preserveExisting: true }, options || {}));
+        } finally {
+          this.liveBookingSyncInFlight = false;
+        }
+      },
+      startLiveBookingSync() {
+        if (this.liveBookingSyncTimer) {
+          window.clearInterval(this.liveBookingSyncTimer);
+        }
+        if (!this.hasSupabaseBookings()) return;
+        this.liveBookingSyncTimer = window.setInterval(() => {
+          if (document.visibilityState !== 'visible') return;
+          this.refreshLiveAvailability({ preserveExisting: true });
+        }, 15000);
+      },
+      stopLiveBookingSync() {
+        if (!this.liveBookingSyncTimer) return;
+        window.clearInterval(this.liveBookingSyncTimer);
+        this.liveBookingSyncTimer = 0;
       },
       goBackToList() {
         this.viewState = 'list';
@@ -1562,7 +1604,7 @@
         }
         if (event && event.key === this.bookingKey()) {
           if (this.useSupabaseBookings) {
-            this.syncSupabaseBookingData();
+            this.refreshLiveAvailability({ preserveExisting: true });
           } else {
             this.bookings = this.loadBookings();
           }
@@ -1572,7 +1614,7 @@
         this.checkSession();
         this.refreshClubPool();
         if (this.hasSupabaseBookings()) {
-          this.syncSupabaseBookingData();
+          this.refreshLiveAvailability({ preserveExisting: true });
         } else {
           this.bookings = this.loadBookings();
         }
@@ -1581,6 +1623,9 @@
         if (document.visibilityState === 'visible') {
           this.refreshLocalState();
         }
+      },
+      onWindowFocus() {
+        this.refreshLocalState();
       },
       openLoginModal() {
         this.showLoginModal = true;
