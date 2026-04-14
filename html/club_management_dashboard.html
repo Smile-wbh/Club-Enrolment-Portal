@@ -1964,6 +1964,19 @@
         return y + '-' + m + '-' + d;
       }
 
+      function formatDashboardDateTime(value){
+        var ts = parseDate(value);
+        if(!ts) return String(value || '').trim();
+        var date = new Date(ts);
+        if(Number.isNaN(date.getTime())) return String(value || '').trim();
+        var y = date.getFullYear();
+        var m = String(date.getMonth() + 1).padStart(2, '0');
+        var d = String(date.getDate()).padStart(2, '0');
+        var hh = String(date.getHours()).padStart(2, '0');
+        var mm = String(date.getMinutes()).padStart(2, '0');
+        return y + '/' + m + '/' + d + ' ' + hh + ':' + mm;
+      }
+
       function compactNum(n){
         var value = Number(n || 0);
         if(value >= 10000) return (value / 1000).toFixed(1) + 'k';
@@ -3633,7 +3646,7 @@
             '<td>' + (m.name || m.userEmail || '-') + '</td>' +
             '<td>' + (m.clubName || '-') + '</td>' +
             '<td>' + (m.role || '-') + '</td>' +
-            '<td>' + (m.joinTime || '-') + '</td>' +
+            '<td>' + (formatDashboardDateTime(m.joinTime) || '-') + '</td>' +
             '<td><button class="btn-danger small" data-action="remove-member" data-id="' + (m.id || '') + '" data-key="' + encodeURIComponent(key) + '">Remove</button></td>' +
           '</tr>';
         }).join('');
@@ -4760,7 +4773,7 @@
           userEmail: document.getElementById('memberEmail').value.trim(),
           role: document.getElementById('memberRole').value,
           clubName: clubRecord.name || '',
-          joinTime: new Date().toLocaleString()
+          joinTime: new Date().toISOString()
         };
 
         if(hasCloudDashboardConfigured() && state.sessionUserId){
