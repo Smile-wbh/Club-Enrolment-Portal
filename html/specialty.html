@@ -169,9 +169,9 @@
         </div>
 
         <div class="empty-state" v-else>
-          <h3>No booking options matched your filters</h3>
-          <p>Try clearing the keyword, switching the category, or restoring all filters to browse again.</p>
-          <button class="toolbar-btn primary" type="button" @click="resetFilters">Restore All Clubs</button>
+          <h3>{{ catalogSyncIssue ? 'Club booking data is temporarily unavailable' : 'No booking options matched your filters' }}</h3>
+          <p>{{ catalogSyncIssue ? 'Please refresh and try again. This page now reads clubs, seats, and bookings directly from the database only.' : 'Try clearing the keyword, switching the category, or restoring all filters to browse again.' }}</p>
+          <button class="toolbar-btn primary" type="button" @click="catalogSyncIssue ? refreshLocalState() : resetFilters()">{{ catalogSyncIssue ? 'Refresh Data' : 'Restore All Clubs' }}</button>
         </div>
       </template>
 
@@ -457,6 +457,8 @@
         supabaseClubs: [],
         cloudBookingCatalogEnabled: cloudBookingCatalogEnabled,
         useSupabaseBookings: false,
+        catalogSyncIssue: false,
+        bookingSyncIssue: false,
         clubs: [],
         liveBookingSyncTimer: 0,
         liveBookingSyncInFlight: false
@@ -568,9 +570,7 @@
     },
       async mounted() {
         this.checkSession();
-        this.baseClubsSnapshot = JSON.parse(JSON.stringify(this.clubs));
         this.refreshClubPool();
-        this.bookings = this.loadBookings();
         window.addEventListener('storage', this.onStorageChange);
         window.addEventListener('pageshow', this.refreshLocalState);
         window.addEventListener('focus', this.onWindowFocus);
@@ -1040,8 +1040,11 @@
           if (preserveExisting) return false;
           this.supabaseClubs = [];
           this.bookingAvailabilityMap = {};
+          this.bookings = [];
           this.cloudBookingCatalogEnabled = false;
           this.useSupabaseBookings = false;
+          this.catalogSyncIssue = true;
+          this.bookingSyncIssue = false;
           this.refreshClubPool();
           return false;
         }
@@ -1053,16 +1056,20 @@
           this.bookingAvailabilityMap = catalog && catalog.availabilityMap ? catalog.availabilityMap : {};
           this.cloudBookingCatalogEnabled = true;
           this.useSupabaseBookings = true;
+          this.catalogSyncIssue = false;
           this.refreshClubPool();
           if (this.sessionUserId) {
             try {
               this.bookings = await service.fetchMyBookings(this.sessionUserId, this.sessionEmail);
+              this.bookingSyncIssue = false;
             } catch (bookingError) {
               console.warn('Unable to sync my club bookings from Supabase.', bookingError);
-              this.bookings = this.loadBookings();
+              this.bookings = [];
+              this.bookingSyncIssue = true;
             }
           } else {
             this.bookings = [];
+            this.bookingSyncIssue = false;
           }
           return true;
         } catch (error) {
@@ -1072,10 +1079,12 @@
           }
           this.supabaseClubs = [];
           this.bookingAvailabilityMap = {};
+          this.bookings = [];
           this.cloudBookingCatalogEnabled = false;
           this.useSupabaseBookings = false;
+          this.catalogSyncIssue = true;
+          this.bookingSyncIssue = false;
           this.refreshClubPool();
-          this.bookings = this.loadBookings();
           return false;
         }
       },
@@ -1135,20 +1144,14 @@
       slotsForClubDay(club, day) {
         if (!club || !day) return [];
         const dayIso = String(day.iso || '').trim();
-        const actualByDay = club.slotsByDay && Array.isArray(club.slotsByDay[dayIso])
+        const cloudSlots = club.slotsByDay && Array.isArray(club.slotsByDay[dayIso])
           ? club.slotsByDay[dayIso].slice()
+              .filter((slot) => this.hasCloudBackedSlot(slot))
           : [];
-        const generated = this.buildWeeklySlotsForDay(club, dayIso);
-        const actual = this.mergeSlotsByTime(actualByDay, generated);
-        if (actual.length) {
-          return actual.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
+        if (cloudSlots.length) {
+          return cloudSlots.sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b));
         }
-        if (this.clubHasStructuredSchedule(club)) {
-          return [];
-        }
-        return Array.isArray(club.slots)
-          ? club.slots.slice().sort((a, b) => this.slotSortValue(a) - this.slotSortValue(b))
-          : [];
+        return [];
       },
       slotsForDay(day) {
         return this.slotsForClubDay(this.currentClub, day);
@@ -1197,27 +1200,19 @@
         };
       },
       bookedCountFor(clubSlug, slotId, dayIso, slot) {
-        if (this.useSupabaseBookings) {
-          const directKey = String(slotId || '').trim() + '|' + String(dayIso || '').trim();
-          if (Object.prototype.hasOwnProperty.call(this.bookingAvailabilityMap || {}, directKey)) {
-            return Number(this.bookingAvailabilityMap[directKey] || 0);
-          }
-          const resolved = this.resolveCloudSlot(clubSlug, dayIso, slot);
-          if (resolved) {
-            const resolvedKey = resolved.slotId + '|' + String(dayIso || '').trim();
-            return Number(this.bookingAvailabilityMap[resolvedKey] || 0);
-          }
+        if (!this.useSupabaseBookings) {
           return 0;
         }
-        return this.bookings.filter((booking) => (
-          booking.clubSlug === clubSlug &&
-          booking.dayIso === dayIso &&
-          (
-            booking.slotId === slotId ||
-            booking.slotTime === String(slot && slot.time || '').trim()
-          ) &&
-          booking.status !== 'Cancelled'
-        )).length;
+        const directKey = String(slotId || '').trim() + '|' + String(dayIso || '').trim();
+        if (Object.prototype.hasOwnProperty.call(this.bookingAvailabilityMap || {}, directKey)) {
+          return Number(this.bookingAvailabilityMap[directKey] || 0);
+        }
+        const resolved = this.resolveCloudSlot(clubSlug, dayIso, slot);
+        if (resolved) {
+          const resolvedKey = resolved.slotId + '|' + String(dayIso || '').trim();
+          return Number(this.bookingAvailabilityMap[resolvedKey] || 0);
+        }
+        return 0;
       },
       getSlotStartTimestamp(slot, day) {
         const dayIso = String(day && day.iso || '').trim();
@@ -1472,6 +1467,9 @@
       isUuid(value) {
         return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value || '').trim());
       },
+      hasCloudBackedSlot(slot) {
+        return this.isUuid(slot && (slot.dbId || slot.id));
+      },
       goToPayment() {
         if (!this.pendingBooking || !this.currentClub || !this.sessionEmail) return;
 
@@ -1484,9 +1482,13 @@
         const slotDbId = this.isUuid(this.pendingBooking.slot && this.pendingBooking.slot.dbId)
           ? String(this.pendingBooking.slot.dbId).trim()
           : (resolved ? resolved.slotId : '');
+        if (!this.useSupabaseBookings || !clubDbId || !slotDbId) {
+          alert('This time slot has not finished syncing to the database yet. Please refresh the page and choose a database-backed slot again.');
+          return;
+        }
         const pendingOrder = {
           orderId: this.createPaymentOrderId(),
-          bookingSource: this.useSupabaseBookings && !!(clubDbId && slotDbId) ? 'supabase' : 'local',
+          bookingSource: 'supabase',
           clubId: clubDbId,
           clubSlug: this.selectedClubSlug,
           clubName: this.currentClub.name,
@@ -1514,10 +1516,10 @@
         location.href = 'specialty-payment.html';
       },
       loadRegistryClubs() {
-        return this.loadStoredClubsWithSchedule(this.registryKey(), 'registry');
+        return [];
       },
       loadExtraClubs() {
-        return this.loadStoredClubsWithSchedule(this.extraClubsKey(), 'extra');
+        return [];
       },
       normalizeStoredClub(club, source) {
         if (!club) return null;
@@ -1634,31 +1636,10 @@
         });
       },
       refreshClubPool() {
-        const base = (this.baseClubsSnapshot || [])
-          .map((club) => this.normalizeStoredClub(club, 'base'))
-          .filter(Boolean);
-        const registry = this.loadRegistryClubs()
-          .map((club) => this.normalizeStoredClub(club, 'registry'))
-          .filter(Boolean);
-        const extra = this.loadExtraClubs()
-          .map((club) => this.normalizeStoredClub(club, 'extra'))
-          .filter(Boolean);
-        const fallbackBySlug = this.buildClubMapBySlug(registry.concat(extra, base));
-        const supabase = this.applyFallbackCover((this.supabaseClubs || [])
+        const next = (this.supabaseClubs || [])
           .map((club) => this.normalizeStoredClub(club, 'supabase'))
           .filter(Boolean)
-          .filter((club) => !this.isLegacyStaticClubRecord(club)), fallbackBySlug);
-        const bySlug = {};
-        const catalog = this.cloudBookingCatalogEnabled
-          ? supabase.concat(registry, extra, base)
-          : registry.concat(extra, base);
-
-        catalog.forEach((club) => {
-          if (!club || !club.slug) return;
-          bySlug[club.slug] = this.pickPreferredClub(bySlug[club.slug] || null, club);
-        });
-
-        const next = Object.keys(bySlug).map((slug) => bySlug[slug]);
+          .filter((club) => !this.isLegacyStaticClubRecord(club));
 
         this.clubs = next;
 
@@ -1674,24 +1655,19 @@
         }
       },
       onStorageChange(event) {
-        if (event && (event.key === this.extraClubsKey() || event.key === this.registryKey())) {
-          this.refreshClubPool();
-        }
-        if (event && event.key === this.bookingKey()) {
-          if (this.useSupabaseBookings) {
-            this.refreshLiveAvailability({ preserveExisting: true });
-          } else {
-            this.bookings = this.loadBookings();
-          }
+        if (!event || event.key === 'user_session_v1') {
+          this.refreshLocalState();
         }
       },
       refreshLocalState() {
         this.checkSession();
-        this.refreshClubPool();
         if (this.hasSupabaseBookings()) {
           this.refreshLiveAvailability({ preserveExisting: true });
         } else {
-          this.bookings = this.loadBookings();
+          this.bookings = [];
+          this.supabaseClubs = [];
+          this.bookingAvailabilityMap = {};
+          this.clubs = [];
         }
       },
       onVisibilityChange() {
