@@ -1814,6 +1814,17 @@
         return s === 'checked in' || s === 'completed' || s === 'done';
       }
 
+      function isSuccessfulBookingStatus(status){
+        var s = String(status || '').trim().toLowerCase();
+        return s === 'booked'
+          || s === 'checked in'
+          || s === 'checked_in'
+          || s === 'completed'
+          || s === 'done'
+          || s === 'no show'
+          || s === 'no_show';
+      }
+
       function parseDate(text){
         if(typeof text === 'number' && Number.isFinite(text)) return text;
         var trimmed = String(text || '').trim();
@@ -1907,6 +1918,8 @@
       var activeMembersTarget = 'add';
       var teachingMenuOpen = false;
       var activeTeachingTarget = 'publish';
+      var activitySyncTimer = 0;
+      var activitySyncInFlight = false;
 
       var viewTitleMap = {
         overview: 'My Club Dashboard',
@@ -2231,6 +2244,7 @@
 
         state.myBookings = state.bookings.filter(function(b){
           if(!b) return false;
+          if(!isSuccessfulBookingStatus(b.status)) return false;
           return state.myClubIds.has(String(b.clubId || '').trim())
             || state.myClubSlugs.has(b.clubSlug)
             || state.myClubNames.has(b.clubName);
@@ -3911,6 +3925,30 @@
         renderTeaching();
       }
 
+      async function syncActivitiesFromCloud(){
+        if(activitySyncInFlight || !hasCloudDashboardConfigured() || !state.sessionUserId) return;
+        activitySyncInFlight = true;
+        try{
+          await refreshState();
+          renderOverview();
+          renderActivities();
+        }catch(error){
+          console.warn('Activity management sync failed.', error);
+        }finally{
+          activitySyncInFlight = false;
+        }
+      }
+
+      function startActivitySyncWatcher(){
+        if(activitySyncTimer){
+          window.clearInterval(activitySyncTimer);
+        }
+        activitySyncTimer = window.setInterval(function(){
+          if(document.hidden) return;
+          syncActivitiesFromCloud();
+        }, 30000);
+      }
+
       async function handleRegisterSubmit(e){
         e.preventDefault();
         if(!commitPendingClubTimeSlot('create')){
@@ -4747,6 +4785,16 @@
           }
         });
 
+        document.addEventListener('visibilitychange', function(){
+          if(!document.hidden){
+            syncActivitiesFromCloud();
+          }
+        });
+
+        window.addEventListener('focus', function(){
+          syncActivitiesFromCloud();
+        });
+
         async function handleLogout(){
           localStorage.removeItem(KEYS.session);
           sessionStorage.removeItem(KEYS.session);
@@ -4812,6 +4860,7 @@
         bindEvents();
         await refreshState();
         renderAll();
+        startActivitySyncWatcher();
         switchView('overview');
 
         if(!state.sessionEmail){

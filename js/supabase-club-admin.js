@@ -517,6 +517,7 @@
       .from('club_bookings')
       .select('id, order_id, user_id, club_id, slot_id, status, day_iso, day_label, slot_time, location, fee_text, created_at, cancelled_at, checked_in_at, completed_at, club:clubs(id, name, slug)')
       .in('club_id', clubIds)
+      .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
 
     var results = await Promise.all([memberPromise, bookingPromise]);
