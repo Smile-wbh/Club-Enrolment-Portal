@@ -122,6 +122,22 @@
       : date.toLocaleDateString([], { month: 'short', day: 'numeric' });
   }
 
+  function notificationSeenKey() {
+    var user = state.currentUser || {};
+    var userKey = normalizeId(user.userId) || normalizeEmail(user.email) || 'guest';
+    return 'user_notifications_seen_v1:' + userKey;
+  }
+
+  function markMessagesSeen() {
+    if (!state.currentUser || !state.currentUser.email) return;
+    try {
+      window.localStorage.setItem(notificationSeenKey(), String(Date.now()));
+    } catch (error) {}
+    if (typeof window.portalRefreshUnreadMessages === 'function') {
+      window.portalRefreshUnreadMessages();
+    }
+  }
+
   function autoGrowTextarea(area) {
     if (!area) return;
     area.style.height = 'auto';
@@ -729,6 +745,9 @@
     renderConversationList();
     renderPanelHead();
     renderThread();
+    if (document.visibilityState !== 'hidden') {
+      markMessagesSeen();
+    }
   }
 
   function scheduleReload(preferredKey) {
@@ -1153,6 +1172,19 @@
       closeVideoModal();
       toggleEmojiPicker(false);
       reloadConversations(state.selectedKey);
+      markMessagesSeen();
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') {
+        reloadConversations(state.selectedKey);
+        markMessagesSeen();
+      }
+    });
+
+    window.addEventListener('focus', function () {
+      reloadConversations(state.selectedKey);
+      markMessagesSeen();
     });
 
     document.addEventListener('pointerdown', function (event) {
@@ -1185,6 +1217,7 @@
 
     closeVideoModal();
     toggleEmojiPicker(false);
+    markMessagesSeen();
     renderSelfCard();
     renderEmojiPicker();
     renderComposeAttachments();

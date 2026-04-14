@@ -487,6 +487,15 @@
     return Array.from(new Set(aliases));
   }
 
+  function getSupportService() {
+    return window.clubSupportSupabase || null;
+  }
+
+  function hasCloudSupportConfigured() {
+    var service = getSupportService();
+    return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+  }
+
   function readJsonArray(key) {
     try {
       var raw = window.localStorage.getItem(key);
@@ -497,44 +506,107 @@
     }
   }
 
-  function countUnreadNotifications(session, profile) {
-    if (!session) return 0;
-
-    var seenAt = readNotificationSeenAt(session);
+  function isIncomingMessageForSession(row, session, profile) {
     var email = normalizeEmail(session && session.email);
     var userId = String((session && session.userId) || '').trim();
     var aliases = currentAliases(session, profile);
-    var count = 0;
+    var targetUserId = String((row && (row.targetUserId || row.target_user_id)) || '').trim();
+    var targetEmail = normalizeEmail(row && (row.targetEmail || row.target_email));
+    var targetName = String((row && (row.targetName || row.target_name)) || '').trim().toLowerCase();
+    var fromUserId = String((row && (row.fromUserId || row.from_user_id)) || '').trim();
+    var fromEmail = normalizeEmail(row && (row.fromEmail || row.from_email));
+    var fromName = String((row && (row.fromName || row.from_name)) || '').trim().toLowerCase();
+    var isReceived = (userId && targetUserId && userId === targetUserId)
+      || (email && targetEmail && email === targetEmail)
+      || (!!targetName && aliases.indexOf(targetName) > -1);
+    var isOutgoing = (userId && fromUserId && userId === fromUserId)
+      || (email && fromEmail && email === fromEmail)
+      || (!!fromName && aliases.indexOf(fromName) > -1);
+    return isReceived && !isOutgoing;
+  }
 
-    readJsonArray('user_message_board_v1').forEach(function (item) {
-      var row = item || {};
-      var targetUserId = String(row.targetUserId || '').trim();
-      var targetEmail = normalizeEmail(row.targetEmail);
-      var targetName = String(row.targetName || '').trim().toLowerCase();
-      var fromUserId = String(row.fromUserId || '').trim();
-      var fromEmail = normalizeEmail(row.fromEmail);
-      var createdTs = Number(row.createdTs || 0) || parseTimeValue(row.createdAt);
-      var isReceived = (userId && targetUserId && userId === targetUserId)
-        || (email && targetEmail && email === targetEmail)
-        || (!!targetName && aliases.indexOf(targetName) > -1);
-      var isOutgoing = (userId && fromUserId && userId === fromUserId)
-        || (email && fromEmail && email === fromEmail);
-      if (isReceived && !isOutgoing && createdTs > seenAt) {
-        count += 1;
-      }
+  async function fetchMyMessageBoardRows(session) {
+    var userId = String((session && session.userId) || '').trim();
+    var email = normalizeEmail(session && session.email);
+    if (!userId && !email) return [];
+
+    var service = getSupportService();
+    if (hasCloudSupportConfigured() && userId && service && typeof service.fetchMyMessageBoard === 'function') {
+      try {
+        var serviceRows = await service.fetchMyMessageBoard(userId);
+        return Array.isArray(serviceRows) ? serviceRows : [];
+      } catch (error) {}
+    }
+
+    var client = getSupabaseClientSafe();
+    if (!client) return [];
+
+    var selectText = 'id, target_user_id, target_email, target_name, from_user_id, from_email, from_name, created_at';
+    var tasks = [];
+    if (userId) {
+      tasks.push(client.from('message_board_entries').select(selectText).eq('target_user_id', userId));
+    }
+    if (email) {
+      tasks.push(client.from('message_board_entries').select(selectText).eq('target_email', email));
+    }
+    if (!tasks.length) return [];
+
+    try {
+      var results = await Promise.all(tasks);
+      var unique = {};
+      results.forEach(function (result) {
+        if (!result || result.error || !Array.isArray(result.data)) return;
+        result.data.forEach(function (row) {
+          var key = String((row && row.id) || '').trim() || JSON.stringify(row || {});
+          if (!key || unique[key]) return;
+          unique[key] = row;
+        });
+      });
+      return Object.keys(unique).map(function (key) {
+        return unique[key];
+      });
+    } catch (error) {
+      return [];
+    }
+  }
+
+  function formatUnreadBadgeText(unreadCount) {
+    return unreadCount > 99 ? '99+' : String(Math.max(0, unreadCount || 0));
+  }
+
+  function setUnreadBadgeState(unreadCount) {
+    var text = formatUnreadBadgeText(unreadCount);
+    document.querySelectorAll('[data-portal-message-badge]').forEach(function (element) {
+      element.textContent = text;
+      element.hidden = unreadCount <= 0;
     });
+  }
 
-    readJsonArray('specialty_bookings_v1').forEach(function (item) {
-      var row = item || {};
-      var bookingEmail = normalizeEmail(row.userEmail);
-      var status = String(row.status || '').trim().toLowerCase();
-      var createdTs = Number(row.createdTs || 0) || parseTimeValue(row.createdAt);
-      if (email && bookingEmail === email && status !== 'cancelled' && createdTs > seenAt) {
-        count += 1;
-      }
-    });
+  var unreadRefreshToken = 0;
 
-    return count;
+  async function refreshUnreadIndicators(session, profile) {
+    var token = ++unreadRefreshToken;
+    if (!session) {
+      setUnreadBadgeState(0);
+      return 0;
+    }
+
+    try {
+      var seenAt = readNotificationSeenAt(session);
+      var rows = await fetchMyMessageBoardRows(session);
+      if (token !== unreadRefreshToken) return 0;
+      var count = rows.filter(function (row) {
+        if (!isIncomingMessageForSession(row, session, profile)) return false;
+        var createdTs = Number(row && row.createdTs) || parseTimeValue(row && (row.createdAt || row.created_at));
+        return createdTs > seenAt;
+      }).length;
+      setUnreadBadgeState(count);
+      return count;
+    } catch (error) {
+      if (token !== unreadRefreshToken) return 0;
+      setUnreadBadgeState(0);
+      return 0;
+    }
   }
 
   function isMessagesPage() {
@@ -605,8 +677,8 @@
     var itemsHtml = getUserCenterItems(pagePrefix, session)
       .map(function (item) {
         var className = 'portal-profile-item' + (item.active ? ' active' : '');
-        var badge = item.label === 'Messages' && unreadCount > 0
-          ? '<span class="portal-menu-badge">' + escapeHtml(unreadCount > 99 ? '99+' : String(unreadCount)) + '</span>'
+        var badge = item.label === 'Messages'
+          ? '<span class="portal-menu-badge" data-portal-message-badge="menu"' + (unreadCount > 0 ? '' : ' hidden') + '>' + escapeHtml(formatUnreadBadgeText(unreadCount)) + '</span>'
           : '';
         var extraClass = item.label === 'Messages' ? ' portal-profile-item-with-badge' : '';
         return '<a class="' + className + extraClass + '" href="' + item.href + '"><span>' + item.label + '</span>' + badge + '</a>';
@@ -677,12 +749,12 @@
     ensureHeaderStyles();
     var session = readSession();
     var pagePrefix = getPagePrefix();
+    var profile = session ? resolveProfile(session, pagePrefix) : null;
     renderTopNav(session, pagePrefix);
     var actionsList = document.querySelectorAll('.top-actions');
     actionsList.forEach(function (actions) {
       if (session) {
-        var profile = resolveProfile(session, pagePrefix);
-        var unreadCount = countUnreadNotifications(session, profile);
+        var unreadCount = 0;
         var avatarHtml = profile.avatar
           ? (
             '<span class="portal-user-avatar has-image">' +
@@ -702,7 +774,7 @@
               '<span class="portal-user-meta">' +
                 '<span class="portal-user-name">' + escapeHtml(profile.nickname) + '</span>' +
               '</span>' +
-              (unreadCount > 0 ? '<span class="portal-user-alert-badge">' + escapeHtml(unreadCount > 99 ? '99+' : String(unreadCount)) + '</span>' : '') +
+              '<span class="portal-user-alert-badge" data-portal-message-badge="chip"' + (unreadCount > 0 ? '' : ' hidden') + '>' + escapeHtml(formatUnreadBadgeText(unreadCount)) + '</span>' +
               '<span class="portal-user-arrow" aria-hidden="true">▼</span>' +
             '</button>' +
             '<div class="portal-profile-menu" data-portal-profile-menu="true" hidden>' +
@@ -717,6 +789,11 @@
         '<a class="top-btn light" href="' + pagePrefix + 'join.html">Log in</a>' +
         '<a class="top-btn accent" href="' + pagePrefix + 'join.html?view=signup#auth-entry">Sign up</a>';
     });
+    if (session && profile) {
+      refreshUnreadIndicators(session, profile);
+    } else {
+      setUnreadBadgeState(0);
+    }
   }
 
   function handleDocumentClick(event) {
@@ -772,7 +849,7 @@
     }
   });
   window.addEventListener('storage', function (event) {
-    if (!event || !event.key || event.key === 'user_session_v1' || event.key === 'club_users' || event.key === 'user_message_board_v1' || event.key === 'specialty_bookings_v1' || event.key.indexOf('user_notifications_seen_v1:') === 0) {
+    if (!event || !event.key || event.key === 'user_session_v1' || event.key === 'club_users' || event.key.indexOf('user_notifications_seen_v1:') === 0) {
       closeAllProfileMenus();
       renderActions();
     }
@@ -787,6 +864,15 @@
       renderActions();
     }
   });
+
+  window.portalRefreshUnreadMessages = function () {
+    var session = readSession();
+    if (!session) {
+      setUnreadBadgeState(0);
+      return Promise.resolve(0);
+    }
+    return refreshUnreadIndicators(session, resolveProfile(session, getPagePrefix()));
+  };
 
     window.portalDeleteAccountFlow = startDeleteAccountFlow;
 

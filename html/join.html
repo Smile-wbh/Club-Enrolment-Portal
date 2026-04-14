@@ -1325,28 +1325,6 @@
             });
           });
 
-        (Array.isArray(this.myBookings) ? this.myBookings : [])
-          .filter(item => String((item && item.status) || '').toLowerCase() !== 'cancelled')
-          .forEach(item => {
-            const createdTs = this.parseTimeText(item && item.createdAt) || this.getBookingTimestamp(item && item.dayIso, item && item.dayLabel, item && item.slotTime);
-            items.push({
-              id: 'booking-' + String(item && item.id || ''),
-              kind: 'booking',
-              icon: '✅',
-              label: 'Booking',
-              title: 'Booking confirmed',
-              body: [
-                String((item && item.clubName) || '').trim(),
-                String((item && (item.dayLabel || item.dayIso)) || '').trim(),
-                String((item && item.slotTime) || '').trim()
-              ].filter(Boolean).join(' · ') || 'Your club booking has been confirmed.',
-              createdAt: String((item && item.createdAt) || (item && item.dayLabel) || '').trim(),
-              createdTs: createdTs,
-              read: createdTs > 0 ? createdTs <= this.notificationSeenTs : true,
-              bookingItem: item
-            });
-          });
-
         return items.sort((a, b) => (Number(b && b.createdTs) || 0) - (Number(a && a.createdTs) || 0));
       },
       unreadNotificationCount(){
@@ -1784,7 +1762,7 @@
             return;
           }
           const script = document.createElement('script');
-          script.src = '../js/portal-header-auth.js?v=20260414-delete-2';
+          script.src = '../js/portal-header-auth.js?v=20260414-msgdb-1';
           script.async = true;
           script.setAttribute('data-portal-delete-loader', 'true');
           script.addEventListener('load', finish, { once: true });
@@ -1813,7 +1791,6 @@
       },
       refreshMessageCenter(){
         this.loadMyMessageBoard();
-        this.loadMyBookings();
       },
       getBookingTimestamp(dayIso, dayLabel, slotTime){
         const baseDate = String(dayIso || dayLabel || '').trim();
@@ -4247,7 +4224,7 @@
     }
   })
 </script>
-<script src="../js/portal-header-auth.js?v=20260414-delete-2"></script>
+<script src="../js/portal-header-auth.js?v=20260414-msgdb-1"></script>
 <script src="../js/chat-widget.js"></script>
 </body>
 </html>

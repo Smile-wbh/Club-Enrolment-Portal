@@ -1242,50 +1242,111 @@
         return Array.from(new Set(aliases));
       }
 
-      function countUnreadNotifications(session, user){
-        if(!session) return 0;
-
-        var seenAt = readNotificationSeenAt(session);
+      function isIncomingMessageForSession(row, session, user){
         var email = normalizeEmail(session && session.email);
         var userId = String((session && session.userId) || '').trim();
         var aliases = currentAliases(session, user);
+        var targetUserId = String((row && (row.targetUserId || row.target_user_id)) || '').trim();
+        var targetEmail = normalizeEmail(row && (row.targetEmail || row.target_email));
+        var targetName = String((row && (row.targetName || row.target_name)) || '').trim().toLowerCase();
+        var fromUserId = String((row && (row.fromUserId || row.from_user_id)) || '').trim();
+        var fromEmail = normalizeEmail(row && (row.fromEmail || row.from_email));
+        var fromName = String((row && (row.fromName || row.from_name)) || '').trim().toLowerCase();
+        var isReceived = (userId && targetUserId && userId === targetUserId)
+          || (email && targetEmail && email === targetEmail)
+          || (!!targetName && aliases.indexOf(targetName) > -1);
+        var isOutgoing = (userId && fromUserId && userId === fromUserId)
+          || (email && fromEmail && email === fromEmail)
+          || (!!fromName && aliases.indexOf(fromName) > -1);
+        return isReceived && !isOutgoing;
+      }
 
-        var messageUnread = readJsonArray('user_message_board_v1').filter(function(item){
-          var targetUserId = String((item && item.targetUserId) || '').trim();
-          var targetEmail = normalizeEmail(item && item.targetEmail);
-          var targetName = String((item && item.targetName) || '').trim().toLowerCase();
-          var fromUserId = String((item && item.fromUserId) || '').trim();
-          var fromEmail = normalizeEmail(item && item.fromEmail);
-          var fromName = String((item && item.fromName) || '').trim().toLowerCase();
-          var isReceived = (userId && targetUserId && userId === targetUserId)
-            || (email && targetEmail && email === targetEmail)
-            || (!!targetName && aliases.indexOf(targetName) > -1);
-          var isSent = (userId && fromUserId && userId === fromUserId)
-            || (email && fromEmail && email === fromEmail)
-            || (!!fromName && aliases.indexOf(fromName) > -1);
-          if(!isReceived || isSent) return false;
-          var createdTs = Number(item && item.createdTs) || parseTimeValue(item && item.createdAt) || 0;
-          return createdTs > seenAt;
-        }).length;
+      function getSupportService(){
+        return window.clubSupportSupabase || null;
+      }
 
-        var bookingUnread = readJsonArray(KEYS.bookings).filter(function(item){
-          if(String((item && item.status) || '').trim().toLowerCase() === 'cancelled') return false;
-          var bookingUserId = String((item && item.userId) || '').trim();
-          var bookingEmail = normalizeEmail(item && item.userEmail);
-          var matches = (userId && bookingUserId && userId === bookingUserId)
-            || (email && bookingEmail && email === bookingEmail);
-          if(!matches) return false;
-          var createdTs = parseTimeValue(item && item.createdAt);
-          if(!createdTs){
-            createdTs = parseTimeValue([
-              String((item && item.dayIso) || '').trim(),
-              String((item && item.slotTime) || '').trim()
-            ].filter(Boolean).join(' '));
-          }
-          return createdTs > seenAt;
-        }).length;
+      function hasCloudSupportConfigured(){
+        var service = getSupportService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      }
 
-        return messageUnread + bookingUnread;
+      async function fetchMyMessageBoardRows(session){
+        var userId = String((session && session.userId) || '').trim();
+        var email = normalizeEmail(session && session.email);
+        if(!userId && !email) return [];
+
+        var service = getSupportService();
+        if(hasCloudSupportConfigured() && userId && service && typeof service.fetchMyMessageBoard === 'function'){
+          try{
+            var serviceRows = await service.fetchMyMessageBoard(userId);
+            return Array.isArray(serviceRows) ? serviceRows : [];
+          }catch(e){}
+        }
+
+        var client = getSupabaseClientSafe();
+        if(!client) return [];
+
+        var selectText = 'id, target_user_id, target_email, target_name, from_user_id, from_email, from_name, created_at';
+        var tasks = [];
+        if(userId){
+          tasks.push(client.from('message_board_entries').select(selectText).eq('target_user_id', userId));
+        }
+        if(email){
+          tasks.push(client.from('message_board_entries').select(selectText).eq('target_email', email));
+        }
+        if(!tasks.length) return [];
+
+        try{
+          var results = await Promise.all(tasks);
+          var unique = {};
+          results.forEach(function(result){
+            if(!result || result.error || !Array.isArray(result.data)) return;
+            result.data.forEach(function(row){
+              var key = String((row && row.id) || '').trim() || JSON.stringify(row || {});
+              if(!key || unique[key]) return;
+              unique[key] = row;
+            });
+          });
+          return Object.keys(unique).map(function(key){
+            return unique[key];
+          });
+        }catch(e){
+          return [];
+        }
+      }
+
+      var headerUnreadCount = 0;
+      var unreadRefreshToken = 0;
+
+      function countUnreadNotifications(session, user){
+        if(!session) return 0;
+        return headerUnreadCount;
+      }
+
+      async function refreshUnreadNotifications(){
+        var session = state.session;
+        if(!session){
+          headerUnreadCount = 0;
+          renderProfile();
+          return 0;
+        }
+
+        var token = ++unreadRefreshToken;
+        try{
+          var seenAt = readNotificationSeenAt(session);
+          var rows = await fetchMyMessageBoardRows(session);
+          if(token !== unreadRefreshToken) return headerUnreadCount;
+          headerUnreadCount = rows.filter(function(row){
+            if(!isIncomingMessageForSession(row, session, state.user)) return false;
+            var createdTs = Number(row && row.createdTs) || parseTimeValue(row && (row.createdAt || row.created_at));
+            return createdTs > seenAt;
+          }).length;
+        }catch(error){
+          if(token !== unreadRefreshToken) return headerUnreadCount;
+          headerUnreadCount = 0;
+        }
+        renderProfile();
+        return headerUnreadCount;
       }
 
       function getSupabaseClientSafe(){
@@ -3897,6 +3958,7 @@
         renderMembers();
         renderActivities();
         renderTeaching();
+        refreshUnreadNotifications();
       }
 
       async function syncActivitiesFromCloud(){
@@ -4740,13 +4802,12 @@
           if(
             key === KEYS.session
             || key === KEYS.users
-            || key === KEYS.bookings
-            || key === 'user_message_board_v1'
             || key.indexOf('user_notifications_seen_v1:') === 0
           ){
             refreshState()
               .then(function(){
                 renderProfile();
+                refreshUnreadNotifications();
                 if(!state.sessionEmail){
                   document.body.classList.add('guest-mode');
                 }else{
@@ -4762,11 +4823,13 @@
         document.addEventListener('visibilitychange', function(){
           if(!document.hidden){
             syncActivitiesFromCloud();
+            refreshUnreadNotifications();
           }
         });
 
         window.addEventListener('focus', function(){
           syncActivitiesFromCloud();
+          refreshUnreadNotifications();
         });
 
         async function handleLogout(){
@@ -4808,7 +4871,7 @@
               return;
             }
             var script = document.createElement('script');
-            script.src = '../js/portal-header-auth.js?v=20260414-delete-2';
+            script.src = '../js/portal-header-auth.js?v=20260414-msgdb-1';
             script.async = true;
             script.setAttribute('data-portal-delete-loader', 'true');
             script.addEventListener('load', finish, { once: true });
@@ -4849,6 +4912,6 @@
       });
     })();
   </script>
-  <script src="../js/portal-header-auth.js?v=20260414-delete-2"></script>
+  <script src="../js/portal-header-auth.js?v=20260414-msgdb-1"></script>
 </body>
 </html>
