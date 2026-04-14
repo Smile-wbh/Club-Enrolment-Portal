@@ -611,7 +611,7 @@
           <section class="panel-card reveal">
             <div class="panel-head">
               <h3>Activity Management</h3>
-              <span class="light-text">Booking status actions</span>
+              <span class="light-text">Booking records</span>
             </div>
             <div class="table-wrap">
               <table>
@@ -621,8 +621,6 @@
                     <th>User</th>
                     <th>Date</th>
                     <th>Time Slot</th>
-                    <th>Status</th>
-                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody id="activityTableBody"></tbody>
@@ -3036,7 +3034,7 @@
       function renderActivities(){
         var tbody = document.getElementById('activityTableBody');
         if(state.myBookings.length === 0){
-          tbody.innerHTML = '<tr><td colspan="6" class="empty-row">No booking activity records.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="4" class="empty-row">No booking activity records.</td></tr>';
           return;
         }
 
@@ -3045,19 +3043,11 @@
         });
 
         tbody.innerHTML = rows.map(function(b){
-          var key = bookingKey(b);
-          var status = b.status || 'Booked';
           return '<tr>' +
             '<td>' + (b.clubName || '-') + '</td>' +
             '<td>' + (b.userEmail || '-') + '</td>' +
             '<td>' + (b.dayLabel || b.dayIso || '-') + '</td>' +
             '<td>' + (b.slotTime || '-') + '</td>' +
-            '<td><span class="status-pill">' + status + '</span></td>' +
-            '<td class="actions-cell">' +
-              '<button class="btn-plain small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Checked In">Check In</button>' +
-              '<button class="btn-plain small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Completed">Complete</button>' +
-              '<button class="btn-danger small" data-action="mark-booking" data-id="' + (b.id || '') + '" data-key="' + encodeURIComponent(key) + '" data-status="Cancelled">Cancel</button>' +
-            '</td>' +
           '</tr>';
         }).join('');
       }
@@ -4684,7 +4674,6 @@
         document.getElementById('clubCards').addEventListener('click', handleClubActions);
         document.getElementById('clubEditTableBody').addEventListener('click', handleClubEditActions);
         document.getElementById('memberTableBody').addEventListener('click', handleMemberActions);
-        document.getElementById('activityTableBody').addEventListener('click', handleActivityActions);
         document.getElementById('courseTableBody').addEventListener('click', handleCourseActions);
 
         var topProfileWrap = document.getElementById('topProfileWrap');
