@@ -25,6 +25,66 @@
     return /create_club_booking/i.test(text) && (/schema cache|could not find the function|p_payment_method|p_payer_email/i.test(text));
   }
 
+  function isDuplicateClubMemberError(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /duplicate key|already exists|club_members/i.test(text);
+  }
+
+  function buildClubMemberName(authUser, fallbackEmail) {
+    var metadata = authUser && authUser.user_metadata && typeof authUser.user_metadata === 'object'
+      ? authUser.user_metadata
+      : {};
+    var nickname = trimText(metadata.nickname || metadata.full_name || metadata.name);
+    if (nickname) return nickname;
+    var email = normalizeEmail(authUser && authUser.email) || normalizeEmail(fallbackEmail);
+    if (email) {
+      return trimText(email.split('@')[0]) || 'Club Member';
+    }
+    return 'Club Member';
+  }
+
+  async function ensureClubMembership(client, clubId, fallbackEmail) {
+    var normalizedClubId = trimText(clubId);
+    if (!client || !normalizedClubId || !client.auth || typeof client.auth.getUser !== 'function') return;
+
+    try {
+      var authResult = await client.auth.getUser();
+      var authUser = authResult && authResult.data ? authResult.data.user : null;
+      var userId = trimText(authUser && authUser.id);
+      var userEmail = normalizeEmail(authUser && authUser.email) || normalizeEmail(fallbackEmail);
+      if (!userId) return;
+
+      var existingResult = await client
+        .from('club_members')
+        .select('id')
+        .eq('club_id', normalizedClubId)
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (existingResult.error) {
+        console.warn('Unable to check existing club membership after booking.', existingResult.error);
+      } else if (existingResult.data && existingResult.data.id) {
+        return;
+      }
+
+      var insertResult = await client
+        .from('club_members')
+        .insert({
+          club_id: normalizedClubId,
+          user_id: userId,
+          member_name: buildClubMemberName(authUser, userEmail),
+          user_email: userEmail,
+          member_role: 'member'
+        });
+
+      if (insertResult.error && !isDuplicateClubMemberError(insertResult.error)) {
+        console.warn('Unable to sync club membership after booking.', insertResult.error);
+      }
+    } catch (error) {
+      console.warn('Unable to sync club membership after booking.', error);
+    }
+  }
+
   function formatClubFeeText(value) {
     var text = trimText(value).replace(/^[£$€¥]\s*/, '');
     if (!text) return '';
@@ -704,6 +764,11 @@
     if (result.error) throw result.error;
 
     var mapped = mapBookingRecord(result.data || {});
+    await ensureClubMembership(
+      client,
+      trimText(order && order.clubId),
+      normalizeEmail(order && (order.payerEmail || order.userEmail || userEmail))
+    );
     if (!mapped.userEmail) {
       mapped.userEmail = normalizeEmail(userEmail);
     }

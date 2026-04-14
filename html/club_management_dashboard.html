@@ -235,7 +235,7 @@
                 </label>
                 <div class="form-field span-2">
                   <div>Map link</div>
-                  <input id="regMapLink" required type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
+                  <input id="regMapLink" type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
                   <div class="map-link-search-row">
                     <label class="map-link-search-field" for="regMapSearch">
                       <span>Google Maps search</span>
@@ -246,7 +246,7 @@
                       <button class="btn-plain map-link-btn" id="regMapPreviewBtn" type="button">Open Link</button>
                     </div>
                   </div>
-                  <div class="map-link-helper">Required. Search on Google Maps to confirm the place, or paste the final Google Maps link directly.</div>
+                  <div class="map-link-helper">For in-person clubs, add a Google Maps link. For online clubs, use the meeting link field instead. Hybrid clubs can provide either or both.</div>
                   <div class="map-preview-card" id="regMapPreviewCard" hidden>
                     <div class="map-preview-head">
                       <strong>Map preview</strong>
@@ -426,7 +426,7 @@
                   </label>
                   <div class="form-field span-2">
                     <div>Map link</div>
-                    <input id="clubEditMapLink" required type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
+                    <input id="clubEditMapLink" type="url" placeholder="Paste a Google Maps link directly, e.g. https://maps.google.com/...">
                     <div class="map-link-search-row">
                       <label class="map-link-search-field" for="clubEditMapSearch">
                         <span>Google Maps search</span>
@@ -437,7 +437,7 @@
                         <button class="btn-plain map-link-btn" id="clubEditMapPreviewBtn" type="button">Open Link</button>
                       </div>
                     </div>
-                    <div class="map-link-helper">Required. Search on Google Maps to confirm the place, or paste the final Google Maps link directly.</div>
+                    <div class="map-link-helper">For in-person clubs, add a Google Maps link. For online clubs, use the meeting link field instead. Hybrid clubs can provide either or both.</div>
                     <div class="map-preview-card" id="clubEditMapPreviewCard" hidden>
                       <div class="map-preview-head">
                         <strong>Map preview</strong>
@@ -3352,6 +3352,63 @@
         };
       }
 
+      function normalizeClubModeValue(value){
+        return String(value || '').trim().toLowerCase();
+      }
+
+      function getClubAccessRequirementMessage(mode){
+        var normalizedMode = normalizeClubModeValue(mode);
+        if(normalizedMode === 'online'){
+          return 'Please add an online meeting link for online clubs.';
+        }
+        if(normalizedMode === 'hybrid'){
+          return 'Please add a Google Maps link, an online meeting link, or both for hybrid clubs.';
+        }
+        return 'Please add a Google Maps link. You can search Google Maps first or paste the link directly.';
+      }
+
+      function syncClubAccessFields(mode){
+        var refs = getClubFormRefs(mode);
+        if(!refs.form) return;
+        var normalizedMode = normalizeClubModeValue(refs.mode && refs.mode.value);
+        var helper = refs.mapLink && refs.mapLink.parentElement
+          ? refs.mapLink.parentElement.querySelector('.map-link-helper')
+          : null;
+        var requiresMapLink = normalizedMode !== 'online' && normalizedMode !== 'hybrid';
+        var requiresOnlineLink = normalizedMode === 'online';
+
+        if(refs.mapLink){
+          refs.mapLink.required = requiresMapLink;
+          refs.mapLink.placeholder = normalizedMode === 'online'
+            ? 'Optional for online clubs; add a map link only if you also meet in person.'
+            : 'Paste a Google Maps link directly, e.g. https://maps.google.com/...';
+        }
+        if(refs.onlineLink){
+          refs.onlineLink.required = requiresOnlineLink;
+          refs.onlineLink.placeholder = requiresOnlineLink
+            ? 'Required for online clubs, e.g. https://meet.google.com/...'
+            : 'e.g. https://meet.google.com/...';
+        }
+        if(helper){
+          helper.textContent = normalizedMode === 'online'
+            ? 'Online clubs do not need a Google Maps link. Add the meeting link below so members can join.'
+            : 'For in-person clubs, add a Google Maps link. For hybrid clubs, you can provide a map link, an online meeting link, or both.';
+        }
+      }
+
+      function validateClubAccessFields(values){
+        var normalizedMode = normalizeClubModeValue(values && values.mode);
+        var hasMapLink = !!String(values && values.mapLink || '').trim();
+        var hasOnlineLink = !!String(values && values.onlineLink || '').trim();
+        if(normalizedMode === 'online'){
+          return hasOnlineLink ? '' : getClubAccessRequirementMessage(normalizedMode);
+        }
+        if(normalizedMode === 'hybrid'){
+          return (hasMapLink || hasOnlineLink) ? '' : getClubAccessRequirementMessage(normalizedMode);
+        }
+        return hasMapLink ? '' : getClubAccessRequirementMessage(normalizedMode);
+      }
+
       function clubTimeDayToWeekIndex(day){
         var map = {
           Sun: 0,
@@ -4290,6 +4347,7 @@
         if(refs.cancelBtn){
           refs.cancelBtn.disabled = !isEditing;
         }
+        syncClubAccessFields('edit');
       }
 
       function setEditClubFieldsVisible(visible){
@@ -4497,8 +4555,12 @@
         if(!commitPendingClubTimeSlot('create')){
           return;
         }
+        syncClubAccessFields('create');
         var createRefs = getClubFormRefs('create');
         if(createRefs.mapLink && !createRefs.mapLink.reportValidity()){
+          return;
+        }
+        if(createRefs.onlineLink && !createRefs.onlineLink.reportValidity()){
           return;
         }
         var values = readClubFormValues('create');
@@ -4506,8 +4568,9 @@
           alert('Please enter a club name');
           return;
         }
-        if(!values.mapLink){
-          alert('Please add a Google Maps link. You can search Google Maps first or paste the link directly.');
+        var accessError = validateClubAccessFields(values);
+        if(accessError){
+          alert(accessError);
           return;
         }
         if(hasCloudDashboardConfigured() && !state.sessionUserId){
@@ -4605,8 +4668,12 @@
         if(!commitPendingClubTimeSlot('edit')){
           return;
         }
+        syncClubAccessFields('edit');
         var editRefs = getClubFormRefs('edit');
         if(editRefs.mapLink && !editRefs.mapLink.reportValidity()){
+          return;
+        }
+        if(editRefs.onlineLink && !editRefs.onlineLink.reportValidity()){
           return;
         }
         var editingId = String(editingClubId || '').trim();
@@ -4620,8 +4687,9 @@
           alert('Please enter a club name');
           return;
         }
-        if(!values.mapLink){
-          alert('Please add a Google Maps link. You can search Google Maps first or paste the link directly.');
+        var accessError = validateClubAccessFields(values);
+        if(accessError){
+          alert(accessError);
           return;
         }
 
@@ -5232,15 +5300,29 @@
           window.requestAnimationFrame(function(){
             resetClubTimeBuilder('create');
             refreshClubMapPreview('create', '', '');
+            syncClubAccessFields('create');
           });
         });
+        var regModeField = document.getElementById('regMode');
+        if(regModeField){
+          regModeField.addEventListener('change', function(){
+            syncClubAccessFields('create');
+          });
+        }
         document.getElementById('clubEditForm').addEventListener('submit', handleEditClubSubmit);
         document.getElementById('clubEditForm').addEventListener('reset', function(){
           window.requestAnimationFrame(function(){
             resetClubTimeBuilder('edit');
             refreshClubMapPreview('edit', '', '');
+            syncClubAccessFields('edit');
           });
         });
+        var clubEditModeField = document.getElementById('clubEditMode');
+        if(clubEditModeField){
+          clubEditModeField.addEventListener('change', function(){
+            syncClubAccessFields('edit');
+          });
+        }
         document.getElementById('addMemberForm').addEventListener('submit', handleAddMember);
         document.getElementById('courseForm').addEventListener('submit', handlePublishCourse);
         document.getElementById('courseForm').addEventListener('reset', function(){
@@ -5489,6 +5571,8 @@
 
       async function init(){
         bindEvents();
+        syncClubAccessFields('create');
+        syncClubAccessFields('edit');
         await refreshState();
         renderAll();
         startActivitySyncWatcher();
