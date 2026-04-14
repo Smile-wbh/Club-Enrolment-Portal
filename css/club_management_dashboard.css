@@ -677,15 +677,22 @@ body{
 .board-grid{
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-areas:
-    "chart insight ."
-    "chart insight agenda";
+  align-items: start;
   gap: 14px;
 }
 
-.chart-card{ grid-area: chart; }
-.insight-card{ grid-area: insight; }
-.agenda-card{ grid-area: agenda; }
+.chart-card{
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+.insight-card{
+  grid-column: 2;
+  grid-row: 1;
+}
+.agenda-card{
+  grid-column: 3;
+  grid-row: 1;
+}
 
 .panel-card{
   background: var(--bg-panel);
@@ -1284,10 +1291,12 @@ tbody tr:hover{
   }
   .board-grid{
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    grid-template-areas:
-      "chart chart"
-      "insight insight"
-      "agenda agenda";
+  }
+  .chart-card,
+  .insight-card,
+  .agenda-card{
+    grid-column: 1 / -1;
+    grid-row: auto;
   }
   .cards-grid{
     grid-template-columns: 1fr;
@@ -1325,10 +1334,12 @@ tbody tr:hover{
   }
   .board-grid{
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "chart"
-      "insight"
-      "agenda";
+  }
+  .chart-card,
+  .insight-card,
+  .agenda-card{
+    grid-column: 1;
+    grid-row: auto;
   }
   .map-link-search-row{
     grid-template-columns: 1fr;
