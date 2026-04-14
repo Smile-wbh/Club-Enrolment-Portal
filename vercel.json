@@ -2,6 +2,30 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "redirects": [
     {
+      "source": "/:path((?!\\.well-known/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "host",
+          "value": "club-enrolment-portal.vercel.app"
+        }
+      ],
+      "destination": "https://www.club-registration-portal-center.com/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/:path((?!\\.well-known/).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "host",
+          "value": "club-registration-portal-center.com"
+        }
+      ],
+      "destination": "https://www.club-registration-portal-center.com/:path*",
+      "permanent": true
+    },
+    {
       "source": "/",
       "destination": "/html/index1.html",
       "permanent": false
