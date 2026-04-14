@@ -224,6 +224,11 @@
   line-height: 1;
 }
 
+.top-actions .portal-user-alert-badge[hidden],
+.top-actions .portal-menu-badge[hidden] {
+  display: none !important;
+}
+
 .top-actions .portal-user-alert-badge {
   position: absolute;
   top: 4px;

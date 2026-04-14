@@ -18,7 +18,8 @@
     style.textContent = [
       '.portal-profile-divider{height:1px;margin:4px 4px 6px;background:rgba(148,163,184,.28);}',
       '.portal-profile-item-danger{color:#b42318 !important;font-weight:700;}',
-      '.portal-profile-item-danger:hover{background:#fff0ee !important;color:#912018 !important;}'
+      '.portal-profile-item-danger:hover{background:#fff0ee !important;color:#912018 !important;}',
+      '.top-actions .portal-user-alert-badge[hidden],.top-actions .portal-menu-badge[hidden]{display:none !important;}'
     ].join('');
     document.head && document.head.appendChild(style);
   }
