@@ -175,40 +175,7 @@
               <a href="msjs.html">View All</a>
             </div>
 
-            <div class="featured-grid">
-              <article class="club-card">
-                <div class="club-content">
-                  <h3>Browse Registered Clubs</h3>
-                  <p>Static club detail pages have been removed. Open Club Preview to browse clubs that are currently registered.</p>
-                  <div class="club-actions">
-                    <a href="msjs.html">Open Club Preview</a>
-                    <a class="secondary" href="specialty.html">Open Club Booking</a>
-                  </div>
-                </div>
-              </article>
-
-              <article class="club-card">
-                <div class="club-content">
-                  <h3>Manage Your Club Journey</h3>
-                  <p>Use the live club pages instead of the removed static examples to register, view details, and manage bookings.</p>
-                  <div class="club-actions">
-                    <a href="join.html">Open User Center</a>
-                    <a class="secondary" href="club_management_dashboard.html">Club Dashboard</a>
-                  </div>
-                </div>
-              </article>
-
-              <article class="club-card">
-                <div class="club-content">
-                  <h3>Explore Course Booking</h3>
-                  <p>Course and club booking now run through the shared dynamic pages, without separate files under the old club folder.</p>
-                  <div class="club-actions">
-                    <a href="mfms.html">Open Club Courses</a>
-                    <a class="secondary" href="specialty.html">View Available Slots</a>
-                  </div>
-                </div>
-              </article>
-            </div>
+            <div class="featured-grid" id="featured-clubs-grid"></div>
           </section>
 
           <section class="panel events-panel">
@@ -351,11 +318,61 @@
   </footer>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../js/supabase-config.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/supabase-bookings.js"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     initBanner();
     initSearch();
+    initFeaturedClubs();
   });
+
+  const FEATURED_FALLBACK_CLUBS = [
+    {
+      slug: 'football',
+      name: 'Football Club',
+      category: 'Sports',
+      desc: 'Weekly training and match preparation sessions for members who enjoy team play and structured drills.',
+      cover: '../zp/zq.webp'
+    },
+    {
+      slug: 'badminton',
+      name: 'Badminton Club',
+      category: 'Sports',
+      desc: 'Bookable badminton sessions with doubles practice, casual games, and campus competition preparation.',
+      cover: '../zp/ymq.webp'
+    },
+    {
+      slug: 'basketball',
+      name: 'Basketball Club',
+      category: 'Sports',
+      desc: 'Shooting drills, teamwork practice, and half-court games for regular basketball training.',
+      cover: '../zp/lq.webp'
+    },
+    {
+      slug: 'programming',
+      name: 'Programming Club',
+      category: 'Academic',
+      desc: 'Hands-on coding sessions covering web development, Python, and project-based programming practice.',
+      cover: '../zp/bc.webp'
+    },
+    {
+      slug: 'music',
+      name: 'Music Society',
+      category: 'Arts',
+      desc: 'Instrument exchange, ensemble rehearsal, and performance preparation for music lovers.',
+      cover: '../zp/yy.webp'
+    },
+    {
+      slug: 'tennis',
+      name: 'Tennis Club',
+      category: 'Sports',
+      desc: 'Serve practice, doubles sessions, and welcoming tennis activities across weekly bookable slots.',
+      cover: '../zp/wq.webp'
+    }
+  ];
 
   function initBanner() {
     const bannerPic = document.getElementById('banner_pic');
@@ -409,6 +426,135 @@
     bannerPic.addEventListener('mouseleave', function () {
       timer = setInterval(nextSlide, 3500);
     });
+  }
+
+  function initFeaturedClubs() {
+    const featuredGrid = document.getElementById('featured-clubs-grid');
+    if (!featuredGrid) return;
+
+    renderFeaturedClubs(pickRandomFeaturedClubs(FEATURED_FALLBACK_CLUBS, 3));
+
+    const bookingService = window.clubBookingSupabase || null;
+    if (!bookingService || typeof bookingService.isConfigured !== 'function' || !bookingService.isConfigured() || typeof bookingService.fetchClubCatalog !== 'function') {
+      return;
+    }
+
+    bookingService.fetchClubCatalog(buildFeaturedClubRange(42))
+      .then(function (catalog) {
+        const clubs = Array.isArray(catalog && catalog.clubs) ? catalog.clubs : [];
+        const mapped = clubs
+          .map(mapFeaturedClub)
+          .filter(function (club) {
+            return club && club.slug && club.name;
+          });
+
+        if (!mapped.length) return;
+
+        renderFeaturedClubs(pickRandomFeaturedClubs(mapped, 3));
+      })
+      .catch(function (error) {
+        console.warn('Unable to load featured clubs from Club Preview data.', error);
+      });
+  }
+
+  function buildFeaturedClubRange(days) {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + Number(days || 42));
+    return {
+      startDate: formatDateIso(start),
+      endDate: formatDateIso(end)
+    };
+  }
+
+  function formatDateIso(value) {
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, '0');
+    const day = String(value.getDate()).padStart(2, '0');
+    return year + '-' + month + '-' + day;
+  }
+
+  function mapFeaturedClub(club) {
+    return {
+      slug: String(club && club.slug || '').trim(),
+      name: String(club && club.name || '').trim(),
+      category: String(club && club.category || 'Sports').trim(),
+      desc: summarizeFeaturedClub(club),
+      cover: String(club && club.cover || '').trim()
+    };
+  }
+
+  function summarizeFeaturedClub(club) {
+    const desc = String(club && club.desc || '').trim();
+    if (desc) {
+      return desc.length > 165 ? desc.slice(0, 162).trimEnd() + '...' : desc;
+    }
+
+    const summary = [
+      club && club.location ? 'Location: ' + String(club.location).trim() : '',
+      club && club.time ? 'Time: ' + String(club.time).trim() : '',
+      club && club.fee ? 'Fee: ' + String(club.fee).trim() : ''
+    ].filter(Boolean).join(' | ');
+
+    return summary || 'Open Club Preview to explore this club, view details, and continue to booking.';
+  }
+
+  function pickRandomFeaturedClubs(list, count) {
+    const unique = [];
+    const seen = new Set();
+
+    (Array.isArray(list) ? list : []).forEach(function (club) {
+      const slug = String(club && club.slug || '').trim();
+      if (!slug || seen.has(slug)) return;
+      seen.add(slug);
+      unique.push(club);
+    });
+
+    return unique
+      .slice()
+      .sort(function () {
+        return Math.random() - 0.5;
+      })
+      .slice(0, count);
+  }
+
+  function renderFeaturedClubs(clubs) {
+    const featuredGrid = document.getElementById('featured-clubs-grid');
+    if (!featuredGrid) return;
+
+    featuredGrid.innerHTML = (Array.isArray(clubs) ? clubs : []).map(function (club) {
+      const slug = String(club && club.slug || '').trim();
+      const normalizedSlug = slug.replace(/[^a-z0-9-]/gi, '').toLowerCase();
+      const imageClass = normalizedSlug ? 'club-image club-image-' + normalizedSlug : 'club-image';
+      const detailHref = 'club_detail.html?club=' + encodeURIComponent(slug);
+      const bookingHref = 'specialty.html?club=' + encodeURIComponent(slug);
+
+      return [
+        '<article class="club-card">',
+        '  <div class="' + imageClass + '">',
+        '    <img src="' + escapeHtml(String(club && club.cover || '').trim()) + '" alt="' + escapeHtml(String(club && club.name || '').trim()) + '" />',
+        '    <span class="club-tag">' + escapeHtml(String(club && club.category || 'Club').trim()) + '</span>',
+        '  </div>',
+        '  <div class="club-content">',
+        '    <h3>' + escapeHtml(String(club && club.name || '').trim()) + '</h3>',
+        '    <div class="club-actions">',
+        '      <a href="' + detailHref + '">View Details</a>',
+        '      <a class="secondary" href="' + bookingHref + '">Book Now</a>',
+        '    </div>',
+        '  </div>',
+        '</article>'
+      ].join('');
+    }).join('');
+  }
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   function initSearch() {
