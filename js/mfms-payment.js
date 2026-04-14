@@ -424,10 +424,14 @@
 
     if (state.order.bookingSource === 'supabase' && hasSupabaseCourses()) {
       var service = getCourseService();
+      state.order.paymentMethod = METHOD_LABEL[state.method] || METHOD_LABEL.card;
+      state.order.payerEmail = normalizeEmail(session.email) || normalizeEmail(state.order.userEmail);
+      state.order.payableAmount = currentPayable();
       setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
       try {
         var cloudRecord = await service.createCourseBooking({
           id: trimText(state.order.courseId),
+          orderId: trimText(state.order.orderId),
           title: trimText(state.order.title),
           club: trimText(state.order.clubName),
           mode: trimText(state.order.mode),
@@ -437,7 +441,13 @@
           location: trimText(state.order.location),
           seats: Number(state.order.seats || 0),
           fee: trimText(state.order.feeText),
-          source: 'supabase'
+          source: 'supabase',
+          baseFee: Number(state.order.baseFee || 0),
+          serviceFee: Number(state.order.serviceFee || 0),
+          discount: Number(state.order.discount || 0),
+          payableAmount: Number(state.order.payableAmount || currentPayable()),
+          paymentMethod: trimText(state.order.paymentMethod),
+          payerEmail: trimText(state.order.payerEmail) || trimText(state.order.userEmail)
         }, trimText(state.order.selectedSchedule), state.order.userEmail);
         syncLocalBookingMirror(cloudRecord);
         showSuccess(cloudRecord, false);
@@ -474,6 +484,8 @@
       seats: Number(state.order.seats || 0),
       fee: trimText(state.order.feeText) || money(state.order.baseFee),
       ownerEmail: trimText(state.order.userEmail),
+      userEmail: trimText(state.order.userEmail),
+      payerEmail: trimText(state.order.payerEmail) || trimText(state.order.userEmail),
       bookedAt: new Date().toISOString(),
       createdAt: new Date().toISOString(),
       status: 'Booked',

@@ -101,6 +101,11 @@
     return Number.isFinite(numeric) ? numeric : (fallback || 0);
   }
 
+  function isMissingBookingPaymentAuditColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /payment_method|payer_email|\bpayable_amount\b/i.test(text);
+  }
+
   function toOptionalNumber(value) {
     var text = trimText(value);
     if (!text) return null;
@@ -358,12 +363,15 @@
       location: trimText(row.location),
       fee: formatClubFeeText(row.fee_text),
       userId: trimText(row.user_id),
-      userEmail: 'Cloud booking',
+      userEmail: normalizeEmail(row.payer_email) || 'Cloud booking',
+      payerEmail: normalizeEmail(row.payer_email),
       createdAt: trimText(row.created_at),
       cancelledAt: trimText(row.cancelled_at),
       checkedInAt: trimText(row.checked_in_at),
       completedAt: trimText(row.completed_at),
-      status: mapBookingStatusFromDb(row.status)
+      status: mapBookingStatusFromDb(row.status),
+      paymentMethod: trimText(row.payment_method),
+      paidAmount: Number(row.payable_amount || 0)
     };
   }
 
@@ -526,7 +534,7 @@
 
     var bookingPromise = client
       .from('club_bookings')
-      .select('id, order_id, user_id, club_id, slot_id, status, day_iso, day_label, slot_time, location, fee_text, created_at, cancelled_at, checked_in_at, completed_at, club:clubs(id, name, slug)')
+      .select('id, order_id, user_id, club_id, slot_id, status, day_iso, day_label, slot_time, location, fee_text, payer_email, payment_method, payable_amount, created_at, cancelled_at, checked_in_at, completed_at, club:clubs(id, name, slug)')
       .in('club_id', clubIds)
       .neq('status', 'cancelled')
       .order('created_at', { ascending: false });
@@ -534,6 +542,14 @@
     var results = await Promise.all([memberPromise, bookingPromise]);
     var membersResult = results[0] || {};
     var bookingsResult = results[1] || {};
+    if (bookingsResult.error && isMissingBookingPaymentAuditColumn(bookingsResult.error)) {
+      bookingsResult = await client
+        .from('club_bookings')
+        .select('id, order_id, user_id, club_id, slot_id, status, day_iso, day_label, slot_time, location, fee_text, created_at, cancelled_at, checked_in_at, completed_at, club:clubs(id, name, slug)')
+        .in('club_id', clubIds)
+        .neq('status', 'cancelled')
+        .order('created_at', { ascending: false });
+    }
     var coursesResult = await client
       .from('courses')
       .select(COURSE_ADMIN_SELECT)

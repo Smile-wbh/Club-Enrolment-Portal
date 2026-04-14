@@ -40,6 +40,11 @@
     return Number.isNaN(date.getTime()) ? text : date.toLocaleString();
   }
 
+  function isMissingCourseBookingPaymentColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /order_id|payment_status|payment_method|payer_email|\bpayable_amount\b/i.test(text);
+  }
+
   function cloneAttachments(value) {
     return Array.isArray(value) ? value.map(function (item) {
       var row = item || {};
@@ -732,19 +737,33 @@
     if (!client) return [];
     var result = await client
       .from('course_bookings')
-      .select('status, selected_schedule, booked_at, course:courses(title, location, fee_text)')
+      .select('order_id, status, payment_status, payment_method, fee_text, payable_amount, payer_email, selected_schedule, booked_at, course:courses(title, location, fee_text)')
       .eq('user_id', normalizeId(currentUserId))
       .order('booked_at', { ascending: false })
       .limit(30);
+
+    if (result.error && isMissingCourseBookingPaymentColumn(result.error)) {
+      result = await client
+        .from('course_bookings')
+        .select('status, selected_schedule, booked_at, course:courses(title, location, fee_text)')
+        .eq('user_id', normalizeId(currentUserId))
+        .order('booked_at', { ascending: false })
+        .limit(30);
+    }
     if (result.error) throw result.error;
     return Array.isArray(result.data) ? result.data.map(function (row) {
       return {
+        orderId: trimText(row && row.order_id).toUpperCase(),
         status: trimText(row && row.status),
+        paymentStatus: trimText(row && row.payment_status),
+        paymentMethod: trimText(row && row.payment_method),
         selectedSchedule: trimText(row && row.selected_schedule),
         bookedAt: trimText(row && row.booked_at),
+        payableAmount: Number(row && row.payable_amount || 0),
+        payerEmail: normalizeEmail(row && row.payer_email),
         courseTitle: trimText(row && row.course && row.course.title),
         location: trimText(row && row.course && row.course.location),
-        feeText: trimText(row && row.course && row.course.fee_text)
+        feeText: trimText(row && row.fee_text) || trimText(row && row.course && row.course.fee_text)
       };
     }) : [];
   }

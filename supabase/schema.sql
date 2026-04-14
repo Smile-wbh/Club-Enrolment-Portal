@@ -140,6 +140,7 @@ create table if not exists public.club_bookings (
   slot_id uuid not null references public.club_slots(id) on delete cascade,
   status public.booking_status not null default 'pending_payment',
   payment_status public.payment_status not null default 'pending',
+  payment_method text,
   day_iso date not null,
   day_label text,
   slot_time text,
@@ -149,6 +150,7 @@ create table if not exists public.club_bookings (
   service_fee numeric(10, 2) not null default 0,
   discount numeric(10, 2) not null default 0,
   payable_amount numeric(10, 2) not null default 0,
+  payer_email text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   checked_in_at timestamptz,
@@ -193,15 +195,36 @@ create table if not exists public.courses (
 
 create table if not exists public.course_bookings (
   id uuid primary key default gen_random_uuid(),
+  order_id text,
   user_id uuid not null references public.profiles(id) on delete cascade,
   course_id uuid not null references public.courses(id) on delete cascade,
   status text not null default 'booked',
+  payment_status public.payment_status not null default 'pending',
+  payment_method text,
+  fee_text text not null default 'Free',
+  base_fee numeric(10, 2) not null default 0,
+  service_fee numeric(10, 2) not null default 0,
+  discount numeric(10, 2) not null default 0,
+  payable_amount numeric(10, 2) not null default 0,
+  payer_email text,
   selected_schedule text,
   booked_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   cancelled_at timestamptz
 );
 
+alter table public.club_bookings add column if not exists payment_method text;
+alter table public.club_bookings add column if not exists payer_email text;
+
+alter table public.course_bookings add column if not exists order_id text;
+alter table public.course_bookings add column if not exists payment_status public.payment_status not null default 'pending';
+alter table public.course_bookings add column if not exists payment_method text;
+alter table public.course_bookings add column if not exists fee_text text not null default 'Free';
+alter table public.course_bookings add column if not exists base_fee numeric(10, 2) not null default 0;
+alter table public.course_bookings add column if not exists service_fee numeric(10, 2) not null default 0;
+alter table public.course_bookings add column if not exists discount numeric(10, 2) not null default 0;
+alter table public.course_bookings add column if not exists payable_amount numeric(10, 2) not null default 0;
+alter table public.course_bookings add column if not exists payer_email text;
 alter table public.course_bookings add column if not exists selected_schedule text;
 alter table public.course_bookings add column if not exists cancelled_at timestamptz;
 
@@ -1248,6 +1271,8 @@ as $$
   group by s.id, s.day_iso;
 $$;
 
+drop function if exists public.create_club_booking(text, uuid, uuid, text, text, numeric, numeric, numeric, numeric);
+
 create or replace function public.create_club_booking(
   p_order_id text,
   p_club_id uuid,
@@ -1257,7 +1282,9 @@ create or replace function public.create_club_booking(
   p_base_fee numeric default 0,
   p_service_fee numeric default 0,
   p_discount numeric default 0,
-  p_payable_amount numeric default 0
+  p_payable_amount numeric default 0,
+  p_payment_method text default null,
+  p_payer_email text default null
 )
 returns public.club_bookings
 language plpgsql
@@ -1362,6 +1389,7 @@ begin
     slot_id,
     status,
     payment_status,
+    payment_method,
     day_iso,
     day_label,
     slot_time,
@@ -1370,7 +1398,8 @@ begin
     base_fee,
     service_fee,
     discount,
-    payable_amount
+    payable_amount,
+    payer_email
   )
   values (
     trim(p_order_id),
@@ -1379,6 +1408,7 @@ begin
     p_slot_id,
     'booked'::public.booking_status,
     'paid'::public.payment_status,
+    nullif(trim(coalesce(p_payment_method, '')), ''),
     v_slot.day_iso,
     trim(to_char(v_slot.day_iso, 'YYYY-MM-DD')),
     v_slot_time,
@@ -1387,7 +1417,11 @@ begin
     coalesce(p_base_fee, 0),
     coalesce(p_service_fee, 0),
     greatest(coalesce(p_discount, 0), 0),
-    greatest(coalesce(p_payable_amount, 0), 0)
+    greatest(coalesce(p_payable_amount, 0), 0),
+    coalesce(
+      lower(nullif(trim(coalesce(p_payer_email, '')), '')),
+      lower(nullif(trim(coalesce(auth.jwt() ->> 'email', '')), ''))
+    )
   )
   returning *
   into v_booking;
@@ -1437,9 +1471,19 @@ as $$
   group by c.id;
 $$;
 
+drop function if exists public.create_course_booking(uuid, text);
+
 create or replace function public.create_course_booking(
   p_course_id uuid,
-  p_selected_schedule text default null
+  p_selected_schedule text default null,
+  p_order_id text default null,
+  p_fee_text text default 'Free',
+  p_base_fee numeric default 0,
+  p_service_fee numeric default 0,
+  p_discount numeric default 0,
+  p_payable_amount numeric default 0,
+  p_payment_method text default null,
+  p_payer_email text default null
 )
 returns public.course_bookings
 language plpgsql
@@ -1529,15 +1573,36 @@ begin
   end if;
 
   insert into public.course_bookings (
+    order_id,
     user_id,
     course_id,
     status,
+    payment_status,
+    payment_method,
+    fee_text,
+    base_fee,
+    service_fee,
+    discount,
+    payable_amount,
+    payer_email,
     selected_schedule
   )
   values (
+    nullif(trim(coalesce(p_order_id, '')), ''),
     auth.uid(),
     p_course_id,
     'booked',
+    'paid'::public.payment_status,
+    nullif(trim(coalesce(p_payment_method, '')), ''),
+    coalesce(nullif(trim(p_fee_text), ''), v_course.fee_text),
+    coalesce(p_base_fee, 0),
+    coalesce(p_service_fee, 0),
+    greatest(coalesce(p_discount, 0), 0),
+    greatest(coalesce(p_payable_amount, 0), 0),
+    coalesce(
+      lower(nullif(trim(coalesce(p_payer_email, '')), '')),
+      lower(nullif(trim(coalesce(auth.jwt() ->> 'email', '')), ''))
+    ),
     v_selected_schedule
   )
   returning *
@@ -1886,6 +1951,10 @@ alter table public.club_bookings drop constraint if exists club_bookings_user_id
 create unique index if not exists idx_course_bookings_user_course_schedule_active
 on public.course_bookings(user_id, course_id, (coalesce(selected_schedule, ''::text)))
 where status <> 'cancelled';
+
+create unique index if not exists idx_course_bookings_order_id
+on public.course_bookings(order_id)
+where order_id is not null;
 
 drop trigger if exists set_courses_updated_at on public.courses;
 create trigger set_courses_updated_at

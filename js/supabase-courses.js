@@ -33,6 +33,16 @@
     return /place_id|formatted_address|map_source|\blat\b|\blng\b/i.test(text);
   }
 
+  function isMissingCourseBookingPaymentColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /order_id|payment_status|payment_method|payer_email|\bbase_fee\b|\bservice_fee\b|\bdiscount\b|\bpayable_amount\b/i.test(text);
+  }
+
+  function isLegacyCreateCourseBookingRpcSignature(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /create_course_booking/i.test(text) && (/schema cache|could not find the function|p_order_id|p_payment_method|p_payer_email/i.test(text));
+  }
+
   var CLUB_COVER_MAP = {
     football: '../zp/zq.webp',
     badminton: '../zp/ymq.webp',
@@ -236,8 +246,10 @@
     var club = course.club || {};
     var scheduleList = toArray(course.schedule);
     var selectedSchedule = trimText(row.selected_schedule) || trimText(course.time_text) || scheduleList[0] || '';
+    var payerEmail = normalizeEmail(row.payer_email || fallbackEmail);
     return {
       id: trimText(row.id),
+      orderId: trimText(row.order_id),
       courseId: trimText(row.course_id) || trimText(course.id),
       title: trimText(course.title),
       clubName: trimText(club.name) || trimText(course.english_club),
@@ -247,12 +259,21 @@
       time: selectedSchedule,
       location: trimText(course.location),
       seats: Math.max(0, toNumber(course.seats, 0)) * courseScheduleCount(scheduleList, course.time_text),
-      fee: trimText(course.fee_text),
-      ownerEmail: normalizeEmail(fallbackEmail),
+      fee: trimText(row.fee_text) || trimText(course.fee_text),
+      feeText: trimText(row.fee_text) || trimText(course.fee_text),
+      ownerEmail: payerEmail,
+      userEmail: payerEmail,
+      payerEmail: payerEmail,
       bookedAt: trimText(row.booked_at),
       createdAt: trimText(row.booked_at),
       cancelledAt: trimText(row.cancelled_at),
-      status: mapCourseStatus(row.status)
+      status: mapCourseStatus(row.status),
+      paymentStatus: trimText(row.payment_status),
+      paymentMethod: trimText(row.payment_method),
+      baseFee: toNumber(row.base_fee, 0),
+      serviceFee: toNumber(row.service_fee, 0),
+      discount: toNumber(row.discount, 0),
+      paidAmount: toNumber(row.payable_amount, 0)
     };
   }
 
@@ -345,10 +366,19 @@
 
     var result = await client
       .from('course_bookings')
-      .select('id, course_id, status, booked_at, selected_schedule, cancelled_at, course:courses(id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, club:clubs(name, slug, category))')
+      .select('id, order_id, course_id, status, payment_status, payment_method, fee_text, base_fee, service_fee, discount, payable_amount, payer_email, booked_at, selected_schedule, cancelled_at, course:courses(id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, club:clubs(name, slug, category))')
       .eq('user_id', normalizedUserId)
       .neq('status', 'cancelled')
       .order('booked_at', { ascending: false });
+
+    if (result.error && isMissingCourseBookingPaymentColumn(result.error)) {
+      result = await client
+        .from('course_bookings')
+        .select('id, course_id, status, booked_at, selected_schedule, cancelled_at, course:courses(id, title, english_club, level, mode, time_text, schedule, location, seats, fee_text, club:clubs(name, slug, category))')
+        .eq('user_id', normalizedUserId)
+        .neq('status', 'cancelled')
+        .order('booked_at', { ascending: false });
+    }
 
     if (result.error) throw result.error;
 
@@ -425,15 +455,39 @@
 
     var result = await client.rpc('create_course_booking', {
       p_course_id: courseId,
-      p_selected_schedule: trimText(selectedSchedule || normalizedCourse.time)
+      p_selected_schedule: trimText(selectedSchedule || normalizedCourse.time),
+      p_order_id: trimText(normalizedCourse.orderId),
+      p_fee_text: trimText(normalizedCourse.fee || normalizedCourse.feeText),
+      p_base_fee: toNumber(normalizedCourse.baseFee, 0),
+      p_service_fee: toNumber(normalizedCourse.serviceFee, 0),
+      p_discount: toNumber(normalizedCourse.discount, 0),
+      p_payable_amount: toNumber(normalizedCourse.payableAmount, 0),
+      p_payment_method: trimText(normalizedCourse.paymentMethod),
+      p_payer_email: normalizeEmail(normalizedCourse.payerEmail || userEmail)
     });
+
+    if (result.error && isLegacyCreateCourseBookingRpcSignature(result.error)) {
+      result = await client.rpc('create_course_booking', {
+        p_course_id: courseId,
+        p_selected_schedule: trimText(selectedSchedule || normalizedCourse.time)
+      });
+    }
 
     if (result.error) throw result.error;
 
     return mapCourseBookingRecord({
       id: trimText(result.data && result.data.id),
+      order_id: trimText(result.data && result.data.order_id) || trimText(normalizedCourse.orderId),
       course_id: courseId,
       status: trimText(result.data && result.data.status) || 'booked',
+      payment_status: trimText(result.data && result.data.payment_status) || 'paid',
+      payment_method: trimText(result.data && result.data.payment_method) || trimText(normalizedCourse.paymentMethod),
+      fee_text: trimText(result.data && result.data.fee_text) || trimText(normalizedCourse.fee || normalizedCourse.feeText),
+      base_fee: toNumber(result.data && result.data.base_fee, toNumber(normalizedCourse.baseFee, 0)),
+      service_fee: toNumber(result.data && result.data.service_fee, toNumber(normalizedCourse.serviceFee, 0)),
+      discount: toNumber(result.data && result.data.discount, toNumber(normalizedCourse.discount, 0)),
+      payable_amount: toNumber(result.data && result.data.payable_amount, toNumber(normalizedCourse.payableAmount, 0)),
+      payer_email: normalizeEmail(result.data && result.data.payer_email) || normalizeEmail(normalizedCourse.payerEmail || userEmail),
       booked_at: trimText(result.data && result.data.booked_at) || new Date().toISOString(),
       selected_schedule: trimText(result.data && result.data.selected_schedule) || trimText(selectedSchedule || normalizedCourse.time),
       cancelled_at: trimText(result.data && result.data.cancelled_at),
@@ -468,8 +522,20 @@
         cancelled_at: new Date().toISOString()
       })
       .eq('id', trimText(bookingId))
-      .select('id, course_id, status, booked_at, selected_schedule, cancelled_at')
+      .select('id, order_id, course_id, status, payment_status, payment_method, fee_text, base_fee, service_fee, discount, payable_amount, payer_email, booked_at, selected_schedule, cancelled_at')
       .single();
+
+    if (result.error && isMissingCourseBookingPaymentColumn(result.error)) {
+      result = await client
+        .from('course_bookings')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', trimText(bookingId))
+        .select('id, course_id, status, booked_at, selected_schedule, cancelled_at')
+        .single();
+    }
 
     if (result.error) throw result.error;
     return result.data || null;

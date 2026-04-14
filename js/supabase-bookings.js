@@ -15,6 +15,16 @@
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimText(value));
   }
 
+  function isMissingBookingPaymentAuditColumn(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /payment_method|payer_email|\bbase_fee\b|\bservice_fee\b|\bdiscount\b|\bpayable_amount\b/i.test(text);
+  }
+
+  function isLegacyCreateBookingRpcSignature(error) {
+    var text = trimText(error && (error.message || error.details || error.hint || error.code));
+    return /create_club_booking/i.test(text) && (/schema cache|could not find the function|p_payment_method|p_payer_email/i.test(text));
+  }
+
   function formatClubFeeText(value) {
     var text = trimText(value).replace(/^[£$€¥]\s*/, '');
     if (!text) return '';
@@ -582,6 +592,7 @@
 
   function mapBookingRecord(row) {
     var club = row && row.club ? row.club : {};
+    var payerEmail = normalizeEmail(row && row.payer_email);
     return {
       id: trimText(row && row.id),
       orderId: trimText(row && row.order_id),
@@ -594,11 +605,16 @@
       slotTime: trimText(row && row.slot_time),
       location: trimText(row && row.location),
       fee: formatClubFeeText(row && row.fee_text) || '£0',
-      userEmail: '',
+      userEmail: payerEmail,
+      payerEmail: payerEmail,
       createdAt: trimText(row && row.created_at),
       cancelledAt: trimText(row && row.cancelled_at),
       status: mapBookingStatus(row && row.status),
-      paymentMethod: trimText(row && row.payment_status) === 'paid' ? 'Paid' : trimText(row && row.payment_status),
+      paymentStatus: trimText(row && row.payment_status),
+      paymentMethod: trimText(row && row.payment_method) || '',
+      baseFee: Number(row && row.base_fee || 0),
+      serviceFee: Number(row && row.service_fee || 0),
+      discount: Number(row && row.discount || 0),
       paidAmount: Number(row && row.payable_amount || 0),
       couponCode: ''
     };
@@ -610,15 +626,28 @@
 
     var result = await client
       .from('club_bookings')
-      .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, cancelled_at, created_at, payable_amount, club:clubs(name, slug)')
+      .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, payment_method, payer_email, cancelled_at, created_at, base_fee, service_fee, discount, payable_amount, club:clubs(name, slug)')
       .eq('user_id', trimText(userId))
       .order('created_at', { ascending: false });
+
+    if (result.error && isMissingBookingPaymentAuditColumn(result.error)) {
+      result = await client
+        .from('club_bookings')
+        .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, cancelled_at, created_at, payable_amount, club:clubs(name, slug)')
+        .eq('user_id', trimText(userId))
+        .order('created_at', { ascending: false });
+    }
 
     if (result.error) throw result.error;
 
     return (result.data || []).map(function (row) {
       var mapped = mapBookingRecord(row);
-      mapped.userEmail = normalizeEmail(fallbackEmail);
+      if (!mapped.userEmail) {
+        mapped.userEmail = normalizeEmail(fallbackEmail);
+      }
+      if (!mapped.payerEmail) {
+        mapped.payerEmail = mapped.userEmail;
+      }
       return mapped;
     });
   }
@@ -653,13 +682,34 @@
       p_base_fee: Number(order && order.baseFee || 0),
       p_service_fee: Number(order && order.serviceFee || 0),
       p_discount: Number(order && order.discount || 0),
-      p_payable_amount: Number(order && order.payableAmount || 0)
+      p_payable_amount: Number(order && order.payableAmount || 0),
+      p_payment_method: trimText(order && order.paymentMethod),
+      p_payer_email: normalizeEmail(order && (order.payerEmail || order.userEmail))
     });
+
+    if (result.error && isLegacyCreateBookingRpcSignature(result.error)) {
+      result = await client.rpc('create_club_booking', {
+        p_order_id: trimText(order && order.orderId),
+        p_club_id: trimText(order && order.clubId),
+        p_slot_id: slotId,
+        p_location: trimText(order && order.location),
+        p_fee_text: trimText(order && order.feeText),
+        p_base_fee: Number(order && order.baseFee || 0),
+        p_service_fee: Number(order && order.serviceFee || 0),
+        p_discount: Number(order && order.discount || 0),
+        p_payable_amount: Number(order && order.payableAmount || 0)
+      });
+    }
 
     if (result.error) throw result.error;
 
     var mapped = mapBookingRecord(result.data || {});
-    mapped.userEmail = normalizeEmail(userEmail);
+    if (!mapped.userEmail) {
+      mapped.userEmail = normalizeEmail(userEmail);
+    }
+    if (!mapped.payerEmail) {
+      mapped.payerEmail = mapped.userEmail;
+    }
     return mapped;
   }
 
@@ -674,8 +724,20 @@
         cancelled_at: new Date().toISOString()
       })
       .eq('id', trimText(bookingId))
-      .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, cancelled_at, created_at, payable_amount, club:clubs(name, slug)')
+      .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, payment_method, payer_email, cancelled_at, created_at, base_fee, service_fee, discount, payable_amount, club:clubs(name, slug)')
       .single();
+
+    if (result.error && isMissingBookingPaymentAuditColumn(result.error)) {
+      result = await client
+        .from('club_bookings')
+        .update({
+          status: 'cancelled',
+          cancelled_at: new Date().toISOString()
+        })
+        .eq('id', trimText(bookingId))
+        .select('id, order_id, club_id, slot_id, day_iso, day_label, slot_time, location, fee_text, status, payment_status, cancelled_at, created_at, payable_amount, club:clubs(name, slug)')
+        .single();
+    }
 
     if (result.error) throw result.error;
     return mapBookingRecord(result.data || {});

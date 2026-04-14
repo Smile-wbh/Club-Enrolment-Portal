@@ -443,6 +443,9 @@
     }
 
     var service = getBookingService();
+    state.order.paymentMethod = METHOD_LABEL[state.method] || METHOD_LABEL.card;
+    state.order.payerEmail = normalizeEmail(session.email) || normalizeEmail(state.order.userEmail);
+    state.order.payableAmount = currentPayable();
     setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
     try {
       var cloudRecord = await service.createBooking(state.order, state.order.userEmail);
