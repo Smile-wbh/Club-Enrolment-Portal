@@ -3,14 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Course Booking Payment - Club Enrollment Portal</title>
+  <title>Sports Membership Payment - Club Registration Portal</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
-  <script src="../js/supabase-courses.js"></script>
   <script src="../js/supabase-memberships.js?v=20260414-membership-6"></script>
-  <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
-  <link rel="stylesheet" href="../css/specialty-payment.css" />
+  <link rel="stylesheet" href="../css/membership-payment.css?v=20260414-membership-1" />
 </head>
 <body>
   <header class="portal-header">
@@ -27,11 +25,10 @@
 
       <nav class="top-nav" aria-label="Primary navigation">
         <a href="index1.html">Home</a>
+        <a class="active" href="membership.html">Membership Details</a>
         <a href="msjs.html">Club Preview</a>
         <a href="specialty.html">Club Booking</a>
-        <a class="active" href="mfms.html">Club Courses</a>
-        <a href="spjs.html">Club Forum</a>
-        <a href="tzgg.html">Support Center</a>
+        <a href="mfms.html">Club Courses</a>
       </nav>
 
       <div class="top-actions">
@@ -51,7 +48,7 @@
         <div class="payment-steps" id="paymentSteps">
           <div class="step-item is-done">
             <span class="step-dot">1</span>
-            <strong>Choose a Course Time</strong>
+            <strong>Review Membership</strong>
           </div>
           <div class="step-line"></div>
           <div class="step-item is-active">
@@ -61,24 +58,24 @@
           <div class="step-line"></div>
           <div class="step-item" id="completeStep">
             <span class="step-dot">3</span>
-            <strong>Complete Payment</strong>
+            <strong>Activate Membership</strong>
           </div>
         </div>
 
         <section class="payment-empty" id="paymentEmpty" hidden>
-          <h2>There is no course booking waiting for payment</h2>
-          <p>Please go back to the course detail page, choose a time slot, and then continue to payment.</p>
+          <h2>Sports Membership is not ready right now</h2>
+          <p>Please return to the membership details page and try again later.</p>
           <div class="empty-actions">
-            <a class="primary-btn" href="mfms.html">Back to Course List</a>
-            <a class="ghost-btn" href="join.html?tab=teaching_bookings">View My Course Bookings</a>
+            <a class="primary-btn" href="membership.html">Back to Membership Details</a>
+            <a class="ghost-btn" href="join.html?view=login#auth-entry">Open Login</a>
           </div>
         </section>
 
         <section class="payment-success" id="paymentSuccess" hidden>
-          <div class="success-badge">Course Booked</div>
-          <h2>Payment complete, and the booking has been added to your dashboard</h2>
-          <p id="successLead">You can go back to the course detail page to review the course again, or open the user dashboard to check your course bookings.</p>
-          <p class="success-return-note" id="successAutoRedirectText">You will be redirected to the course bookings page shortly.</p>
+          <div class="success-badge">Membership Active</div>
+          <h2>Sports Membership has been activated successfully</h2>
+          <p class="membership-success-copy" id="successLead">Your membership is now active. You can open User Dashboard to view your Sports Membership details and current weekly coupon code.</p>
+          <p class="success-return-note" id="successAutoRedirectText">You will be redirected to User Dashboard shortly.</p>
 
           <div class="success-grid">
             <div class="success-card">
@@ -86,22 +83,22 @@
               <strong id="successOrderId">-</strong>
             </div>
             <div class="success-card">
-              <span>Course</span>
-              <strong id="successCourseTitle">-</strong>
+              <span>Membership</span>
+              <strong id="successPlanName">-</strong>
             </div>
             <div class="success-card">
-              <span>Club</span>
-              <strong id="successClubName">-</strong>
+              <span>Status</span>
+              <strong id="successStatusText">-</strong>
             </div>
             <div class="success-card">
-              <span>Time Slot</span>
-              <strong id="successSlotTime">-</strong>
+              <span>Coupon Code</span>
+              <strong id="successCouponCode">-</strong>
             </div>
           </div>
 
           <div class="empty-actions">
-            <a class="primary-btn" id="successBackToCourse" href="mfms.html">Back to Course Details</a>
-            <a class="ghost-btn" href="join.html?tab=teaching_bookings">Open User Dashboard</a>
+            <a class="primary-btn" id="successDashboardLink" href="join.html?tab=sports_membership">Open User Dashboard</a>
+            <a class="ghost-btn" href="membership.html">Back to Membership Details</a>
           </div>
         </section>
 
@@ -113,11 +110,10 @@
             </div>
 
             <div class="info-group">
-              <div class="info-row"><span>Course Name</span><strong id="orderCourseTitle">-</strong></div>
-              <div class="info-row"><span>Club</span><strong id="orderClubName">-</strong></div>
-              <div class="info-row"><span>Format</span><strong id="orderFormatText">-</strong></div>
-              <div class="info-row"><span>Time</span><strong id="orderScheduleText">-</strong></div>
-              <div class="info-row"><span>Location</span><strong id="orderLocation">-</strong></div>
+              <div class="info-row"><span>Plan Name</span><strong id="orderPlanName">-</strong></div>
+              <div class="info-row"><span>Membership Type</span><strong id="orderMembershipType">-</strong></div>
+              <div class="info-row"><span>Billing Cycle</span><strong id="orderBillingCycle">-</strong></div>
+              <div class="info-row"><span>Member Benefit</span><strong id="orderBenefitText">-</strong></div>
               <div class="info-row"><span>Order ID</span><strong id="orderIdText">-</strong></div>
               <div class="info-row"><span>Payment Account</span><strong id="orderUserEmail">-</strong></div>
             </div>
@@ -129,9 +125,9 @@
             </div>
 
             <div class="fee-group">
-              <div class="info-row"><span>Course Fee</span><strong id="baseFeeText">£0.00</strong></div>
+              <div class="info-row"><span>Membership Fee</span><strong id="baseFeeText">£0.00</strong></div>
               <div class="info-row"><span>Platform Service Fee</span><strong id="serviceFeeText">£0.00</strong></div>
-              <div class="info-row discount-row"><span>Coupon Discount</span><strong id="discountText">-£0.00</strong></div>
+              <div class="info-row discount-row"><span>Promo Discount</span><strong id="discountText">-£0.00</strong></div>
             </div>
 
             <div class="divide-line"></div>
@@ -153,7 +149,7 @@
               <button class="method-option" type="button" data-method="apple">Apple Pay</button>
             </div>
 
-            <div class="method-intro" id="methodIntro">Recommended for standard course bookings. Once completed, it syncs immediately to User Dashboard -> Course Bookings.</div>
+            <div class="method-intro" id="methodIntro">Recommended for Sports Membership. Once completed, it syncs immediately to User Dashboard -> Sports Membership.</div>
 
             <div id="cardFields">
               <div class="field-stack">
@@ -182,20 +178,21 @@
 
             <div class="coupon-block">
               <div class="card-head secondary-head">
-                <h3>Coupon Code</h3>
+                <h3>What You Unlock</h3>
               </div>
-              <div class="coupon-row">
-                <input id="couponInput" type="text" placeholder="Enter your membership code" />
-                <button class="apply-btn" type="button" id="applyCouponBtn">Apply</button>
-              </div>
-              <div class="inline-status" id="couponStatus"></div>
+              <p class="membership-plan-intro">After successful payment, this account will activate the Sports Membership plan immediately.</p>
+              <ul class="membership-note-list">
+                <li>Weekly coupon code generated for your dashboard</li>
+                <li>Platform Service Fee waived for supported club bookings</li>
+                <li>Platform Service Fee waived plus an extra £2 discount for supported course and club bookings</li>
+              </ul>
             </div>
 
-            <div class="payment-note" id="paymentDeadlineText">Please complete payment within 15 minutes. A booking confirmation will appear once payment succeeds.</div>
+            <div class="payment-note" id="paymentDeadlineText">Please complete payment on this page. After success, Sports Membership will be activated immediately.</div>
             <div class="inline-status" id="paymentStatus"></div>
 
             <div class="pay-footer">
-              <div class="secure-note">Secure Payment · Secure Payment</div>
+              <div class="secure-note">Secure Payment · Secure Activation</div>
               <button class="pay-submit-btn" type="button" id="paySubmitBtn">Confirm Payment £0.00</button>
             </div>
           </section>
@@ -204,7 +201,7 @@
     </div>
   </main>
 
-  <script src="../js/mfms-payment.js?v=20260414-membership-fee-3"></script>
+  <script src="../js/membership-payment.js?v=20260414-membership-6"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
   <script src="../js/portal-header-auth.js?v=20260414-msgdb-2"></script>
 </body>

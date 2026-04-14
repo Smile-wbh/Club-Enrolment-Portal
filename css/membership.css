@@ -1,0 +1,841 @@
+@import url("./portal-header-auth.css");
+
+:root {
+  --page-max: 1520px;
+  --page-pad: 24px;
+  --navy: #1f4e8c;
+  --navy-deep: #17375f;
+  --navy-soft: #2d6fbc;
+  --orange: #f0a12f;
+  --orange-deep: #de6f1c;
+  --card: rgba(255, 255, 255, 0.96);
+  --line: #dbe5f3;
+  --text: #1d3659;
+  --muted: #5d738d;
+  --shadow: 0 18px 34px rgba(24, 52, 95, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  padding-bottom: 88px;
+  font-family: "Trebuchet MS", "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: var(--text);
+  background: linear-gradient(180deg, #edf3fc 0, #f6f9fd 220px, #f8fbff 100%);
+}
+
+a {
+  color: inherit;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+.container {
+  max-width: var(--page-max);
+  margin: 0 auto;
+  padding: 0 var(--page-pad);
+}
+
+.portal-header {
+  background: linear-gradient(90deg, #1f467d, #315f9a 58%, #3768a6);
+  color: #fff;
+  box-shadow: 0 8px 18px rgba(18, 38, 68, 0.14);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.portal-header .container {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr) max-content;
+  align-items: center;
+  gap: 18px;
+  min-height: 84px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 10px 8px 0;
+  text-decoration: none;
+  color: #fff;
+  flex: 0 0 auto;
+}
+
+.brand-mark {
+  display: block;
+  width: 62px;
+  height: 62px;
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  box-shadow: 0 12px 26px rgba(16, 36, 68, 0.22);
+}
+
+.brand-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.brand-text strong {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.brand-text em {
+  font-style: normal;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.top-nav {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.top-nav a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 52px;
+  padding: 0 18px;
+  border-radius: 0;
+  color: rgba(255, 255, 255, 0.84);
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  position: relative;
+}
+
+.top-nav a:hover,
+.top-nav a.active {
+  background: transparent;
+  color: #fff;
+}
+
+.top-nav a.active {
+  color: #fff;
+}
+
+.top-nav a.active::after {
+  content: "";
+  position: absolute;
+  right: 12px;
+  bottom: 0;
+  left: 12px;
+  height: 5px;
+  border-radius: 999px 999px 0 0;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.top-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.top-btn.light {
+  background: #fff;
+  color: var(--navy);
+}
+
+.top-btn.accent {
+  background: linear-gradient(135deg, var(--orange), var(--orange-deep));
+  color: #fff;
+  box-shadow: 0 10px 18px rgba(224, 111, 28, 0.28);
+}
+
+.top-btn:hover {
+  transform: translateY(-1px);
+}
+
+.membership-main {
+  padding: 18px 0 48px;
+}
+
+.membership-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 54px;
+  margin-bottom: 12px;
+  color: #39557c;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.membership-breadcrumb a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.membership-breadcrumb a:hover {
+  color: var(--navy);
+}
+
+.membership-breadcrumb-home span:first-child {
+  font-size: 20px;
+  line-height: 1;
+  color: #6181aa;
+}
+
+.membership-breadcrumb-sep {
+  color: #8aa0ba;
+}
+
+.membership-hero,
+.membership-panel {
+  border: 1px solid rgba(219, 229, 243, 0.96);
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.membership-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  gap: 20px;
+  align-items: center;
+  min-height: 340px;
+  margin-bottom: 18px;
+  padding: 34px 42px;
+  background:
+    radial-gradient(circle at top right, rgba(124, 168, 233, 0.18), transparent 30%),
+    radial-gradient(circle at bottom left, rgba(185, 212, 255, 0.42), transparent 36%),
+    linear-gradient(135deg, #eef5ff, #f9fbff 48%, #edf4ff);
+  overflow: hidden;
+}
+
+.membership-hero-copy {
+  max-width: 36rem;
+}
+
+.membership-hero-copy h1 {
+  margin: 0 0 12px;
+  color: #1f4274;
+  font-size: clamp(38px, 4.2vw, 56px);
+  line-height: 1.08;
+}
+
+.membership-hero-copy p {
+  margin: 0;
+  max-width: 26rem;
+  color: #435b79;
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.membership-hero-copy strong {
+  color: #1c3d6f;
+}
+
+.membership-hero-visual {
+  position: relative;
+  min-height: 260px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+}
+
+.membership-price-card {
+  position: absolute;
+  top: 10px;
+  right: 0;
+  z-index: 4;
+  display: grid;
+  gap: 4px;
+  min-width: 168px;
+  padding: 18px 20px 16px;
+  border-radius: 22px;
+  background: linear-gradient(180deg, #fff8eb, #fff4da);
+  box-shadow: 0 18px 34px rgba(202, 143, 33, 0.18);
+  text-align: left;
+}
+
+.membership-price-ribbon {
+  position: absolute;
+  top: -16px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  padding: 0 18px;
+  border-radius: 14px 14px 14px 4px;
+  background: linear-gradient(135deg, #ffb100, #f08f00);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.membership-price-card strong {
+  color: #a76400;
+  font-size: 52px;
+  line-height: 1;
+}
+
+.membership-price-card em {
+  color: #a56d15;
+  font-style: italic;
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.membership-graphic {
+  position: relative;
+  width: min(100%, 420px);
+  height: 250px;
+}
+
+.membership-stars::before,
+.membership-stars::after {
+  content: "";
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: radial-gradient(circle, #ffd05e 0, #f4af19 68%, transparent 69%);
+  clip-path: polygon(50% 0, 61% 36%, 98% 36%, 68% 58%, 79% 94%, 50% 72%, 21% 94%, 32% 58%, 2% 36%, 39% 36%);
+  opacity: 0.95;
+}
+
+.membership-stars::before {
+  top: 18px;
+  left: 88px;
+}
+
+.membership-stars::after {
+  top: 52px;
+  left: 158px;
+  transform: scale(0.78);
+}
+
+.membership-coins {
+  position: absolute;
+  bottom: 18px;
+  left: 28px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.membership-coins span {
+  display: block;
+  width: 56px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #ffd65e, #eea708);
+  box-shadow: inset 0 -4px 0 rgba(161, 103, 0, 0.18);
+}
+
+.membership-coins span:nth-child(1) {
+  height: 42px;
+}
+
+.membership-coins span:nth-child(2) {
+  height: 66px;
+}
+
+.membership-coins span:nth-child(3) {
+  height: 52px;
+}
+
+.membership-card-art {
+  position: absolute;
+  right: 52px;
+  bottom: 26px;
+  width: 224px;
+  height: 152px;
+  padding: 20px;
+  border-radius: 22px;
+  background: linear-gradient(155deg, #4a97ec, #2d73c7 58%, #2457a0);
+  box-shadow: 0 24px 38px rgba(34, 82, 145, 0.26);
+  transform: rotate(-9deg);
+}
+
+.membership-card-top {
+  width: 52px;
+  height: 10px;
+  margin-bottom: 16px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.membership-card-lines {
+  width: 124px;
+  height: 52px;
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.08)),
+    repeating-linear-gradient(180deg, transparent 0 11px, rgba(255, 255, 255, 0.38) 11px 15px, transparent 15px 22px);
+}
+
+.membership-coupon-art {
+  position: absolute;
+  right: -12px;
+  bottom: 18px;
+  display: grid;
+  gap: 4px;
+  min-width: 136px;
+  padding: 12px 16px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #5fd0be, #2a987f);
+  color: #fff;
+  box-shadow: 0 14px 24px rgba(24, 86, 76, 0.2);
+  transform: rotate(4deg);
+  text-transform: uppercase;
+}
+
+.membership-coupon-art span {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+}
+
+.membership-coupon-art strong {
+  font-size: 34px;
+  line-height: 1;
+}
+
+.membership-check-badge {
+  position: absolute;
+  right: 110px;
+  bottom: 88px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 74px;
+  height: 74px;
+  border: 10px solid #ffbe1f;
+  border-radius: 50%;
+  background: #fff8eb;
+  color: #f0a100;
+  font-size: 28px;
+  font-weight: 900;
+  box-shadow: 0 18px 28px rgba(229, 163, 32, 0.22);
+}
+
+.membership-hero-btn {
+  position: absolute;
+  right: 0;
+  bottom: 6px;
+  z-index: 5;
+}
+
+.membership-panel {
+  margin-bottom: 18px;
+  padding: 26px 28px;
+}
+
+.membership-panel:last-child {
+  margin-bottom: 0;
+}
+
+.section-title-block {
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(219, 229, 243, 0.96);
+}
+
+.section-title-block h2 {
+  margin: 0;
+  color: #1f4274;
+  font-size: 26px;
+}
+
+.membership-lead-copy {
+  margin: 0;
+  color: #4c627f;
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.benefit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.benefit-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid rgba(219, 229, 243, 0.96);
+  border-radius: 18px;
+  background: linear-gradient(180deg, #ffffff, #fbfdff);
+}
+
+.benefit-art {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 104px;
+  border-radius: 18px;
+  overflow: hidden;
+  text-align: center;
+}
+
+.benefit-art::before {
+  content: "";
+  position: absolute;
+  inset: 14px;
+  border-radius: 18px;
+  opacity: 0.18;
+}
+
+.benefit-art-main {
+  position: relative;
+  z-index: 1;
+}
+
+.benefit-art-main {
+  font-size: 38px;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.benefit-art-coupon {
+  background: linear-gradient(145deg, #dff8ef, #f5fcf8);
+  color: #2d997c;
+}
+
+.benefit-art-coupon::before {
+  background: repeating-linear-gradient(90deg, #56c3a1 0 14px, transparent 14px 22px);
+}
+
+.benefit-art-fee {
+  background: linear-gradient(145deg, #fff5d7, #fffaf0);
+  color: #d08b04;
+}
+
+.benefit-art-fee::before {
+  background: radial-gradient(circle at top left, #ffcc42 0 28%, transparent 29%);
+}
+
+.benefit-art-calendar {
+  background: linear-gradient(145deg, #eef5ff, #fbfdff);
+  color: #4873bf;
+}
+
+.benefit-art-calendar::before {
+  background:
+    linear-gradient(180deg, #7faee7 0 22%, transparent 22%),
+    linear-gradient(90deg, transparent 0 18%, #9fbce4 18% 20%, transparent 20% 80%, #9fbce4 80% 82%, transparent 82%);
+}
+
+.benefit-art-value {
+  background: linear-gradient(145deg, #fff8e6, #fffdf6);
+  color: #e19a00;
+}
+
+.benefit-art-value::before {
+  background:
+    radial-gradient(circle at 24% 72%, #ffcf5c 0 12%, transparent 13%),
+    radial-gradient(circle at 50% 48%, #ffb43f 0 14%, transparent 15%),
+    radial-gradient(circle at 76% 26%, #ffd56b 0 10%, transparent 11%);
+}
+
+.benefit-card h3 {
+  margin: 0;
+  color: #203e6a;
+  font-size: 18px;
+}
+
+.benefit-card p {
+  margin: 0;
+  color: #617891;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.comparison-wrap {
+  overflow-x: auto;
+  border: 1px solid rgba(219, 229, 243, 0.96);
+  border-radius: 18px;
+}
+
+.comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.comparison-table thead th {
+  min-width: 180px;
+  padding: 18px 20px;
+  border-right: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(135deg, #244f8d, #356fba);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-align: center;
+}
+
+.comparison-table thead th:first-child {
+  min-width: 260px;
+  text-align: left;
+}
+
+.comparison-table thead th.comparison-member-head {
+  background: linear-gradient(135deg, #ffb100, #ef9800);
+}
+
+.comparison-table th,
+.comparison-table td {
+  padding: 16px 20px;
+  border-right: 1px solid rgba(219, 229, 243, 0.96);
+  border-bottom: 1px solid rgba(219, 229, 243, 0.96);
+  text-align: center;
+  font-size: 15px;
+}
+
+.comparison-table tbody th {
+  color: #223f6a;
+  font-size: 16px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.comparison-table tbody td {
+  color: #425a77;
+}
+
+.comparison-table tbody tr:last-child th,
+.comparison-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.comparison-table tbody td:last-child,
+.comparison-table thead th:last-child {
+  border-right: 0;
+}
+
+.comparison-good {
+  color: #2a8b56 !important;
+  font-weight: 800;
+}
+
+.comparison-price {
+  color: #b17203 !important;
+  font-weight: 900;
+  background: linear-gradient(180deg, #fffaf1, #fff3d8);
+}
+
+.comparison-strong {
+  color: #1f4274 !important;
+  font-weight: 900;
+}
+
+.membership-cta-copy {
+  max-width: 70rem;
+}
+
+.membership-cta-actions {
+  display: flex;
+  justify-content: center;
+  margin-top: 22px;
+}
+
+.membership-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 28px;
+  border-radius: 16px;
+  text-decoration: none;
+  font-size: 16px;
+  font-weight: 800;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.membership-btn:hover {
+  transform: translateY(-1px);
+}
+
+.membership-btn-primary {
+  background: linear-gradient(135deg, #ffb100, #ef9800);
+  color: #fff;
+  box-shadow: 0 14px 28px rgba(229, 156, 18, 0.22);
+}
+
+.membership-btn-primary:hover {
+  filter: brightness(1.02);
+}
+
+.membership-btn-large {
+  min-width: 280px;
+}
+
+@media (max-width: 1220px) {
+  .membership-hero {
+    grid-template-columns: 1fr;
+    padding: 30px;
+  }
+
+  .membership-hero-copy p {
+    max-width: none;
+  }
+
+  .membership-hero-visual {
+    justify-content: center;
+    min-height: 290px;
+  }
+
+  .membership-price-card {
+    right: 12px;
+  }
+
+  .benefit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .portal-header .container {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .portal-header .top-nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    justify-content: stretch;
+  }
+
+  .portal-header .top-actions {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .membership-hero {
+    padding: 26px 22px;
+  }
+
+  .membership-panel {
+    padding: 22px;
+  }
+
+  .benefit-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .membership-price-card {
+    top: 0;
+    right: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-pad: 18px;
+  }
+
+  .brand-mark {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+  }
+
+  .brand-text strong {
+    font-size: 16px;
+  }
+
+  .portal-header .top-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .membership-breadcrumb {
+    flex-wrap: wrap;
+    min-height: auto;
+    padding: 4px 0 2px;
+  }
+
+  .membership-hero-copy h1 {
+    font-size: clamp(30px, 8vw, 42px);
+  }
+
+  .membership-hero-copy p,
+  .membership-lead-copy {
+    font-size: 15px;
+  }
+
+  .membership-hero-visual {
+    min-height: 320px;
+  }
+
+  .membership-card-art {
+    right: 18px;
+    width: 196px;
+    height: 138px;
+  }
+
+  .membership-coupon-art strong {
+    font-size: 28px;
+  }
+
+  .membership-check-badge {
+    right: 76px;
+    bottom: 84px;
+    width: 66px;
+    height: 66px;
+    font-size: 24px;
+  }
+
+  .membership-price-card {
+    min-width: 144px;
+    padding: 16px 16px 14px;
+  }
+
+  .membership-price-card strong {
+    font-size: 42px;
+  }
+
+  .membership-btn,
+  .membership-btn-large {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .comparison-table thead th:first-child {
+    min-width: 210px;
+  }
+}

@@ -1,0 +1,42 @@
+@import url("./specialty-payment.css");
+
+.membership-note-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.membership-note-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: #4d6380;
+  line-height: 1.7;
+}
+
+.membership-note-list li::before {
+  content: "✓";
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ebf6ef;
+  color: #33815c;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.membership-plan-intro {
+  margin-bottom: 14px;
+  color: #5f738d;
+  line-height: 1.7;
+}
+
+.membership-success-copy {
+  max-width: 52rem;
+}

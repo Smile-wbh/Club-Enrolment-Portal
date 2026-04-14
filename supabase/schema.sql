@@ -297,6 +297,26 @@ create table if not exists public.message_board_entries (
   created_at timestamptz not null default now()
 );
 
+create table if not exists public.user_memberships (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references public.profiles(id) on delete cascade,
+  email text,
+  membership_type text not null default 'sports' check (membership_type in ('sports')),
+  plan_name text not null default 'Sports Membership',
+  status text not null default 'active' check (status in ('active', 'expired', 'cancelled')),
+  billing_cycle text not null default 'monthly' check (billing_cycle in ('monthly')),
+  order_id text unique,
+  payment_method text,
+  price numeric(10, 2) not null default 20,
+  coupon_code text,
+  coupon_generated_at timestamptz not null default now(),
+  coupon_discount numeric(10, 2) not null default 0,
+  started_at timestamptz not null default now(),
+  expires_at timestamptz not null default (now() + interval '1 month'),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 insert into storage.buckets (id, name, public)
 values ('portal-media', 'portal-media', true)
 on conflict (id) do update
@@ -534,6 +554,239 @@ begin
   into v_entry;
 
   return v_entry;
+end;
+$$;
+
+create or replace function public.generate_membership_coupon_code()
+returns text
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_chars constant text := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_code text;
+  v_attempts integer := 0;
+  v_index integer;
+  i integer;
+begin
+  loop
+    v_code := '';
+    for i in 1..6 loop
+      v_index := 1 + floor(random() * length(v_chars))::integer;
+      v_code := v_code || substr(v_chars, v_index, 1);
+    end loop;
+
+    exit when not exists (
+      select 1
+      from public.user_memberships
+      where membership_type = 'sports'
+        and status = 'active'
+        and coupon_code = v_code
+    );
+
+    v_attempts := v_attempts + 1;
+    if v_attempts > 30 then
+      raise exception 'coupon_generation_failed';
+    end if;
+  end loop;
+
+  return v_code;
+end;
+$$;
+
+create or replace function public.get_my_active_sports_membership()
+returns public.user_memberships
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_membership public.user_memberships%rowtype;
+  v_auth_email text;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  v_auth_email := lower(nullif(trim(coalesce(auth.jwt() ->> 'email', '')), ''));
+
+  update public.user_memberships
+  set status = 'expired'
+  where user_id = auth.uid()
+    and membership_type = 'sports'
+    and status = 'active'
+    and expires_at <= now();
+
+  select *
+  into v_membership
+  from public.user_memberships
+  where user_id = auth.uid()
+    and membership_type = 'sports'
+    and status = 'active'
+    and expires_at > now()
+  order by created_at desc
+  limit 1;
+
+  if not found then
+    return null;
+  end if;
+
+  if v_auth_email is not null
+    and lower(coalesce(v_membership.email, '')) <> v_auth_email
+  then
+    update public.user_memberships
+    set email = v_auth_email
+    where id = v_membership.id
+    returning *
+    into v_membership;
+  end if;
+
+  if v_membership.coupon_generated_at is null
+    or v_membership.coupon_generated_at <= now() - interval '7 days'
+    or nullif(trim(coalesce(v_membership.coupon_code, '')), '') is null
+    or upper(trim(coalesce(v_membership.coupon_code, ''))) !~ '^[A-Z0-9]{6}$'
+  then
+    update public.user_memberships
+    set
+      coupon_code = public.generate_membership_coupon_code(),
+      coupon_generated_at = now()
+    where id = v_membership.id
+    returning *
+    into v_membership;
+  end if;
+
+  return v_membership;
+end;
+$$;
+
+create or replace function public.activate_sports_membership(
+  p_order_id text,
+  p_plan_name text default 'Sports Membership',
+  p_price numeric default 20,
+  p_billing_cycle text default 'monthly',
+  p_payment_method text default null
+)
+returns public.user_memberships
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_existing public.user_memberships%rowtype;
+  v_membership public.user_memberships%rowtype;
+  v_order_id text;
+  v_coupon_code text;
+  v_auth_email text;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  v_auth_email := lower(nullif(trim(coalesce(auth.jwt() ->> 'email', '')), ''));
+
+  v_order_id := nullif(trim(coalesce(p_order_id, '')), '');
+  if v_order_id is null then
+    raise exception 'missing_order_id';
+  end if;
+
+  select *
+  into v_existing
+  from public.get_my_active_sports_membership();
+
+  if found then
+    return v_existing;
+  end if;
+
+  select *
+  into v_existing
+  from public.user_memberships
+  where order_id = v_order_id
+  limit 1;
+
+  if found then
+    return v_existing;
+  end if;
+
+  v_coupon_code := public.generate_membership_coupon_code();
+
+  insert into public.user_memberships (
+    user_id,
+    email,
+    membership_type,
+    plan_name,
+    status,
+    billing_cycle,
+    order_id,
+    payment_method,
+    price,
+    coupon_code,
+    coupon_generated_at,
+    coupon_discount,
+    started_at,
+    expires_at
+  )
+  values (
+    auth.uid(),
+    v_auth_email,
+    'sports',
+    coalesce(nullif(trim(coalesce(p_plan_name, '')), ''), 'Sports Membership'),
+    'active',
+    coalesce(nullif(trim(coalesce(p_billing_cycle, '')), ''), 'monthly'),
+    v_order_id,
+    nullif(trim(coalesce(p_payment_method, '')), ''),
+    greatest(coalesce(p_price, 0), 0),
+    v_coupon_code,
+    now(),
+    0,
+    now(),
+    now() + interval '1 month'
+  )
+  returning *
+  into v_membership;
+
+  return v_membership;
+end;
+$$;
+
+create or replace function public.validate_my_sports_membership_coupon(p_coupon_code text)
+returns public.user_memberships
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_membership public.user_memberships%rowtype;
+  v_code text;
+  v_auth_email text;
+begin
+  if auth.uid() is null then
+    raise exception 'not_authenticated';
+  end if;
+
+  v_auth_email := lower(nullif(trim(coalesce(auth.jwt() ->> 'email', '')), ''));
+  v_code := upper(nullif(trim(coalesce(p_coupon_code, '')), ''));
+  if v_code is null then
+    raise exception 'missing_coupon_code';
+  end if;
+
+  select *
+  into v_membership
+  from public.get_my_active_sports_membership();
+
+  if not found then
+    return null;
+  end if;
+
+  if v_auth_email is null or lower(trim(coalesce(v_membership.email, ''))) <> v_auth_email then
+    return null;
+  end if;
+
+  if upper(trim(coalesce(v_membership.coupon_code, ''))) <> v_code then
+    return null;
+  end if;
+
+  return v_membership;
 end;
 $$;
 
@@ -1147,6 +1400,10 @@ grant execute on function public.like_forum_comment(uuid) to anon, authenticated
 grant execute on function public.create_message_board_entry(text, text, text, text) to anon, authenticated, service_role;
 grant execute on function public.create_message_board_entry_by_user(uuid, text, text, text) to anon, authenticated, service_role;
 grant execute on function public.get_forum_profile_summary(uuid, text) to anon, authenticated, service_role;
+grant execute on function public.generate_membership_coupon_code() to service_role;
+grant execute on function public.get_my_active_sports_membership() to authenticated, service_role;
+grant execute on function public.activate_sports_membership(text, text, numeric, text, text) to authenticated, service_role;
+grant execute on function public.validate_my_sports_membership_coupon(text) to authenticated, service_role;
 
 create or replace function public.handle_new_user()
 returns trigger
@@ -1202,6 +1459,9 @@ create index if not exists idx_support_messages_thread_created on public.support
 create index if not exists idx_support_auto_reply_rules_active_priority on public.support_auto_reply_rules(is_active, priority, created_at);
 create index if not exists idx_message_board_entries_target_created on public.message_board_entries(target_user_id, created_at desc);
 create index if not exists idx_message_board_entries_sender_created on public.message_board_entries(from_user_id, created_at desc);
+create index if not exists idx_user_memberships_user_created on public.user_memberships(user_id, created_at desc);
+create unique index if not exists idx_user_memberships_user_type_active on public.user_memberships(user_id, membership_type) where status = 'active';
+create unique index if not exists idx_user_memberships_active_coupon_code on public.user_memberships(coupon_code) where membership_type = 'sports' and status = 'active' and coupon_code is not null;
 
 drop trigger if exists set_profiles_updated_at on public.profiles;
 create trigger set_profiles_updated_at
@@ -1254,6 +1514,11 @@ create trigger set_support_auto_reply_rules_updated_at
 before update on public.support_auto_reply_rules
 for each row execute function public.set_updated_at();
 
+drop trigger if exists set_user_memberships_updated_at on public.user_memberships;
+create trigger set_user_memberships_updated_at
+before update on public.user_memberships
+for each row execute function public.set_updated_at();
+
 drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
@@ -1274,6 +1539,7 @@ alter table public.support_threads enable row level security;
 alter table public.support_messages enable row level security;
 alter table public.support_auto_reply_rules enable row level security;
 alter table public.message_board_entries enable row level security;
+alter table public.user_memberships enable row level security;
 
 drop policy if exists "profiles_select_own_or_admin" on public.profiles;
 create policy "profiles_select_own_or_admin"
@@ -1728,10 +1994,28 @@ values
     true
   ),
   (
+    'teaching-course-info',
+    array['teaching','class','classes','lesson','lessons','learn','learning','coach','instructor','teacher','teaching content','teaching method','teaching methods','method','methods','content','contents','item','items','syllabus','topic','topics','what learn','教学','上课','课程内容','教练','老师','教学内容','内容','项目','教学方法']::text[],
+    'We have received your teaching question. Please tell us the course name if you know it, and we can help you check the course overview, coach, teaching focus, schedule, location, fee, and remaining seats.',
+    55,
+    false,
+    false,
+    true
+  ),
+  (
     'club-course-info',
     array['club','course','info','information','detail','details','俱乐部','课程','信息','详情','介绍']::text[],
     'We have received your information request. Please tell us which club or course you want to know about, and we can help you check the introduction, schedule, location, fee, and available booking slots.',
     60,
+    false,
+    false,
+    true
+  ),
+  (
+    'forum-community',
+    array['forum','post','posts','community','comment','comments','thread','threads','论坛','帖子','评论','社区','动态']::text[],
+    'We have received your forum question. Please tell us the club, course, or topic you are interested in, and we can help you check recent public posts and discussion topics.',
+    65,
     false,
     false,
     true
@@ -1808,6 +2092,40 @@ for insert
 to authenticated
 with check (
   from_user_id = auth.uid()
+  or public.is_admin()
+);
+
+drop policy if exists "user_memberships_select_own_or_admin" on public.user_memberships;
+create policy "user_memberships_select_own_or_admin"
+on public.user_memberships
+for select
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.is_admin()
+);
+
+drop policy if exists "user_memberships_insert_self_or_admin" on public.user_memberships;
+create policy "user_memberships_insert_self_or_admin"
+on public.user_memberships
+for insert
+to authenticated
+with check (
+  user_id = auth.uid()
+  or public.is_admin()
+);
+
+drop policy if exists "user_memberships_update_own_or_admin" on public.user_memberships;
+create policy "user_memberships_update_own_or_admin"
+on public.user_memberships
+for update
+to authenticated
+using (
+  user_id = auth.uid()
+  or public.is_admin()
+)
+with check (
+  user_id = auth.uid()
   or public.is_admin()
 );
 

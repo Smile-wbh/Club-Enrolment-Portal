@@ -5,12 +5,6 @@
     bookings: 'specialty_bookings_v1'
   };
 
-  var COUPONS = {
-    CLUB2026: 1,
-    WELCOME: 1.5,
-    STUDENT: 2
-  };
-
   var METHOD_TEXT = {
     card: 'Recommended for standard club bookings. Once completed, it syncs immediately to User Dashboard -> Club Bookings.',
     paypal: 'Best for completing payment across devices. In the current preview build, success is simulated instantly.',
@@ -66,8 +60,17 @@
     return window.clubBookingSupabase || null;
   }
 
+  function getMembershipService() {
+    return window.clubMembershipSupabase || null;
+  }
+
   function hasSupabaseBookings() {
     var service = getBookingService();
+    return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+  }
+
+  function hasSupabaseMemberships() {
+    var service = getMembershipService();
     return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
   }
 
@@ -152,6 +155,13 @@
   function currentPayable() {
     if (!state.order) return 0;
     return Math.max(0, Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0) - Number(state.discount || 0));
+  }
+
+  function syncOrderTotals() {
+    if (!state.order) return;
+    state.order.discount = Number(state.discount || 0);
+    state.order.payableAmount = currentPayable();
+    state.order.couponCode = trimText(state.couponCode);
   }
 
   function updatePayButtonText() {
@@ -245,29 +255,50 @@
     payBtn.disabled = false;
   }
 
-  function applyCoupon() {
+  async function applyCoupon() {
     if (!state.order) return;
     var input = document.getElementById('couponInput');
     var code = trimText(input && input.value).toUpperCase();
-    var available = Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0);
+    var totalAvailable = Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0);
+    var serviceFee = Math.max(Number(state.order.serviceFee || 0), 0);
+    var extraDiscount = Math.max(0, Math.min(2, totalAvailable - serviceFee));
+    var totalMembershipDiscount = Math.min(totalAvailable, serviceFee + extraDiscount);
 
     if (!code) {
       state.discount = 0;
       state.couponCode = '';
+      syncOrderTotals();
       renderOrder();
       setStatus('couponStatus', 'Coupon cleared. The order total has returned to the standard price.', 'info');
       return;
     }
 
-    if (!Object.prototype.hasOwnProperty.call(COUPONS, code)) {
-      setStatus('couponStatus', 'This coupon code is not available. Please check it and try again.', 'error');
-      return;
+    var session = readSession();
+    var membershipService = getMembershipService();
+    if (hasSupabaseMemberships() && session && trimText(session.userId) && membershipService && typeof membershipService.validateSportsMembershipCoupon === 'function') {
+      try {
+        var membership = await membershipService.validateSportsMembershipCoupon(trimText(session.userId), code);
+        if (membership) {
+          state.couponCode = code;
+          state.discount = totalMembershipDiscount;
+          syncOrderTotals();
+          renderOrder();
+          setStatus(
+            'couponStatus',
+            serviceFee > 0
+              ? 'Membership code applied. The Platform Service Fee has been waived and an extra £2 discount has been applied.'
+              : 'Membership code applied. This order already has no Platform Service Fee, and an extra £2 discount has been applied.',
+            'success'
+          );
+          return;
+        }
+      } catch (error) {
+        setStatus('couponStatus', membershipService.mapMembershipActionError(error), 'error');
+        return;
+      }
     }
 
-    state.couponCode = code;
-    state.discount = Math.min(available, Number(COUPONS[code]));
-    renderOrder();
-    setStatus('couponStatus', 'Coupon applied. Current discount: ' + money(state.discount) + '.', 'success');
+    setStatus('couponStatus', 'This membership code is invalid for the current signed-in Sports Membership account.', 'error');
   }
 
   function validatePayment() {
@@ -391,24 +422,6 @@
     }, 1000);
   }
 
-  function syncLocalBookingMirror(record) {
-    if (!record) return;
-    if (isBusinessCacheDisabled(trimText(record.userEmail) || trimText(state.order && state.order.userEmail))) return;
-    var bookings = readBookings();
-    var index = bookings.findIndex(function (item) {
-      return trimText(item && item.id) === trimText(record.id);
-    });
-    var nextRecord = Object.assign({}, record, {
-      userEmail: trimText(record.userEmail) || trimText(state.order && state.order.userEmail)
-    });
-    if (index > -1) {
-      bookings.splice(index, 1, nextRecord);
-    } else {
-      bookings.unshift(nextRecord);
-    }
-    writeJson(KEYS.bookings, bookings);
-  }
-
   async function finalizePayment() {
     if (!state.order) return;
     if (!validatePayment()) return;
@@ -419,69 +432,26 @@
       return;
     }
 
-    if (state.order.bookingSource === 'supabase' && hasSupabaseBookings()) {
-      var service = getBookingService();
-      setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
-      try {
-        var cloudRecord = await service.createBooking(state.order, state.order.userEmail);
-        syncLocalBookingMirror(cloudRecord);
-        showSuccess(cloudRecord, false);
-        return;
-      } catch (error) {
-        setStatus('paymentStatus', service.mapCreateBookingError(error), 'error');
-        return;
-      }
-    }
-
-    var bookings = readBookings();
-    var existing = bookings.find(function (item) {
-        return normalizeEmail(item && item.userEmail) === normalizeEmail(state.order.userEmail) &&
-        trimText(item && item.clubSlug) === trimText(state.order.clubSlug) &&
-        trimText(item && item.dayIso) === trimText(state.order.dayIso) &&
-        trimText(item && item.slotId) === trimText(state.order.slotId) &&
-        normalizeBookingStatus(item && item.status) !== 'Cancelled';
-    });
-
-    if (existing) {
-      showSuccess(existing, true);
+    if (!hasSupabaseBookings()) {
+      setStatus('paymentStatus', 'Club booking sync is temporarily unavailable. Please refresh and try again.', 'error');
       return;
     }
 
-    var conflict = bookings.find(function (item) {
-        return normalizeEmail(item && item.userEmail) === normalizeEmail(state.order.userEmail) &&
-        trimText(item && item.dayIso) === trimText(state.order.dayIso) &&
-        trimText(item && item.slotTime) === trimText(state.order.slotTime) &&
-        normalizeBookingStatus(item && item.status) !== 'Cancelled';
-    });
-
-    if (conflict) {
-      setStatus('paymentStatus', 'Another booking already exists in this time slot. Please cancel the original booking in the user dashboard first.', 'error');
+    if (trimText(state.order.bookingSource) !== 'supabase' || !trimText(state.order.clubId) || !trimText(state.order.slotId)) {
+      setStatus('paymentStatus', 'This booking is not linked to a database slot yet. Please return to Club Booking, refresh, and choose the slot again.', 'error');
       return;
     }
 
-    var record = {
-      id: Date.now(),
-      orderId: trimText(state.order.orderId),
-      clubSlug: trimText(state.order.clubSlug),
-      clubName: trimText(state.order.clubName),
-      dayIso: trimText(state.order.dayIso),
-      dayLabel: trimText(state.order.dayLabel),
-      slotId: trimText(state.order.slotId),
-      slotTime: trimText(state.order.slotTime),
-      location: trimText(state.order.location),
-      fee: trimText(state.order.feeText) || money(state.order.baseFee),
-      userEmail: trimText(state.order.userEmail),
-      createdAt: new Date().toLocaleString(),
-      status: 'Booked',
-      paymentMethod: METHOD_LABEL[state.method] || METHOD_LABEL.card,
-      paidAmount: currentPayable(),
-      couponCode: state.couponCode
-    };
-
-    bookings.unshift(record);
-    writeJson(KEYS.bookings, bookings);
-    setStatus('paymentStatus', 'Payment successful. Syncing your booking record now.', 'success');
-    showSuccess(record, false);
+    var service = getBookingService();
+    setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
+    try {
+      var cloudRecord = await service.createBooking(state.order, state.order.userEmail);
+      showSuccess(cloudRecord, false);
+      return;
+    } catch (error) {
+      setStatus('paymentStatus', service.mapCreateBookingError(error), 'error');
+      return;
+    }
   }
 
   function bindEvents() {
@@ -520,6 +490,19 @@
       return;
     }
 
+    if (!hasSupabaseBookings()) {
+      buildEmptyState('Club booking sync is temporarily unavailable', 'Please refresh the page and try again. This payment flow now confirms club bookings directly in the database.');
+      return;
+    }
+
+    if (trimText(state.order.bookingSource) !== 'supabase' || !trimText(state.order.clubId) || !trimText(state.order.slotId)) {
+      try {
+        window.localStorage.removeItem(KEYS.pending);
+      } catch (error) {}
+      buildEmptyState('This booking needs to be started again', 'Return to Club Booking, refresh the page, and choose a slot that has already synced to the database.');
+      return;
+    }
+
     var session = readSession();
     if (!session || normalizeEmail(session.email) !== normalizeEmail(state.order.userEmail)) {
       buildEmptyState('This account cannot complete the current order', 'Please sign in with the account that started the booking before continuing to payment.');
@@ -527,7 +510,8 @@
     }
 
     state.discount = Number(state.order.discount || 0);
-    state.couponCode = '';
+    state.couponCode = trimText(state.order.couponCode);
+    syncOrderTotals();
 
     var empty = document.getElementById('paymentEmpty');
     var layout = document.getElementById('paymentLayout');

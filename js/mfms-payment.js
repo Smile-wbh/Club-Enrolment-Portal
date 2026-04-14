@@ -5,12 +5,6 @@
     bookings: 'mfms_teaching_bookings_v1'
   };
 
-  var COUPONS = {
-    CLUB2026: 1,
-    WELCOME: 1.5,
-    STUDENT: 2
-  };
-
   var METHOD_TEXT = {
     card: 'Recommended for standard course bookings. Once completed, it syncs immediately to User Dashboard -> Course Bookings.',
     paypal: 'Best for completing payment across devices. In the current preview build, success is simulated instantly.',
@@ -64,8 +58,17 @@
     return window.clubCourseSupabase || null;
   }
 
+  function getMembershipService() {
+    return window.clubMembershipSupabase || null;
+  }
+
   function hasSupabaseCourses() {
     var service = getCourseService();
+    return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+  }
+
+  function hasSupabaseMemberships() {
+    var service = getMembershipService();
     return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
   }
 
@@ -126,6 +129,13 @@
   function currentPayable() {
     if (!state.order) return 0;
     return Math.max(0, Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0) - Number(state.discount || 0));
+  }
+
+  function syncOrderTotals() {
+    if (!state.order) return;
+    state.order.discount = Number(state.discount || 0);
+    state.order.payableAmount = currentPayable();
+    state.order.couponCode = trimText(state.couponCode);
   }
 
   function updatePayButtonText() {
@@ -231,29 +241,50 @@
     payBtn.disabled = false;
   }
 
-  function applyCoupon() {
+  async function applyCoupon() {
     if (!state.order) return;
     var input = document.getElementById('couponInput');
     var code = trimText(input && input.value).toUpperCase();
-    var available = Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0);
+    var totalAvailable = Number(state.order.baseFee || 0) + Number(state.order.serviceFee || 0);
+    var serviceFee = Math.max(Number(state.order.serviceFee || 0), 0);
+    var extraDiscount = Math.max(0, Math.min(2, totalAvailable - serviceFee));
+    var totalMembershipDiscount = Math.min(totalAvailable, serviceFee + extraDiscount);
 
     if (!code) {
       state.discount = 0;
       state.couponCode = '';
+      syncOrderTotals();
       renderOrder();
       setStatus('couponStatus', 'Coupon cleared. The order total has returned to the standard price.', 'info');
       return;
     }
 
-    if (!Object.prototype.hasOwnProperty.call(COUPONS, code)) {
-      setStatus('couponStatus', 'This coupon code is not available. Please check it and try again.', 'error');
-      return;
+    var session = readSession();
+    var membershipService = getMembershipService();
+    if (hasSupabaseMemberships() && session && trimText(session.userId) && membershipService && typeof membershipService.validateSportsMembershipCoupon === 'function') {
+      try {
+        var membership = await membershipService.validateSportsMembershipCoupon(trimText(session.userId), code);
+        if (membership) {
+          state.couponCode = code;
+          state.discount = totalMembershipDiscount;
+          syncOrderTotals();
+          renderOrder();
+          setStatus(
+            'couponStatus',
+            serviceFee > 0
+              ? 'Membership code applied. The Platform Service Fee has been waived and an extra £2 discount has been applied.'
+              : 'Membership code applied. This order already has no Platform Service Fee, and an extra £2 discount has been applied.',
+            'success'
+          );
+          return;
+        }
+      } catch (error) {
+        setStatus('couponStatus', membershipService.mapMembershipActionError(error), 'error');
+        return;
+      }
     }
 
-    state.couponCode = code;
-    state.discount = Math.min(available, Number(COUPONS[code]));
-    renderOrder();
-    setStatus('couponStatus', 'Coupon applied. Current discount: ' + money(state.discount) + '.', 'success');
+    setStatus('couponStatus', 'This membership code is invalid for the current signed-in Sports Membership account.', 'error');
   }
 
   function validatePayment() {
@@ -499,7 +530,8 @@
     }
 
     state.discount = Number(state.order.discount || 0);
-    state.couponCode = '';
+    state.couponCode = trimText(state.order.couponCode);
+    syncOrderTotals();
 
     var empty = document.getElementById('paymentEmpty');
     var layout = document.getElementById('paymentLayout');

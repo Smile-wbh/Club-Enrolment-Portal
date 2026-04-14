@@ -4,7 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Club Enrollment Portal</title>
-  <link rel="stylesheet" href="../css/index1.css?v=20260414-club-setup-2" />
+  <link rel="stylesheet" href="../css/index1.css?v=20260414-membership-2" />
+  <link rel="stylesheet" href="../css/membership-join-dialog.css?v=20260414-membership-dialog-1" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 </head>
 <body>
@@ -132,6 +133,33 @@
 
               <div class="about-image">
                 <img src="../zp/gywm.webp" alt="Club Enrollment Portal logo" />
+              </div>
+            </div>
+          </section>
+
+          <section class="panel membership-panel">
+            <div class="panel-head">
+              <h2>Club Membership</h2>
+            </div>
+
+            <div class="membership-layout">
+              <div class="membership-copy">
+                <span class="membership-tag">Membership Benefits</span>
+                <p>
+                  Join our membership to enjoy a better and more affordable booking experience. Member users receive a weekly coupon code,
+                  and by entering a valid code during booking, they can waive the Platform Service Fee and receive an extra £2 discount on clubs and courses.
+                </p>
+
+                <div class="membership-actions">
+                  <a class="membership-btn membership-btn-secondary" href="membership.html">View Membership Details</a>
+                  <a class="membership-btn membership-btn-primary" href="membership-payment.html" data-membership-join-trigger>Join Membership Now</a>
+                </div>
+              </div>
+
+              <div class="membership-highlight">
+                <div class="membership-badge">Member Only</div>
+                <strong>Weekly Coupon Code</strong>
+                <span>Apply a valid membership code during booking to waive the Platform Service Fee and unlock an extra £2 discount on both club and course bookings.</span>
               </div>
             </div>
           </section>
@@ -951,6 +979,7 @@
 </script>
 <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
 <script src="../js/portal-header-auth.js?v=20260414-msgdb-2"></script>
+<script src="../js/membership-join-dialog.js?v=20260414-membership-dialog-3"></script>
 <script src="../js/chat-widget.js"></script>
 </body>
 </html>

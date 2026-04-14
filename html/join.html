@@ -16,8 +16,10 @@
   <script src="../js/supabase-courses.js"></script>
   <script src="../js/supabase-forum.js"></script>
   <script src="../js/supabase-support.js"></script>
+  <script src="../js/supabase-memberships.js?v=20260414-membership-6"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
   <link rel="stylesheet" href="../css/join.css" />
+  <link rel="stylesheet" href="../css/membership-join-dialog.css?v=20260414-membership-dialog-1" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <style>
     
@@ -480,6 +482,9 @@
           <div class="menu-item" :class="{active: dashboardTab==='profile'}" @click="dashboardTab='profile'">
             <i class="icon">👤</i> Profile
           </div>
+          <div class="menu-item" :class="{active: dashboardTab==='sports_membership'}" @click="dashboardTab='sports_membership'">
+            <i class="icon">🎟️</i> Sports Membership
+          </div>
           <div class="menu-item" :class="{active: dashboardTab==='club_bookings'}" @click="dashboardTab='club_bookings'">
             <i class="icon">📅</i> Club Booking
           </div>
@@ -687,6 +692,112 @@
                 <div class="profile-form-actions">
                   <button class="btn btn-blue" @click="saveProfile">Save Changes</button>
                 </div>
+              </div>
+            </div>
+
+            <div v-if="dashboardTab === 'sports_membership'">
+              <div class="page-header">
+                <div class="page-title">Sports Membership</div>
+                <div class="page-actions">
+                  <button class="btn btn-blue" style="min-width:auto;" @click="loadMyMemberships">Refresh Status</button>
+                  <a class="btn btn-light" style="min-width:auto; text-decoration:none;" href="membership.html">Membership Details</a>
+                </div>
+              </div>
+
+              <div class="membership-dashboard-grid">
+                <article class="membership-dashboard-card">
+                  <div class="membership-dashboard-head">
+                    <div>
+                      <h3>{{ currentSportsMembership ? currentSportsMembership.planName : 'Sports Membership' }}</h3>
+                      <p>Unlock weekly coupon code support, waive the Platform Service Fee, and get an extra £2 discount on clubs and courses.</p>
+                    </div>
+                    <span class="membership-status-pill" :class="hasActiveSportsMembership ? 'active' : 'inactive'">
+                      {{ hasActiveSportsMembership ? 'Active' : 'Not Active' }}
+                    </span>
+                  </div>
+
+                  <div class="membership-kpi-grid">
+                    <div class="membership-kpi-item">
+                      <span>Plan Fee</span>
+                      <strong>{{ currentSportsMembership ? membershipPriceText(currentSportsMembership.price) : '£20.00' }}</strong>
+                    </div>
+                    <div class="membership-kpi-item">
+                      <span>Billing Cycle</span>
+                      <strong>{{ currentSportsMembership ? membershipBillingText(currentSportsMembership.billingCycle) : 'Monthly' }}</strong>
+                    </div>
+                    <div class="membership-kpi-item">
+                      <span>Joined</span>
+                      <strong>{{ currentSportsMembership ? formatMembershipDate(currentSportsMembership.startedAt) : '-' }}</strong>
+                    </div>
+                    <div class="membership-kpi-item">
+                      <span>Expires</span>
+                      <strong>{{ currentSportsMembership ? formatMembershipDate(currentSportsMembership.expiresAt) : '-' }}</strong>
+                    </div>
+                  </div>
+
+                  <div class="membership-dashboard-actions">
+                    <a v-if="!hasActiveSportsMembership" class="btn btn-blue" style="text-decoration:none;" href="membership-payment.html" data-membership-join-trigger>Join Membership</a>
+                    <a v-else class="btn btn-light" style="text-decoration:none;" href="membership.html">View Membership Details</a>
+                  </div>
+                </article>
+
+                <article class="membership-dashboard-card membership-coupon-panel">
+                  <div class="membership-dashboard-head">
+                    <div>
+                      <h3>Member Coupon Code</h3>
+                      <p>Use this code during supported booking payment flows to waive the Platform Service Fee and unlock an extra £2 discount for your membership-supported bookings.</p>
+                    </div>
+                  </div>
+
+                  <div v-if="hasActiveSportsMembership" class="membership-coupon-box">{{ activeSportsMembership.couponCode || 'Generating...' }}</div>
+                  <div v-else class="profile-empty-note membership-empty-note">Join Sports Membership first to unlock your weekly coupon code, waived Platform Service Fee, and extra £2 discount benefit.</div>
+
+                  <div v-if="hasActiveSportsMembership" class="membership-coupon-meta">
+                    <span>Coupon Refresh: Weekly</span>
+                    <span>Status: {{ activeSportsMembership.status }}</span>
+                  </div>
+                </article>
+              </div>
+
+              <div class="content-card membership-history-card">
+                <div class="membership-history-head">
+                  <h3>Membership Records</h3>
+                  <span class="pill gray">{{ myMemberships.length }} item{{ myMemberships.length === 1 ? '' : 's' }}</span>
+                </div>
+
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Plan</th>
+                      <th>Billing</th>
+                      <th>Price</th>
+                      <th>Coupon Code</th>
+                      <th>Status</th>
+                      <th>Started</th>
+                      <th>Expires</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="membership in myMemberships" :key="membership.id || membership.orderId">
+                      <td>{{ membership.planName }}</td>
+                      <td>{{ membershipBillingText(membership.billingCycle) }}</td>
+                      <td>{{ membershipPriceText(membership.price) }}</td>
+                      <td>{{ membership.couponCode || '-' }}</td>
+                      <td>
+                        <span class="pill" :style="membership.statusKey === 'active'
+                          ? 'background:#e1f3d8; color:#67c23a; border-color:#e1f3d8;'
+                          : 'background:#eef3ff; color:#5b78b5; border-color:#eef3ff;'">
+                          {{ membership.status }}
+                        </span>
+                      </td>
+                      <td>{{ formatMembershipDate(membership.startedAt) }}</td>
+                      <td>{{ formatMembershipDate(membership.expiresAt) }}</td>
+                    </tr>
+                    <tr v-if="myMemberships.length === 0">
+                      <td colspan="7" style="text-align:center; padding:40px; color:#999">No Sports Membership record yet</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -1260,6 +1371,7 @@
         // New Features Data
         myMaterials: [],
         myTeachingBookings: [],
+        myMemberships: [],
         myPosts: [],
         myFavs: [],
         messageBoardItems: [],
@@ -1380,6 +1492,15 @@
         const teaching = this.myTeachingBookings.find(t => t && t.clubName);
         if(teaching) return teaching.clubName;
         return 'Default Club';
+      },
+      activeSportsMembership(){
+        return (this.myMemberships || []).find(item => item && item.membershipType === 'sports' && item.statusKey === 'active') || null;
+      },
+      currentSportsMembership(){
+        return this.activeSportsMembership || ((this.myMemberships || [])[0] || null);
+      },
+      hasActiveSportsMembership(){
+        return !!this.activeSportsMembership;
       },
       profileRecords(){
         const records = [];
@@ -1571,6 +1692,7 @@
     watch:{
       dashboardTab(val){
         if(val === 'home') this.refreshProfileOverview();
+        if(val === 'sports_membership') this.loadMyMemberships();
         if(val === 'club_bookings') this.loadMyBookings();
         if(val === 'teaching_bookings') this.loadMyTeachingBookings();
         if(val === 'forum') this.loadMyPosts();
@@ -1602,7 +1724,7 @@
         location.replace('messages.html');
         return;
       }
-      if(tab && ['home','profile','club_bookings','teaching_bookings','forum','consults','favs'].includes(tab)){
+      if(tab && ['home','profile','sports_membership','club_bookings','teaching_bookings','forum','consults','favs'].includes(tab)){
         this.dashboardTab = tab;
       }
       if(!this.isAuthed && shouldJumpToAuth){
@@ -1616,6 +1738,7 @@
       document.addEventListener('click', this.handleDocumentClick);
       this.bookingAutoRefreshHandle = window.setInterval(() => {
         if(this.isAuthed){
+          this.loadMyMemberships();
           this.loadMyBookings();
           this.loadMyTeachingBookings();
           this.loadMyFavs();
@@ -1649,6 +1772,7 @@
         }
       },
       refreshProfileOverview(){
+        this.loadMyMemberships();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
         this.loadMyPosts();
@@ -1876,6 +2000,7 @@
       },
       handlePageShow(){
         if(!this.isAuthed) return;
+        this.loadMyMemberships();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
         this.loadMyFavs();
@@ -1884,6 +2009,7 @@
       },
       handleVisibilityChange(){
         if(document.visibilityState !== 'visible' || !this.isAuthed) return;
+        this.loadMyMemberships();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
         this.loadMyFavs();
@@ -1988,6 +2114,9 @@
       getSupportService(){
         return window.clubSupportSupabase || null;
       },
+      getMembershipService(){
+        return window.clubMembershipSupabase || null;
+      },
       getLocalMigrationService(){
         return window.clubLocalDataMigration || null;
       },
@@ -2008,6 +2137,10 @@
       },
       hasSupabaseSupportConfigured(){
         const service = this.getSupportService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      },
+      hasSupabaseMembershipsConfigured(){
+        const service = this.getMembershipService();
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
       },
       normalizeForumId(value){
@@ -2380,6 +2513,7 @@
           this.profile.hobbies = '';
           this.profile.avatar = '';
           this.profile.forumCoverUrl = '';
+          this.myMemberships = [];
           this.localMigrationStatus = null;
           this.localMigrationProgress = '';
           return;
@@ -2404,6 +2538,7 @@
         if(!this.isAuthed) return;
         await this.ensureLocalBusinessMigration(false);
         this.loadNotificationSeenAt();
+        this.loadMyMemberships();
         this.loadMyBookings();
         this.loadMyTeachingBookings();
         this.loadMyPosts();
@@ -3803,6 +3938,35 @@
         }
         this.sortMyBookingLists([]);
       },
+      loadMyMemberships(){
+        const service = this.getMembershipService();
+        if(this.hasSupabaseMembershipsConfigured() && service){
+          service.fetchMyMemberships(this.sessionUserId)
+            .then((rows) => {
+              this.myMemberships = Array.isArray(rows) ? rows : [];
+            })
+            .catch(() => {
+              this.myMemberships = [];
+            });
+          return;
+        }
+        this.myMemberships = [];
+      },
+      formatMembershipDate(value){
+        const text = String(value || '').trim();
+        if(!text) return '-';
+        const date = new Date(text);
+        if(Number.isNaN(date.getTime())) return text;
+        return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+      },
+      membershipPriceText(value){
+        return '£' + Number(value || 0).toFixed(2);
+      },
+      membershipBillingText(value){
+        const text = String(value || '').trim().toLowerCase();
+        if(text === 'monthly') return 'Monthly';
+        return text ? (text.charAt(0).toUpperCase() + text.slice(1)) : '-';
+      },
       async cancelBooking(b){
         const bookingTime = new Date(b.dayIso + ' ' + b.slotTime.split('-')[0]);
         const now = new Date();
@@ -4225,6 +4389,7 @@
   })
 </script>
 <script src="../js/portal-header-auth.js?v=20260414-msgdb-2"></script>
+<script src="../js/membership-join-dialog.js?v=20260414-membership-dialog-3"></script>
 <script src="../js/chat-widget.js"></script>
 </body>
 </html>
