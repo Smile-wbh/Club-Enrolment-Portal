@@ -13,7 +13,8 @@ const {
   readJsonBody,
   sendJson,
   supabaseAuthAdmin,
-  updateSignupCodeRecord
+  updateSignupCodeRecord,
+  validateSignupEmailAccess
 } = require('./_signup-code-utils');
 
 module.exports = async function handler(req, res) {
@@ -58,6 +59,16 @@ module.exports = async function handler(req, res) {
     }
 
     const config = getConfig();
+    const emailAccess = await validateSignupEmailAccess(config, email);
+    if (!emailAccess.ok) {
+      sendJson(res, 400, {
+        error: emailAccess.error,
+        field: 'email',
+        message: emailAccess.message
+      });
+      return;
+    }
+
     assertConfig(config, ['supabaseUrl', 'serviceRoleKey', 'emailCodeSecret']);
 
     const existingProfile = await findProfileByEmail(config, email);

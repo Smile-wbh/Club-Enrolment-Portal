@@ -1,9 +1,25 @@
 const crypto = require('crypto');
+const dns = require('dns').promises;
 
 const SIGNUP_CODE_PURPOSE = 'signup';
 const SIGNUP_CODE_RETRY_SECONDS = 60;
 const SIGNUP_CODE_EXPIRY_MINUTES = 10;
 const MAX_CODE_ATTEMPTS = 5;
+const EMAIL_DOMAIN_CACHE_TTL_MS = 10 * 60 * 1000;
+const DEFAULT_BLOCKED_EMAIL_DOMAINS = Object.freeze([
+  '10minutemail.com',
+  'dispostable.com',
+  'guerrillamail.com',
+  'maildrop.cc',
+  'mailinator.com',
+  'moakt.com',
+  'sharklasers.com',
+  'temp-mail.org',
+  'tempmail.com',
+  'trashmail.com',
+  'yopmail.com'
+]);
+const emailDomainValidationCache = new Map();
 
 function sendJson(res, status, payload) {
   res.status(status).json(payload);
@@ -37,6 +53,17 @@ async function readJsonBody(req) {
 
 function normalizeEmail(value) {
   return String(value || '').trim().toLowerCase();
+}
+
+function normalizeDomain(value) {
+  return String(value || '').trim().toLowerCase().replace(/\.+$/, '');
+}
+
+function parseDomainList(value) {
+  return String(value || '')
+    .split(/[,\n\r\s]+/)
+    .map(normalizeDomain)
+    .filter(Boolean);
 }
 
 function isValidEmail(value) {
@@ -87,6 +114,16 @@ function getConfig() {
     secretKey: String(process.env.SUPABASE_SECRET_KEY || '').trim(),
     resendApiKey: String(process.env.RESEND_API_KEY || '').trim(),
     resendFromEmail: String(process.env.RESEND_FROM_EMAIL || process.env.EMAIL_FROM || '').trim(),
+    allowedSignupEmailDomains: parseDomainList(
+      process.env.ALLOWED_SIGNUP_EMAIL_DOMAINS ||
+      process.env.ALLOWED_EMAIL_DOMAINS ||
+      ''
+    ),
+    blockedSignupEmailDomains: parseDomainList(
+      process.env.BLOCKED_SIGNUP_EMAIL_DOMAINS ||
+      process.env.BLOCKED_EMAIL_DOMAINS ||
+      ''
+    ),
     emailCodeSecret: String(
       process.env.EMAIL_CODE_SECRET ||
       process.env.SUPABASE_SECRET_KEY ||
@@ -94,6 +131,122 @@ function getConfig() {
       ''
     ).trim(),
     appName: String(process.env.APP_NAME || 'Club Enrollment Portal').trim() || 'Club Enrollment Portal'
+  };
+}
+
+function getEmailDomain(email) {
+  return normalizeDomain(String(normalizeEmail(email).split('@')[1] || ''));
+}
+
+function domainMatchesRule(domain, ruleDomain) {
+  const normalizedDomain = normalizeDomain(domain);
+  const normalizedRule = normalizeDomain(ruleDomain);
+  if (!normalizedDomain || !normalizedRule) return false;
+  return normalizedDomain === normalizedRule || normalizedDomain.endsWith(`.${normalizedRule}`);
+}
+
+function matchesAnyDomainRule(domain, ruleList) {
+  return (Array.isArray(ruleList) ? ruleList : []).some((rule) => domainMatchesRule(domain, rule));
+}
+
+function getCachedEmailDomainValidation(domain) {
+  const key = normalizeDomain(domain);
+  const cached = emailDomainValidationCache.get(key);
+  if (!cached) return null;
+  if (cached.expiresAt <= Date.now()) {
+    emailDomainValidationCache.delete(key);
+    return null;
+  }
+  return cached.value;
+}
+
+function setCachedEmailDomainValidation(domain, value) {
+  emailDomainValidationCache.set(normalizeDomain(domain), {
+    value,
+    expiresAt: Date.now() + EMAIL_DOMAIN_CACHE_TTL_MS
+  });
+}
+
+async function domainCanReceiveEmail(domain) {
+  const normalizedDomain = normalizeDomain(domain);
+  const cached = getCachedEmailDomainValidation(normalizedDomain);
+  if (cached !== null) return cached;
+
+  let hasMailRoute = false;
+  try {
+    const mxRecords = await dns.resolveMx(normalizedDomain);
+    hasMailRoute = Array.isArray(mxRecords) && mxRecords.length > 0;
+  } catch (error) {
+    hasMailRoute = false;
+  }
+
+  if (!hasMailRoute) {
+    try {
+      const aRecords = await dns.resolve4(normalizedDomain);
+      hasMailRoute = Array.isArray(aRecords) && aRecords.length > 0;
+    } catch (error) {
+      hasMailRoute = false;
+    }
+  }
+
+  if (!hasMailRoute) {
+    try {
+      const aaaaRecords = await dns.resolve6(normalizedDomain);
+      hasMailRoute = Array.isArray(aaaaRecords) && aaaaRecords.length > 0;
+    } catch (error) {
+      hasMailRoute = false;
+    }
+  }
+
+  setCachedEmailDomainValidation(normalizedDomain, hasMailRoute);
+  return hasMailRoute;
+}
+
+async function validateSignupEmailAccess(config, email) {
+  const domain = getEmailDomain(email);
+  const allowedDomains = Array.isArray(config && config.allowedSignupEmailDomains)
+    ? config.allowedSignupEmailDomains
+    : [];
+  const blockedDomains = DEFAULT_BLOCKED_EMAIL_DOMAINS.concat(
+    Array.isArray(config && config.blockedSignupEmailDomains) ? config.blockedSignupEmailDomains : []
+  );
+
+  if (!domain) {
+    return {
+      ok: false,
+      error: 'invalid_email_domain',
+      message: 'Enter a valid email address.'
+    };
+  }
+
+  if (matchesAnyDomainRule(domain, blockedDomains)) {
+    return {
+      ok: false,
+      error: 'email_domain_blocked',
+      message: 'Use a real email inbox. Temporary or disposable email addresses are not allowed.'
+    };
+  }
+
+  if (allowedDomains.length && !matchesAnyDomainRule(domain, allowedDomains)) {
+    return {
+      ok: false,
+      error: 'email_domain_not_allowed',
+      message: 'Please use an approved email domain for registration.'
+    };
+  }
+
+  const canReceiveEmail = await domainCanReceiveEmail(domain);
+  if (!canReceiveEmail) {
+    return {
+      ok: false,
+      error: 'email_domain_unreachable',
+      message: 'This email domain cannot receive mail. Use a real email address you can access.'
+    };
+  }
+
+  return {
+    ok: true,
+    domain
   };
 }
 
@@ -396,5 +549,6 @@ module.exports = {
   sendJson,
   sendSignupCodeEmail,
   supabaseAuthAdmin,
-  updateSignupCodeRecord
+  updateSignupCodeRecord,
+  validateSignupEmailAccess
 };
