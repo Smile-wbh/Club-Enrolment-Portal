@@ -342,6 +342,12 @@ a{ color: inherit; text-decoration: none; }
   gap: 12px;
 }
 
+.rightCol{
+  display: grid;
+  gap: 12px;
+  align-content: start;
+}
+
 /* Card */
 .card{
   background: var(--card);
@@ -520,6 +526,99 @@ a{ color: inherit; text-decoration: none; }
   padding-top: 12px;
 }
 
+.recommendationCard h2{
+  margin-bottom: 12px;
+}
+
+.recommendationList{
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
+  gap: 12px;
+}
+
+.recommendationItem{
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 92px minmax(52px, auto) auto;
+  gap: 10px;
+  align-items: start;
+  height: 100%;
+  padding: 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(31,45,61,0.08);
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(246,249,255,0.98));
+  box-shadow: 0 8px 16px rgba(18,34,58,0.06);
+}
+
+.recommendationItem:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(18,34,58,0.10);
+}
+
+.recommendationThumb{
+  width: 100%;
+  height: 92px;
+  border-radius: 12px;
+  border: 1px solid rgba(31,45,61,0.08);
+  background: linear-gradient(135deg, rgba(64,158,255,0.16), rgba(103,194,58,0.14));
+  background-size: cover;
+  background-position: center;
+}
+
+.recommendationThumb.is-empty{
+  background:
+    linear-gradient(135deg, rgba(64,158,255,0.14), rgba(103,194,58,0.12)),
+    linear-gradient(180deg, #f7fbff, #eef4fb);
+}
+
+.recommendationBody{
+  min-width: 0;
+  display: grid;
+  align-content: start;
+  gap: 4px;
+}
+
+.recommendationBody strong{
+  color: #1f2d3d;
+  font-size: 14px;
+  line-height: 1.3;
+}
+
+.recommendationBody span{
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.45;
+}
+
+.recommendationFooter{
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: auto;
+}
+
+.recommendationFee{
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.recommendationView{
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 56px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  background: rgba(64,158,255,0.12);
+  border: 1px solid rgba(64,158,255,0.18);
+  color: #1f5fbf;
+  font-size: 12px;
+  font-weight: 700;
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 980px){
   .heroGrid{ grid-template-columns: 1fr; }
@@ -536,5 +635,20 @@ a{ color: inherit; text-decoration: none; }
     position: static;
     margin: 14px 18px 18px;
     width: calc(100% - 36px);
+  }
+}
+
+@media (max-width: 560px){
+  .recommendationList{
+    grid-template-columns: 1fr;
+  }
+
+  .recommendationItem{
+    grid-template-columns: 1fr;
+  }
+
+  .recommendationThumb{
+    width: 100%;
+    height: 88px;
   }
 }

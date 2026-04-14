@@ -94,10 +94,28 @@ values
     true
   ),
   (
+    'teaching-course-info',
+    array['teaching','class','classes','lesson','lessons','learn','learning','coach','instructor','teacher','teaching content','teaching method','teaching methods','method','methods','content','contents','item','items','syllabus','topic','topics','what learn','教学','上课','课程内容','教练','老师','教学内容','内容','项目','教学方法']::text[],
+    'We have received your teaching question. Please tell us the course name if you know it, and we can help you check the course overview, coach, teaching focus, schedule, location, fee, and remaining seats.',
+    55,
+    false,
+    false,
+    true
+  ),
+  (
     'club-course-info',
     array['club','course','info','information','detail','details','俱乐部','课程','信息','详情','介绍']::text[],
     'We have received your information request. Please tell us which club or course you want to know about, and we can help you check the introduction, schedule, location, fee, and available booking slots.',
     60,
+    false,
+    false,
+    true
+  ),
+  (
+    'forum-community',
+    array['forum','post','posts','community','comment','comments','thread','threads','论坛','帖子','评论','社区','动态']::text[],
+    'We have received your forum question. Please tell us the club, course, or topic you are interested in, and we can help you check recent public posts and discussion topics.',
+    65,
     false,
     false,
     true

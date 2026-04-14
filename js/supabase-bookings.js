@@ -5,6 +5,12 @@
     return String(value || '').trim();
   }
 
+  function toArray(value) {
+    return Array.isArray(value)
+      ? value.map(function (item) { return trimText(item); }).filter(Boolean)
+      : [];
+  }
+
   function isUuid(value) {
     return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(trimText(value));
   }
@@ -143,7 +149,7 @@
 
   function isMissingStructuredClubMapColumn(error) {
     var text = trimText(error && (error.message || error.details || error.hint || error.code));
-    return /place_id|formatted_address|map_source|\blat\b|\blng\b/i.test(text);
+    return /place_id|formatted_address|map_source|\blat\b|\blng\b|weekly_highlight|\bfaq\b/i.test(text);
   }
 
   function addDays(date, days) {
@@ -500,14 +506,16 @@
         seats: Number(club.seats || 0) || 20,
         fee: formatClubFeeText(club.fee_text) || '£0',
         cover: resolveClubCover(trimText(club.slug), club.cover_url),
-        tags: [],
+        tags: toArray(club.tags),
         desc: trimText(club.description),
-        heroSub: '',
+        heroSub: trimText(club.hero_sub),
+        weeklyHighlight: trimText(club.weekly_highlight),
         venueInfo: trimText(club.venue_info),
         whatWeDo: trimText(club.what_we_do),
         audience: trimText(club.audience),
         trainingPlan: trimText(club.training_plan),
         notes: trimText(club.notes),
+        faq: trimText(club.faq),
         slots: template,
         slotsByDay: normalizedByDay
       };
@@ -523,7 +531,7 @@
     var startDate = trimText(options && options.startDate) || formatIso(new Date());
     var endDate = trimText(options && options.endDate) || formatIso(addDays(new Date(startDate), 27));
 
-    var clubSelect = 'id, slug, name, category, mode, location, map_link, place_id, formatted_address, lat, lng, map_source, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status';
+    var clubSelect = 'id, slug, name, category, mode, location, map_link, place_id, formatted_address, lat, lng, map_source, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, weekly_highlight, faq, venue_info, what_we_do, audience, training_plan, notes, seats, status';
     var clubSelectLegacy = 'id, slug, name, category, mode, location, map_link, online_link, time_text, fee_text, cover_url, tags, description, hero_sub, venue_info, what_we_do, audience, training_plan, notes, seats, status';
 
     var clubQuery = client

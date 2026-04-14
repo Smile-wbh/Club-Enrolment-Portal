@@ -678,15 +678,14 @@ body{
   display: grid;
   grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
   grid-template-areas:
-    "chart insight agenda"
-    "chart insight team";
+    "chart insight ."
+    "chart insight agenda";
   gap: 14px;
 }
 
 .chart-card{ grid-area: chart; }
 .insight-card{ grid-area: insight; }
 .agenda-card{ grid-area: agenda; }
-.team-card{ grid-area: team; }
 
 .panel-card{
   background: var(--bg-panel);
@@ -1287,8 +1286,8 @@ tbody tr:hover{
     grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-template-areas:
       "chart chart"
-      "insight agenda"
-      "team team";
+      "insight insight"
+      "agenda agenda";
   }
   .cards-grid{
     grid-template-columns: 1fr;
@@ -1329,8 +1328,7 @@ tbody tr:hover{
     grid-template-areas:
       "chart"
       "insight"
-      "agenda"
-      "team";
+      "agenda";
   }
   .map-link-search-row{
     grid-template-columns: 1fr;

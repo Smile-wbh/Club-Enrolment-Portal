@@ -8,17 +8,21 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-storage.js?v=20260401-3"></script>
+  <script src="../js/supabase-club-support.js?v=20260414-clubsupport-1"></script>
   <script src="../js/supabase-bookings.js?v=20260403-1"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
-  <link rel="stylesheet" href="../css/yl.css">
+  <link rel="stylesheet" href="../css/yl.css?v=20260414-suggest-1">
+  <link rel="stylesheet" href="../css/club-support.css?v=20260414-clubsupport-4">
   <link rel="stylesheet" href="../css/chat-widget.css">
+  <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
 </head>
 <body>
   <div id="app" class="wrap">
     <div class="topbar">
       <div class="brand">
         <span class="dot"></span>
-        <span>Club Registration Portal</span>
+        <span>Club Enrollment Portal</span>
       </div>
 
       <div class="actions">
@@ -30,9 +34,9 @@
       <div class="heroGrid">
         <div>
           <h1 class="heroTitle">{{ club.name }}</h1>
-          <div class="chips" v-if="club.location || hasMapAction || club.onlineLink">
+          <div class="chips" v-if="club.location || club.mapLink || club.onlineLink">
             <span v-if="club.location" class="chip">📍 Venue: {{ club.location }}</span>
-            <a v-if="hasMapAction" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
+            <a v-if="club.mapLink" class="chip chip-link" :href="mapOpenUrl" target="_blank" rel="noopener">🗺 Map Link</a>
             <a v-if="club.onlineLink" class="chip chip-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">💻 Online Room</a>
           </div>
         </div>
@@ -110,53 +114,75 @@
 
       </div>
 
-      <aside class="card">
-        <h2>Key Information</h2>
+      <div class="rightCol">
+        <aside class="card">
+          <h2>Key Information</h2>
 
-        <div class="infoRow" v-if="club.category">
-          <div class="k">Category</div>
-          <div class="v">{{ club.category }}</div>
-        </div>
+          <div class="infoRow" v-if="club.category">
+            <div class="k">Category</div>
+            <div class="v">{{ club.category }}</div>
+          </div>
 
-        <div class="infoRow" v-if="club.mode">
-          <div class="k">Format</div>
-          <div class="v">{{ club.mode }}</div>
-        </div>
+          <div class="infoRow" v-if="club.mode">
+            <div class="k">Format</div>
+            <div class="v">{{ club.mode }}</div>
+          </div>
 
-        <div class="infoRow" v-if="club.location">
-          <div class="k">Location</div>
-          <div class="v">{{ club.location }}</div>
-        </div>
-        <div class="infoRow" v-if="hasMapAction">
-          <div class="k">Map Link</div>
-          <div class="v"><a class="info-link" :href="mapOpenUrl" target="_blank" rel="noopener">Open Map</a></div>
-        </div>
-        <div class="infoRow" v-if="club.onlineLink">
-          <div class="k">Room Link</div>
-          <div class="v"><a class="info-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">Open Room</a></div>
-        </div>
+          <div class="infoRow" v-if="club.location">
+            <div class="k">Location</div>
+            <div class="v">{{ club.location }}</div>
+          </div>
+          <div class="infoRow" v-if="club.onlineLink">
+            <div class="k">Room Link</div>
+            <div class="v"><a class="info-link" :href="toExternalUrl(club.onlineLink)" target="_blank" rel="noopener">Open Room</a></div>
+          </div>
 
-        <div class="infoRow" v-if="club.time">
-          <div class="k">Typical Time</div>
-          <div class="v">{{ club.time }}</div>
-        </div>
+          <div class="infoRow" v-if="club.time">
+            <div class="k">Typical Time</div>
+            <div class="v">{{ club.time }}</div>
+          </div>
 
-        <div class="infoRow" v-if="club.seats || club.seats === 0">
-          <div class="k">Seats</div>
-          <div class="v">{{ club.seats }}</div>
-        </div>
+          <div class="infoRow" v-if="club.seats || club.seats === 0">
+            <div class="k">Seats</div>
+            <div class="v">{{ club.seats }}</div>
+          </div>
 
-        <div class="infoRow" v-if="club.fee">
-          <div class="k">Fee</div>
-          <div class="v">{{ club.fee }}</div>
-        </div>
+          <div class="infoRow" v-if="club.fee">
+            <div class="k">Fee</div>
+            <div class="v">{{ club.fee }}</div>
+          </div>
 
-        <div class="cta">
-          <a :href="'specialty.html?club='+encodeURIComponent(club.slug)" class="btn success">✅ Book / Join</a>
-        </div>
+          <div class="cta">
+            <a :href="'specialty.html?club='+encodeURIComponent(club.slug)" class="btn success">✅ Book / Join</a>
+          </div>
 
-        <div class="note">{{ noteText }}</div>
-      </aside>
+          <div class="note">{{ noteText }}</div>
+        </aside>
+
+        <section class="card recommendationCard" v-if="suggestedClubs.length">
+          <h2>You Might Also Like</h2>
+          <div class="recommendationList">
+            <a
+              v-for="item in suggestedClubs"
+              :key="item.slug"
+              class="recommendationItem"
+              :href="'club_detail.html?club=' + encodeURIComponent(item.slug)">
+              <div
+                class="recommendationThumb"
+                :class="{ 'is-empty': !item.cover }"
+                :style="suggestionCoverStyle(item)"></div>
+              <div class="recommendationBody">
+                <strong>{{ item.name }}</strong>
+                <span>{{ suggestionMeta(item) }}</span>
+              </div>
+              <div class="recommendationFooter">
+                <span class="recommendationFee">{{ item.fee || 'View details' }}</span>
+                <span class="recommendationView">View</span>
+              </div>
+            </a>
+          </div>
+        </section>
+      </div>
     </section>
 
     <section class="map-band map-band-bottom" v-if="club && showMapPanel">
@@ -171,13 +197,124 @@
 
         <div class="map-band-overlay">
           <span class="map-band-eyebrow">Google Maps</span>
-          <strong>{{ club.location || mapQueryText || club.name }}</strong>
+          <strong>{{ club.location || club.name }}</strong>
           <span>{{ mapOverlayText }}</span>
         </div>
 
         <a class="map-band-action" :href="mapOpenUrl" target="_blank" rel="noopener">
           Open in Google Maps
         </a>
+      </div>
+    </section>
+
+    <section class="card club-support-card club-support-card-embedded" v-if="club">
+      <div class="club-support-head">
+        <h3>Club Consultation</h3>
+      </div>
+
+      <div class="club-support-embedded-shell">
+        <div v-if="supportFeedback.text" class="club-support-alert" :class="'is-' + supportFeedback.kind">
+          {{ supportFeedback.text }}
+        </div>
+
+        <div v-if="!supportSignedIn" class="club-support-empty club-support-empty-embedded">
+          <strong>Sign in to start the conversation</strong>
+          <span>Club chat uses your database account directly. Log in first, then you can send text, images, and videos to this club.</span>
+          <a class="btn primary" href="join.html">Go to Login</a>
+        </div>
+
+        <div v-else-if="!supportAvailable" class="club-support-empty club-support-empty-embedded">
+          <strong>Club consultation is temporarily unavailable</strong>
+          <span>Please refresh this page in a moment. The chat will reopen automatically once the club support service is ready.</span>
+        </div>
+
+        <template v-else>
+          <div class="club-support-messages" ref="userSupportScroller">
+            <div v-if="supportLoading" class="club-support-empty is-center club-support-empty-embedded">
+              <strong>Loading conversation...</strong>
+              <span>Please wait while we sync the latest club messages.</span>
+            </div>
+
+            <div v-else-if="!supportMessages.length" class="club-support-empty is-center club-support-empty-embedded">
+              <strong>No messages yet</strong>
+              <span>Send the first message below and the club team will reply in this thread.</span>
+            </div>
+
+            <article
+              v-for="message in supportMessages"
+              :key="message.id"
+              class="club-support-message"
+              :class="message.senderRole === 'user' ? 'is-user' : 'is-club'">
+              <div class="club-support-bubble">
+                <p v-if="message.text">{{ message.text }}</p>
+                <div v-if="message.attachments.length" class="club-support-attachments">
+                  <a
+                    v-for="attachment in message.attachments"
+                    :key="attachment.id"
+                    class="club-support-attachment"
+                    :href="attachment.url || attachment.dataUrl"
+                    target="_blank"
+                    rel="noopener">
+                    <img
+                      v-if="attachment.kind === 'image' && (attachment.url || attachment.dataUrl)"
+                      :src="attachment.url || attachment.dataUrl"
+                      :alt="attachment.name || 'attachment'">
+                    <span>{{ attachment.name || attachment.title || attachment.kind || 'Attachment' }}</span>
+                  </a>
+                </div>
+                <div class="club-support-meta">
+                  <span>{{ formatSupportTime(message.createdAt) }}</span>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <div class="club-support-compose">
+            <div v-if="supportAttachments.length" class="club-support-preview-list">
+              <div v-for="attachment in supportAttachments" :key="attachment.id" class="club-support-preview-item">
+                <button class="club-support-preview-remove" type="button" @click="removeSupportAttachment(attachment.id)">×</button>
+                <div class="club-support-preview-thumb">
+                  <img
+                    v-if="attachment.kind === 'image' && (attachment.url || attachment.dataUrl)"
+                    :src="attachment.url || attachment.dataUrl"
+                    :alt="attachment.name || 'attachment'">
+                  <span v-else>{{ attachment.kind || 'file' }}</span>
+                </div>
+                <div class="club-support-preview-name">{{ attachment.name || attachment.title || 'Attachment' }}</div>
+              </div>
+            </div>
+
+            <textarea
+              v-model.trim="supportDraft"
+              placeholder="Type your question..."
+              :disabled="supportSending"></textarea>
+
+            <div class="club-support-toolbar">
+              <div class="club-support-toolbar-left">
+                <input
+                  ref="supportFileInput"
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  hidden
+                  @change="handleSupportFileChange">
+                <button class="club-support-upload-btn" type="button" :disabled="supportSending" @click="openSupportFilePicker">
+                  Upload Attachments
+                </button>
+              </div>
+
+              <div class="club-support-toolbar-right">
+                <button
+                  class="club-support-send-btn"
+                  type="button"
+                  :disabled="supportSending || (!supportDraft && !supportAttachments.length)"
+                  @click="sendSupportMessage">
+                  {{ supportSending ? 'Sending...' : 'Send' }}
+                </button>
+              </div>
+            </div>
+          </div>
+        </template>
       </div>
     </section>
 
@@ -225,8 +362,23 @@
       data(){
         return{
           club: null,
+          suggestedClubs: [],
           resolvedMapLink: '',
-          mapResolvePending: false
+          mapResolvePending: false,
+          supportProfile: null,
+          supportThread: null,
+          supportMessages: [],
+          supportDraft: '',
+          supportAttachments: [],
+          supportLoading: false,
+          supportSending: false,
+          supportFeedback: {
+            text: '',
+            kind: 'info'
+          },
+          supportPollTimer: 0,
+          supportFocusHandler: null,
+          supportVisibilityHandler: null
         }
       },
       computed:{
@@ -267,51 +419,35 @@
         notesList(){
           return this.toList(this.club ? this.club.notes : '');
         },
-        placeMeta(){
-          if(!this.club) return {};
-          return {
-            placeId: String(this.club.placeId || this.club.place_id || '').trim(),
-            formattedAddress: String(this.club.formattedAddress || this.club.formatted_address || '').trim(),
-            lat: String(this.club.lat || '').trim(),
-            lng: String(this.club.lng || '').trim()
-          };
-        },
         activeMapLink(){
           if(this.resolvedMapLink) return this.resolvedMapLink;
           return this.club && this.club.mapLink ? this.club.mapLink : '';
         },
         mapQueryText(){
           if(!this.club) return '';
-          return this.placeMeta.formattedAddress || (this.club.mapLink ? this.extractMapQuery(this.activeMapLink) : '');
+          return this.club.mapLink ? this.extractMapQuery(this.activeMapLink) : '';
         },
         hasPhysicalVenue(){
           if(!this.club) return false;
           const mode = String(this.club.mode || '').trim().toLowerCase();
-          const locationText = String(this.club.location || this.placeMeta.formattedAddress || '').trim().toLowerCase();
+          const locationText = String(this.club.location || '').trim().toLowerCase();
+          if(!this.club.mapLink) return false;
           if(!locationText) return false;
           if(mode === 'online') return false;
           if(locationText.indexOf('online') > -1 || locationText.indexOf('virtual') > -1) return false;
-          return !!(this.mapEmbedUrl || this.mapOpenUrl !== '#');
+          return true;
         },
         mapEmbedUrl(){
-          if(!this.club) return '';
-          const embedFromMeta = this.buildMapEmbedFromMeta(this.placeMeta);
-          if(embedFromMeta) return embedFromMeta;
-          if(!this.club.mapLink) return '';
+          if(!(this.club && this.club.mapLink)) return '';
           const embedFromLink = this.buildMapEmbedFromLink(this.activeMapLink);
           if(embedFromLink) return embedFromLink;
           return '';
         },
         mapOpenUrl(){
           if(!this.club) return '#';
-          const openFromMeta = this.buildMapOpenFromMeta(this.placeMeta);
-          if(openFromMeta) return openFromMeta;
           if(!this.club.mapLink) return '#';
           if(this.resolvedMapLink) return this.toExternalUrl(this.resolvedMapLink);
           return this.toExternalUrl(this.club.mapLink);
-        },
-        hasMapAction(){
-          return this.mapOpenUrl !== '#';
         },
         mapOverlayText(){
           if(!this.club) return '';
@@ -321,7 +457,14 @@
           return time || mode || 'Find the venue before you arrive';
         },
         showMapPanel(){
-          return !!(this.club && this.hasPhysicalVenue && this.mapEmbedUrl);
+          return !!(this.club && this.hasPhysicalVenue && this.club.mapLink && this.mapEmbedUrl);
+        },
+        supportAvailable(){
+          const service = window.clubSupportSupabase || null;
+          return !!(this.club && this.club.id && service && typeof service.isConfigured === 'function' && service.isConfigured() && this.supportSignedIn);
+        },
+        supportSignedIn(){
+          return !!(this.supportProfile && this.supportProfile.userId && this.supportProfile.email);
         }
       },
       async mounted(){
@@ -329,7 +472,12 @@
         const slug = params.get('club');
         if(!slug) return;
         this.club = await this.findClub(slug);
+        await this.loadSuggestedClubs();
         await this.resolveMapLinkForEmbed();
+        await this.initSupportPanel();
+      },
+      beforeDestroy(){
+        this.stopSupportPolling();
       },
       methods:{
         keyRegistry(){ return 'club_registry_v1'; },
@@ -351,7 +499,32 @@
           return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
         },
         loadRegistry(){
-          return [];
+          if(this.isBusinessLocalCacheDisabled()) return [];
+          try{
+            const raw = localStorage.getItem(this.keyRegistry());
+            const list = raw ? JSON.parse(raw) : [];
+            if(!Array.isArray(list)) return [];
+            const filtered = list.filter(function(item){
+              var bookingService = window.clubBookingSupabase || null;
+              if(bookingService && typeof bookingService.isLegacyStaticClubSeed === 'function' && bookingService.isLegacyStaticClubSeed(item)){
+                return false;
+              }
+              const candidates = [
+                item && item.id,
+                item && item.localId,
+                item && item.dbId
+              ];
+              return !candidates.some(function(value){
+                return String(value || '').trim().toLowerCase().indexOf('embedded-') === 0;
+              });
+            });
+            if(filtered.length !== list.length){
+              localStorage.setItem(this.keyRegistry(), JSON.stringify(filtered));
+            }
+            return filtered;
+          }catch(e){
+            return [];
+          }
         },
         normalizeClub(c){
           const slots = Array.isArray(c && c.slots) ? c.slots : [];
@@ -362,6 +535,7 @@
             ? c.time
             : slots.map(s=>s && s.time).filter(Boolean).slice(0,2).join(' / ');
           return {
+            id: c && c.id ? c.id : '',
             slug: c && c.slug ? c.slug : '',
             name: c && c.name ? c.name : '',
             category: c && c.category ? c.category : '',
@@ -371,11 +545,6 @@
             desc: c && c.desc ? c.desc : '',
             cover: this.resolveClubCover(c && c.slug, c && c.cover ? c.cover : ''),
             mapLink: c && c.mapLink ? c.mapLink : '',
-            placeId: c && (c.placeId || c.place_id) ? (c.placeId || c.place_id) : '',
-            formattedAddress: c && (c.formattedAddress || c.formatted_address) ? (c.formattedAddress || c.formatted_address) : '',
-            lat: c && c.lat ? c.lat : '',
-            lng: c && c.lng ? c.lng : '',
-            mapSource: c && (c.mapSource || c.map_source) ? (c.mapSource || c.map_source) : '',
             onlineLink: c && c.onlineLink ? c.onlineLink : '',
             venueInfo: c && c.venueInfo ? c.venueInfo : '',
             whatWeDo: c && c.whatWeDo ? c.whatWeDo : '',
@@ -385,6 +554,171 @@
             time,
             seats
           };
+        },
+        setSupportFeedback(text, kind){
+          this.supportFeedback = {
+            text: String(text || '').trim(),
+            kind: kind || 'info'
+          };
+        },
+        clearSupportFeedback(){
+          this.supportFeedback = { text: '', kind: 'info' };
+        },
+        formatSupportTime(value){
+          const text = String(value || '').trim();
+          if(!text) return '';
+          const date = new Date(text);
+          if(Number.isNaN(date.getTime())) return text;
+          return date.toLocaleString();
+        },
+        scrollSupportMessages(){
+          this.$nextTick(function(){
+            const scroller = this.$refs.userSupportScroller;
+            if(scroller){
+              scroller.scrollTop = scroller.scrollHeight;
+            }
+          });
+        },
+        stopSupportPolling(){
+          if(this.supportPollTimer){
+            window.clearInterval(this.supportPollTimer);
+            this.supportPollTimer = 0;
+          }
+          if(this.supportFocusHandler){
+            window.removeEventListener('focus', this.supportFocusHandler);
+            this.supportFocusHandler = null;
+          }
+          if(this.supportVisibilityHandler){
+            document.removeEventListener('visibilitychange', this.supportVisibilityHandler);
+            this.supportVisibilityHandler = null;
+          }
+        },
+        startSupportPolling(){
+          const self = this;
+          this.stopSupportPolling();
+          if(!this.supportAvailable) return;
+          this.supportPollTimer = window.setInterval(function(){
+            if(document.hidden || !self.supportAvailable || self.supportSending) return;
+            self.refreshSupportConversation({ silent: true });
+          }, 12000);
+          this.supportFocusHandler = function(){
+            if(!self.supportAvailable || self.supportSending) return;
+            self.refreshSupportConversation({ silent: true });
+          };
+          this.supportVisibilityHandler = function(){
+            if(!document.hidden && self.supportAvailable && !self.supportSending){
+              self.refreshSupportConversation({ silent: true });
+            }
+          };
+          window.addEventListener('focus', this.supportFocusHandler);
+          document.addEventListener('visibilitychange', this.supportVisibilityHandler);
+        },
+        async initSupportPanel(){
+          const service = window.clubSupportSupabase || null;
+          if(!this.club || !this.club.id || !service || typeof service.isConfigured !== 'function' || !service.isConfigured()){
+            return;
+          }
+          try{
+            this.supportProfile = await service.getCurrentProfile();
+          }catch(error){
+            this.supportProfile = null;
+          }
+          if(!this.supportProfile || !this.supportProfile.userId){
+            this.supportMessages = [];
+            this.supportDraft = '';
+            this.supportAttachments = [];
+            return;
+          }
+          await this.refreshSupportConversation({ markRead: true });
+          this.startSupportPolling();
+        },
+        async refreshSupportConversation(options){
+          const service = window.clubSupportSupabase || null;
+          if(!this.club || !this.club.id || !service || !this.supportProfile || !this.supportProfile.userId){
+            return;
+          }
+          const opts = options || {};
+          if(!opts.silent){
+            this.supportLoading = true;
+          }
+          try{
+            const thread = await service.fetchUserThread(this.club.id);
+            this.supportThread = thread;
+            if(thread && thread.id){
+              this.supportMessages = await service.fetchThreadMessages(thread.id);
+              if(opts.markRead){
+                const refreshedThread = await service.markThreadRead(thread.id);
+                this.supportThread = refreshedThread || thread;
+              }
+              this.scrollSupportMessages();
+            }else{
+              this.supportMessages = [];
+            }
+            if(!opts.preserveFeedback){
+              this.clearSupportFeedback();
+            }
+          }catch(error){
+            this.setSupportFeedback(service && typeof service.mapSupportError === 'function'
+              ? service.mapSupportError(error)
+              : 'Unable to load the club chat right now.', 'error');
+          }finally{
+            this.supportLoading = false;
+          }
+        },
+        openSupportFilePicker(){
+          if(this.supportSending || !this.supportSignedIn) return;
+          const input = this.$refs.supportFileInput;
+          if(input) input.click();
+        },
+        async handleSupportFileChange(event){
+          const input = event && event.target;
+          const files = input && input.files ? Array.prototype.slice.call(input.files) : [];
+          if(!files.length) return;
+          const service = window.clubSupportSupabase || null;
+          if(!service || !this.supportSignedIn || !this.supportProfile || !this.supportProfile.userId){
+            this.setSupportFeedback('Please sign in again before uploading files.', 'error');
+            if(input) input.value = '';
+            return;
+          }
+          try{
+            for(let i = 0; i < files.length; i += 1){
+              const attachment = await service.uploadAttachment(files[i], this.supportProfile.userId);
+              this.supportAttachments.push(attachment);
+            }
+            this.setSupportFeedback('Attachment ready to send.', 'success');
+          }catch(error){
+            this.setSupportFeedback(service && typeof service.mapSupportError === 'function'
+              ? service.mapSupportError(error)
+              : 'Unable to upload this attachment right now.', 'error');
+          }finally{
+            if(input) input.value = '';
+          }
+        },
+        removeSupportAttachment(id){
+          const targetId = String(id || '').trim();
+          this.supportAttachments = this.supportAttachments.filter(function(item){
+            return String(item && item.id || '').trim() !== targetId;
+          });
+        },
+        async sendSupportMessage(){
+          const service = window.clubSupportSupabase || null;
+          if(!service || !this.club || !this.club.id || !this.supportSignedIn || !this.supportProfile || !this.supportProfile.userId) return;
+          if(!this.supportDraft && !this.supportAttachments.length) return;
+          this.supportSending = true;
+          this.clearSupportFeedback();
+          try{
+            await service.sendUserMessage(this.club.id, this.supportDraft, this.supportAttachments);
+            this.supportDraft = '';
+            this.supportAttachments = [];
+            await this.refreshSupportConversation({ markRead: true, preserveFeedback: true, silent: true });
+            this.setSupportFeedback('Message sent to the club.', 'success');
+          }catch(error){
+            this.setSupportFeedback(service && typeof service.mapSupportError === 'function'
+              ? service.mapSupportError(error)
+              : 'Unable to send this message right now.', 'error');
+          }finally{
+            this.supportSending = false;
+          }
         },
         normalizeCoverValue(value){
           const text = String(value || '').trim();
@@ -397,6 +731,7 @@
             .replace(/[_\s]+/g, '-')
             .replace(/-+/g, '-')
             .replace(/^-+|-+$/g, '')
+            .replace(/-\d+$/g, '')
             .replace(/-(club|society)$/g, '');
           const text = this.normalizeCoverValue(value);
           const fallbackCover = CLUB_COVER_MAP[normalizedSlug] || '';
@@ -408,13 +743,90 @@
         }
         return text;
       },
-      formatClubFee(value){
-        const text = String(value || '').trim().replace(/^[£$€¥]\s*/, '');
-        if(!text) return '';
-        if(/^\.[0-9]+(?:\b|[^0-9])/.test(text)) return `£0${text}`;
-        if(/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) return `£${text}`;
-        return text;
-      },
+        formatClubFee(value){
+          const text = String(value || '').trim().replace(/^[£$€¥]\s*/, '');
+          if(!text) return '';
+          if(/^\.[0-9]+(?:\b|[^0-9])/.test(text)) return `£0${text}`;
+          if(/^\d+(?:\.\d+)?(?:\b|[^A-Za-z0-9])/.test(text)) return `£${text}`;
+          return text;
+        },
+      suggestionMeta(item){
+          if(!item) return '';
+          return [String(item.category || '').trim(), String(item.mode || '').trim()]
+            .filter(Boolean)
+            .join(' · ');
+        },
+      suggestionCoverStyle(item){
+          const url = this.resolveClubCover(item && item.slug ? item.slug : '', item && item.cover ? item.cover : '');
+          return url ? { backgroundImage: `url('${url}')` } : {};
+        },
+      shuffleSuggestions(items){
+          const list = Array.isArray(items) ? items.slice() : [];
+          for(let i = list.length - 1; i > 0; i -= 1){
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = list[i];
+            list[i] = list[j];
+            list[j] = temp;
+          }
+          return list;
+        },
+      async loadSuggestedClubs(){
+          const currentSlug = String(this.club && this.club.slug || '').trim();
+          if(!currentSlug){
+            this.suggestedClubs = [];
+            return;
+          }
+
+          let candidates = [];
+          if(window.clubBookingSupabase && typeof window.clubBookingSupabase.isConfigured === 'function' && window.clubBookingSupabase.isConfigured()){
+            try{
+              const today = new Date();
+              const end = new Date(today);
+              end.setDate(end.getDate() + 27);
+              const formatIso = function(date){
+                const normalized = new Date(date);
+                normalized.setHours(0, 0, 0, 0);
+                const year = normalized.getFullYear();
+                const month = String(normalized.getMonth() + 1).padStart(2, '0');
+                const day = String(normalized.getDate()).padStart(2, '0');
+                return year + '-' + month + '-' + day;
+              };
+              const cloud = await window.clubBookingSupabase.fetchClubCatalog({
+                startDate: formatIso(today),
+                endDate: formatIso(end)
+              });
+              candidates = Array.isArray(cloud && cloud.clubs) ? cloud.clubs : [];
+            }catch(error){
+              console.warn('Suggestion catalog sync failed, using fallback clubs.', error);
+            }
+          }
+
+          if(!candidates.length){
+            candidates = this.loadRegistry();
+          }
+
+          const currentCategory = String(this.club && this.club.category || '').trim().toLowerCase();
+          const currentMode = String(this.club && this.club.mode || '').trim().toLowerCase();
+          const seen = new Set();
+          const normalized = candidates
+            .map(item => this.normalizeClub(item))
+            .filter(item => item && item.slug && item.slug !== currentSlug)
+            .filter(item => {
+              const slug = String(item.slug || '').trim();
+              if(!slug || seen.has(slug)) return false;
+              seen.add(slug);
+              return true;
+            });
+
+          const preferred = normalized.filter(item => {
+            const category = String(item.category || '').trim().toLowerCase();
+            const mode = String(item.mode || '').trim().toLowerCase();
+            return category === currentCategory || mode === currentMode;
+          });
+          const others = normalized.filter(item => !preferred.includes(item));
+          const merged = this.shuffleSuggestions(preferred).concat(this.shuffleSuggestions(others));
+          this.suggestedClubs = merged.slice(0, 4);
+        },
       async findClub(slug){
           const normalizedSlug = String(slug || '').trim();
           if(!normalizedSlug) return null;
@@ -446,10 +858,14 @@
                 return this.normalizeClub(foundCloud);
               }
             }catch(error){
-              console.warn('Club detail cloud sync failed.', error);
+              console.warn('Club detail cloud sync failed, using local registry fallback.', error);
             }
           }
-          return null;
+
+          const reg = this.loadRegistry();
+          const found = reg.find(x=>x && x.slug === normalizedSlug);
+          if(!found) return null;
+          return this.normalizeClub(found);
         },
         toList(text){
           const raw = (text || '').toString().trim();
@@ -469,36 +885,6 @@
           if(!raw) return '#';
           if(/^https?:\/\//i.test(raw)) return raw;
           return 'https://' + raw;
-        },
-        buildMapEmbedFromMeta(meta){
-          const data = meta || {};
-          const lat = String(data.lat || '').trim();
-          const lng = String(data.lng || '').trim();
-          const formattedAddress = String(data.formattedAddress || '').trim();
-          if(lat && lng){
-            return 'https://www.google.com/maps?q=' + encodeURIComponent(lat + ',' + lng) + '&z=16&output=embed';
-          }
-          if(formattedAddress){
-            return 'https://www.google.com/maps?q=' + encodeURIComponent(formattedAddress) + '&z=16&output=embed';
-          }
-          return '';
-        },
-        buildMapOpenFromMeta(meta){
-          const data = meta || {};
-          const placeId = String(data.placeId || '').trim();
-          const lat = String(data.lat || '').trim();
-          const lng = String(data.lng || '').trim();
-          const formattedAddress = String(data.formattedAddress || '').trim();
-          if(placeId && formattedAddress){
-            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress) + '&query_place_id=' + encodeURIComponent(placeId);
-          }
-          if(lat && lng){
-            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(lat + ',' + lng);
-          }
-          if(formattedAddress){
-            return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(formattedAddress);
-          }
-          return '';
         },
         async resolveMapLinkForEmbed(){
           this.resolvedMapLink = '';
@@ -593,8 +979,7 @@
     })
   </script>
   <script src="../js/portal-detail-header.js"></script>
-  <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
-  <script src="../js/portal-header-auth.js?v=20260414-msgdb-2"></script>
+  <script src="../js/portal-header-auth.js"></script>
   <script src="../js/chat-widget.js"></script>
 </body>
 </html>

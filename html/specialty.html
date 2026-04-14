@@ -13,6 +13,7 @@
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
   <link rel="stylesheet" href="../css/specialty.css?v=20260401-2" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
+  <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
 </head>
 <body>
 <div id="app" v-cloak>
@@ -156,7 +157,7 @@
 
             <div class="club-list-side">
               <div class="club-list-stats">
-                <span>Today's Slots {{ clubAvailableTodayCount(c) }}</span>
+                <span>Today's period {{ clubAvailableTodayCount(c) }}</span>
                 <span>Seats Left This Week {{ clubWeekRemainingSeats(c) }}</span>
               </div>
 

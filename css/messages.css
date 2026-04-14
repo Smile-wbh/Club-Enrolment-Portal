@@ -2,6 +2,9 @@
 
 :root {
   --messages-page-max: 1580px;
+  --messages-shell-width: 1460px;
+  --messages-shell-height: 860px;
+  --messages-shell-gutter: 56px;
 }
 
 * {
@@ -18,7 +21,7 @@ body {
   margin: 0;
   display: flex;
   flex-direction: column;
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
   background:
@@ -33,31 +36,37 @@ body {
 }
 
 .messages-main {
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
+  min-height: auto;
   display: flex;
   align-items: flex-start;
-  padding: 18px 0 22px;
+  padding: 18px 0 34px;
 }
 
 .messages-main .container {
-  width: 100%;
+  width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
+  min-width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
+  max-width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
   height: auto;
-  min-height: 100%;
+  min-height: auto;
   margin: 0 auto;
   padding: 0 28px;
   display: flex;
-  align-items: flex-start;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
 }
 
 .messages-shell {
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr);
-  width: min(100%, 1460px);
-  height: calc(100vh - 116px);
-  min-height: 860px;
-  max-height: 940px;
+  width: var(--messages-shell-width);
+  max-width: var(--messages-shell-width);
+  min-width: var(--messages-shell-width);
+  height: var(--messages-shell-height);
+  min-height: var(--messages-shell-height);
+  max-height: var(--messages-shell-height);
+  flex: 0 0 auto;
   margin-inline: auto;
   border-radius: 28px;
   overflow: hidden;
@@ -66,6 +75,13 @@ body {
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+
+.messages-page-footer{
+  width: 100%;
+  min-width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
+  margin-top: 0;
+  flex: 0 0 auto;
 }
 
 .messages-sidebar {
@@ -256,6 +272,7 @@ body {
 .messages-panel {
   min-width: 0;
   min-height: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -263,6 +280,7 @@ body {
 }
 
 .messages-panel-head {
+  flex: 0 0 auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -489,6 +507,8 @@ body {
 }
 
 .messages-compose {
+  flex: 0 0 auto;
+  flex-shrink: 0;
   padding: 16px 22px 18px;
   border-top: 1px solid rgba(43, 68, 110, 0.08);
   background: #fff;
@@ -874,48 +894,54 @@ body {
 
 @media (max-width: 1100px) {
   .messages-shell {
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 320px minmax(0, 1fr);
   }
 }
 
 @media (max-width: 860px) {
   body {
-    overflow: auto;
+    overflow-x: auto;
+    overflow-y: auto;
   }
 
   .messages-main {
     flex: 0 0 auto;
-    display: block;
+    display: flex;
     min-height: auto;
     padding: 16px 0 24px;
   }
 
   .messages-main .container {
-    width: auto;
+    width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
+    min-width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
+    max-width: calc(var(--messages-shell-width) + var(--messages-shell-gutter));
     height: auto;
     padding: 0 16px;
-    display: block;
+    display: flex;
   }
 
   .messages-shell {
-    grid-template-columns: 1fr;
-    width: 100%;
-    height: auto;
-    min-height: auto;
+    grid-template-columns: 320px minmax(0, 1fr);
+    width: var(--messages-shell-width);
+    min-width: var(--messages-shell-width);
+    max-width: var(--messages-shell-width);
+    height: var(--messages-shell-height);
+    min-height: var(--messages-shell-height);
+    max-height: var(--messages-shell-height);
   }
 
   .messages-sidebar {
-    min-height: 280px;
+    min-height: 0;
     overflow: hidden;
   }
 
   .messages-panel {
-    min-height: 280px;
+    min-height: 0;
     overflow: hidden;
   }
 
   .messages-thread {
-    min-height: 320px;
+    min-height: 0;
   }
 
   .messages-emoji-picker {

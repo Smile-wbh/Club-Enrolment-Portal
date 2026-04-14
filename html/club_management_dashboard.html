@@ -8,10 +8,13 @@
   <script src="../js/supabase-config.js"></script>
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-storage.js?v=20260401-3"></script>
+  <script src="../js/supabase-club-support.js?v=20260414-clubsupport-1"></script>
   <script src="../js/supabase-club-admin.js?v=20260401-1"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
   <link rel="stylesheet" href="../css/club_management_dashboard.css">
+  <link rel="stylesheet" href="../css/club-support.css?v=20260414-clubsupport-4">
+  <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
 </head>
 <body>
   <div class="page-bg-shape shape-a"></div>
@@ -117,9 +120,9 @@
               <div class="kpi-note">Total members across managed clubs</div>
             </article>
             <article class="kpi-card mint reveal">
-              <div class="kpi-label">Pending Bookings</div>
-              <div class="kpi-value" id="kpiPending">0</div>
-              <div class="kpi-note">Bookings not yet checked in or completed</div>
+              <div class="kpi-label">Core Members</div>
+              <div class="kpi-value" id="kpiCoreMembers">0</div>
+              <div class="kpi-note">Unique key member contacts across managed clubs</div>
             </article>
             <article class="kpi-card cyan reveal">
               <div class="kpi-label">Published Courses</div>
@@ -148,10 +151,6 @@
                   <strong id="approvedCount">0</strong>
                 </li>
                 <li>
-                  <span>Clubs Pending Review</span>
-                  <strong id="pendingReviewCount">0</strong>
-                </li>
-                <li>
                   <span>Booking Completion Rate</span>
                   <strong id="completionRate">0%</strong>
                 </li>
@@ -165,17 +164,8 @@
             <article class="panel-card agenda-card reveal">
               <div class="panel-head">
                 <h3>Today's Management Reminders</h3>
-                <span class="light-text">Top 5</span>
               </div>
               <ul class="agenda-list" id="agendaList"></ul>
-            </article>
-
-            <article class="panel-card team-card reveal">
-              <div class="panel-head">
-                <h3>Core Members</h3>
-                <button class="pill-btn" data-jump-view="members-list" type="button">All Members</button>
-              </div>
-              <ul class="team-list" id="teamList"></ul>
             </article>
           </section>
 
@@ -328,6 +318,18 @@
                   <input id="regCoverFile" type="file" accept="image/*">
                 </label>
                 <label class="span-2">
+                  Hero Subtitle
+                  <input id="regHeroSub" type="text" placeholder="Short intro below the club name in the hero section.">
+                </label>
+                <label class="span-2">
+                  Club Tags
+                  <input id="regTags" type="text" placeholder="Comma-separated tags, e.g. Sports, In-person, Beginner Friendly">
+                </label>
+                <label class="span-2">
+                  Weekly Highlight
+                  <input id="regWeeklyHighlight" type="text" placeholder="e.g. Match drills, Wed 19:00-21:00">
+                </label>
+                <label class="span-2">
                   Overview
                   <textarea id="regDesc" required rows="4" placeholder="Used in the Club Overview section on the detail page."></textarea>
                 </label>
@@ -350,6 +352,10 @@
                 <label class="span-2">
                   Equipment & Notes
                   <textarea id="regNotes" rows="4" placeholder="One item per line, e.g. &#10;Wear non-slip sports shoes&#10;Tell the coach about any previous injury"></textarea>
+                </label>
+                <label class="span-2">
+                  FAQ
+                  <textarea id="regFaq" rows="6" placeholder="One FAQ block per paragraph, e.g. &#10;Can beginners join?&#10;Yes, beginners are welcome and the coach will guide you through the basics.&#10;&#10;Do I need my own racket?&#10;No, club equipment is available, but bringing your own is recommended."></textarea>
                 </label>
                 <div class="form-actions span-2">
                   <button class="btn-primary" type="submit">Submit Registration</button>
@@ -503,6 +509,18 @@
                     <input id="clubEditCoverFile" type="file" accept="image/*">
                   </label>
                   <label class="span-2">
+                    Hero Subtitle
+                    <input id="clubEditHeroSub" type="text" placeholder="Short intro below the club name in the hero section.">
+                  </label>
+                  <label class="span-2">
+                    Club Tags
+                    <input id="clubEditTags" type="text" placeholder="Comma-separated tags, e.g. Sports, In-person, Beginner Friendly">
+                  </label>
+                  <label class="span-2">
+                    Weekly Highlight
+                    <input id="clubEditWeeklyHighlight" type="text" placeholder="e.g. Match drills, Wed 19:00-21:00">
+                  </label>
+                  <label class="span-2">
                     Overview
                     <textarea id="clubEditDesc" required rows="4" placeholder="Used in the Club Overview section on the detail page."></textarea>
                   </label>
@@ -525,6 +543,10 @@
                   <label class="span-2">
                     Equipment & Notes
                     <textarea id="clubEditNotes" rows="4" placeholder="One item per line, e.g. &#10;Wear non-slip sports shoes&#10;Tell the coach about any previous injury"></textarea>
+                  </label>
+                  <label class="span-2">
+                    FAQ
+                    <textarea id="clubEditFaq" rows="6" placeholder="One FAQ block per paragraph, e.g. &#10;Can beginners join?&#10;Yes, beginners are welcome and the coach will guide you through the basics.&#10;&#10;Do I need my own racket?&#10;No, club equipment is available, but bringing your own is recommended."></textarea>
                   </label>
                   <div class="form-actions span-2">
                     <button class="btn-primary" id="clubEditSubmitBtn" type="submit" disabled>Save Changes</button>
@@ -977,6 +999,47 @@
     </div>
   </section>
 
+  <div class="club-support-modal" id="clubSupportModal" hidden>
+    <div class="club-support-modal-backdrop" data-support-close="true"></div>
+    <div class="club-support-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="clubSupportModalTitle">
+      <div class="club-support-modal-head">
+        <div>
+          <strong id="clubSupportModalTitle">Club Support</strong>
+          <span id="clubSupportModalSub">Reply to users for the selected club.</span>
+        </div>
+        <button class="club-support-close" id="clubSupportCloseBtn" type="button" aria-label="Close support chat">×</button>
+      </div>
+      <div class="club-support-modal-body">
+        <aside class="club-support-thread-list">
+          <div id="clubSupportThreadList" class="club-support-thread-list-inner"></div>
+        </aside>
+        <section class="club-support-thread-panel">
+          <div class="club-support-thread-panel-head">
+            <div>
+              <strong id="clubSupportPanelTitle">Choose a conversation</strong>
+              <span id="clubSupportPanelSub">Support threads for this club will appear here.</span>
+            </div>
+          </div>
+          <div id="clubSupportAlert" class="club-support-alert is-info" hidden></div>
+          <div id="clubSupportMessages" class="club-support-messages"></div>
+          <div class="club-support-compose">
+            <div id="clubSupportAttachmentPreview" class="club-support-preview-list" hidden></div>
+            <textarea id="clubSupportDraft" placeholder="Reply to this member..." disabled></textarea>
+            <div class="club-support-toolbar">
+              <div class="club-support-toolbar-left">
+                <input id="clubSupportFileInput" type="file" accept="image/*,video/*" multiple hidden>
+                <button class="club-support-upload-btn" id="clubSupportUploadBtn" type="button" disabled>Add Image / Video</button>
+              </div>
+              <div class="club-support-toolbar-right">
+                <button class="club-support-send-btn" id="clubSupportSendBtn" type="button" disabled>Send Reply</button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function(){
       var KEYS = {
@@ -1178,14 +1241,16 @@
           fee: formatClubFeeText(club.fee),
           seats: Number.isFinite(seats) && seats > 0 ? seats : 20,
           cover: sanitizeClubCoverValue(club.cover),
-          tags: [],
+          tags: Array.isArray(club.tags) ? club.tags.filter(Boolean) : parseMultiValue(club.tags, 8),
           desc: String(club.desc || '').trim(),
-          heroSub: '',
+          heroSub: String(club.heroSub || club.hero_sub || '').trim(),
+          weeklyHighlight: String(club.weeklyHighlight || club.weekly_highlight || '').trim(),
           venueInfo: String(club.venueInfo || '').trim(),
           whatWeDo: String(club.whatWeDo || '').trim(),
           audience: String(club.audience || '').trim(),
           trainingPlan: String(club.trainingPlan || '').trim(),
           notes: String(club.notes || '').trim(),
+          faq: String(club.faq || '').trim(),
           ownerEmail: state.sessionEmail,
           ownerId: state.sessionUserId,
           createdAt: String(club.createdAt || '').trim(),
@@ -1365,6 +1430,10 @@
         return window.clubStorageSupabase || null;
       }
 
+      function getClubSupportService(){
+        return window.clubSupportSupabase || null;
+      }
+
       function hasCloudDashboardConfigured(){
         var service = getAdminService();
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
@@ -1372,6 +1441,11 @@
 
       function hasCloudStorageConfigured(){
         var service = getStorageService();
+        return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
+      }
+
+      function hasClubSupportConfigured(){
+        var service = getClubSupportService();
         return !!(service && typeof service.isConfigured === 'function' && service.isConfigured());
       }
 
@@ -1955,6 +2029,22 @@
       var activeTeachingTarget = 'publish';
       var activitySyncTimer = 0;
       var activitySyncInFlight = false;
+      var clubSupportRefreshTimer = 0;
+      var clubSupportState = {
+        isOpen: false,
+        clubId: '',
+        clubName: '',
+        threads: [],
+        selectedThreadId: '',
+        messages: [],
+        draft: '',
+        attachments: [],
+        unreadByClubId: {},
+        loadingThreads: false,
+        loadingMessages: false,
+        sending: false,
+        activeClubMeta: null
+      };
 
       var viewTitleMap = {
         overview: 'My Club Dashboard',
@@ -2218,6 +2308,9 @@
         state.sessionUserId = sessionUserId;
         state.sessionEmail = sessionEmail;
         state.sessionNick = sessionNick;
+        if(!state.sessionUserId && clubSupportState.isOpen){
+          closeClubSupportModal();
+        }
         state.user = state.users.find(function(x){
           return x && String(x.email || '').trim().toLowerCase() === state.sessionEmail;
         }) || (state.sessionEmail ? {
@@ -2293,6 +2386,8 @@
             || c.ownerEmail === state.sessionEmail
             || state.myClubNames.has(c.club);
         });
+
+        await refreshClubSupportUnreadCounts({ skipRender: true });
       }
 
       function switchView(view){
@@ -2365,11 +2460,16 @@
       }
 
       function renderOverview(){
-        var pendingCount = state.myBookings.filter(function(b){ return isPendingStatus(b.status); }).length;
         var doneCount = state.myBookings.filter(function(b){ return isDoneStatus(b.status); }).length;
         var completionRate = state.myBookings.length ? Math.round((doneCount / state.myBookings.length) * 100) : 0;
         var approvedCount = state.myClubs.filter(function(c){ return c.status === 'approved' || !c.status; }).length;
-        var pendingReviewCount = state.myClubs.filter(function(c){ return c.status === 'pending'; }).length;
+        var uniq = {};
+        var coreMembers = state.myMembers.filter(function(m){
+          var key = (m.userEmail || m.name || '') + '|' + (m.clubName || '');
+          if(!key || uniq[key]) return false;
+          uniq[key] = true;
+          return true;
+        });
 
         var last30 = Date.now() - 30 * 24 * 60 * 60 * 1000;
         var newMembersCount = state.myMembers.filter(function(m){
@@ -2378,18 +2478,15 @@
 
         document.getElementById('kpiClubs').textContent = compactNum(state.myClubs.length);
         document.getElementById('kpiMembers').textContent = compactNum(state.myMembers.length);
-        document.getElementById('kpiPending').textContent = compactNum(pendingCount);
+        document.getElementById('kpiCoreMembers').textContent = compactNum(coreMembers.length);
         document.getElementById('kpiCourses').textContent = compactNum(state.myCourses.length);
         var topNoticeClubs = document.getElementById('topNoticeClubs');
         var topNoticeMembers = document.getElementById('topNoticeMembers');
-        var topNoticePending = document.getElementById('topNoticePending');
         var topNoticeCourses = document.getElementById('topNoticeCourses');
         if(topNoticeClubs) topNoticeClubs.textContent = compactNum(state.myClubs.length);
         if(topNoticeMembers) topNoticeMembers.textContent = compactNum(state.myMembers.length);
-        if(topNoticePending) topNoticePending.textContent = compactNum(pendingCount);
         if(topNoticeCourses) topNoticeCourses.textContent = compactNum(state.myCourses.length);
         document.getElementById('approvedCount').textContent = compactNum(approvedCount);
-        document.getElementById('pendingReviewCount').textContent = compactNum(pendingReviewCount);
         document.getElementById('completionRate').textContent = completionRate + '%';
         document.getElementById('newMembersCount').textContent = compactNum(newMembersCount);
 
@@ -2414,41 +2511,56 @@
         }).join('');
 
         var agendaList = document.getElementById('agendaList');
-        var pendingItems = state.myBookings
+        var supportReminderItems = state.myClubs
+          .map(function(club){
+            var unreadCount = getClubSupportUnreadCount(club && club.id);
+            if(unreadCount <= 0) return null;
+            return {
+              type: 'support',
+              priority: 0,
+              sortValue: -unreadCount,
+              title: (club && club.name ? club.name : 'Managed club') + ' support needs a reply',
+              subParts: [
+                unreadCount + ' unread member ' + (unreadCount === 1 ? 'message' : 'messages'),
+                'Open Club Management > Support to reply'
+              ]
+            };
+          })
+          .filter(Boolean)
+          .sort(function(a, b){
+            return a.sortValue - b.sortValue;
+          });
+
+        var bookingReminderItems = state.myBookings
           .filter(function(b){ return isPendingStatus(b.status); })
           .sort(function(a, b){ return parseBookingTime(a) - parseBookingTime(b); })
+          .map(function(item){
+            return {
+              type: 'booking',
+              priority: 1,
+              sortValue: parseBookingTime(item),
+              title: item.clubName || 'Pending booking',
+              subParts: [item.dayLabel || item.dayIso || item.time || '', item.slotTime || ''].filter(Boolean)
+            };
+          });
+
+        var reminderItems = supportReminderItems
+          .concat(bookingReminderItems)
+          .sort(function(a, b){
+            if(a.priority !== b.priority) return a.priority - b.priority;
+            return a.sortValue - b.sortValue;
+          })
           .slice(0, 5);
 
-        if(pendingItems.length === 0){
-          agendaList.innerHTML = '<li class="empty-item">There are no pending bookings right now.</li>';
+        if(reminderItems.length === 0){
+          agendaList.innerHTML = '<li class="empty-item">There are no booking or support reminders right now.</li>';
         }else{
-          agendaList.innerHTML = pendingItems.map(function(item){
-            var titleText = item.clubName || '';
-            var subParts = [item.dayLabel || item.dayIso || item.time || '', item.slotTime || ''].filter(Boolean);
+          agendaList.innerHTML = reminderItems.map(function(item){
+            var titleText = item.title || '';
+            var subParts = Array.isArray(item.subParts) ? item.subParts.filter(Boolean) : [];
             var titleHtml = titleText ? ('<div class="agenda-title">' + titleText + '</div>') : '';
             var subHtml = subParts.length ? ('<div class="agenda-sub">' + subParts.join(' · ') + '</div>') : '';
             return '<li>' + titleHtml + subHtml + '</li>';
-          }).join('');
-        }
-
-        var teamList = document.getElementById('teamList');
-        var uniq = {};
-        var coreTeam = state.myMembers.filter(function(m){
-          var key = (m.userEmail || m.name || '') + '|' + (m.clubName || '');
-          if(!key || uniq[key]) return false;
-          uniq[key] = true;
-          return true;
-        }).slice(0, 6);
-
-        if(coreTeam.length === 0){
-          teamList.innerHTML = '<li class="empty-item">No member data yet.</li>';
-        }else{
-          teamList.innerHTML = coreTeam.map(function(m){
-            var metaParts = [m.clubName || '', m.role || 'member'].filter(Boolean);
-            return '<li>' +
-              '<div class="team-name">' + (m.name || m.userEmail || 'Member') + '</div>' +
-              '<div class="team-meta">' + metaParts.join(' · ') + '</div>' +
-            '</li>';
           }).join('');
         }
 
@@ -2529,6 +2641,384 @@
         }).join('');
       }
 
+      function getClubSupportUnreadCount(clubId){
+        return Number(clubSupportState.unreadByClubId[String(clubId || '').trim()] || 0);
+      }
+
+      function formatClubSupportTime(value){
+        var text = String(value || '').trim();
+        if(!text) return '';
+        var date = new Date(text);
+        return Number.isNaN(date.getTime()) ? text : date.toLocaleString();
+      }
+
+      function clubSupportMessageAttachmentHtml(attachment, isUser){
+        var item = attachment || {};
+        var href = escapeHtml(item.url || item.dataUrl || '#');
+        var name = escapeHtml(item.name || item.title || item.kind || 'Attachment');
+        var image = '';
+        if(String(item.kind || '').trim() === 'image' && (item.url || item.dataUrl)){
+          image = '<img src="' + href + '" alt="' + name + '">';
+        }
+        return '<a class="club-support-attachment" href="' + href + '" target="_blank" rel="noopener">' +
+          image +
+          '<span>' + name + '</span>' +
+        '</a>';
+      }
+
+      function clubSupportMessageHtml(message){
+        var item = message || {};
+        var isUser = String(item.senderRole || '').trim() === 'user';
+        var textHtml = item.text ? ('<p>' + escapeHtml(item.text) + '</p>') : '';
+        var attachmentsHtml = Array.isArray(item.attachments) && item.attachments.length
+          ? ('<div class="club-support-attachments">' + item.attachments.map(function(attachment){
+            return clubSupportMessageAttachmentHtml(attachment, isUser);
+          }).join('') + '</div>')
+          : '';
+        return '<article class="club-support-message ' + (isUser ? 'is-user' : 'is-club') + '">' +
+          '<div class="club-support-meta"><strong>' + escapeHtml(isUser ? 'Member' : (item.senderName || 'Club Team')) + '</strong><span>' + escapeHtml(formatClubSupportTime(item.createdAt)) + '</span></div>' +
+          '<div class="club-support-bubble">' + textHtml + attachmentsHtml + '</div>' +
+        '</article>';
+      }
+
+      function findClubSupportThread(threadId){
+        var normalizedId = String(threadId || '').trim();
+        return clubSupportState.threads.find(function(item){
+          return String(item && item.id || '').trim() === normalizedId;
+        }) || null;
+      }
+
+      function setClubSupportAlert(text, kind){
+        var el = document.getElementById('clubSupportAlert');
+        if(!el) return;
+        var message = String(text || '').trim();
+        if(!message){
+          el.hidden = true;
+          el.textContent = '';
+          el.className = 'club-support-alert is-info';
+          return;
+        }
+        el.hidden = false;
+        el.textContent = message;
+        el.className = 'club-support-alert is-' + (kind || 'info');
+      }
+
+      function renderClubSupportAttachmentPreview(){
+        var wrap = document.getElementById('clubSupportAttachmentPreview');
+        if(!wrap) return;
+        if(!clubSupportState.attachments.length){
+          wrap.hidden = true;
+          wrap.innerHTML = '';
+          return;
+        }
+        wrap.hidden = false;
+        wrap.innerHTML = clubSupportState.attachments.map(function(item){
+          var src = escapeHtml(item.url || item.dataUrl || '');
+          var thumb = src && String(item.kind || '').trim() === 'image'
+            ? ('<img src="' + src + '" alt="' + escapeHtml(item.name || 'Attachment') + '">')
+            : ('<span>' + escapeHtml(item.kind || 'file') + '</span>');
+          return '<div class="club-support-preview-item">' +
+            '<button class="club-support-preview-remove" type="button" data-support-remove-attachment="' + escapeHtml(item.id || '') + '">×</button>' +
+            '<div class="club-support-preview-thumb">' + thumb + '</div>' +
+            '<div class="club-support-preview-name">' + escapeHtml(item.name || item.title || 'Attachment') + '</div>' +
+          '</div>';
+        }).join('');
+      }
+
+      function renderClubSupportThreads(){
+        var wrap = document.getElementById('clubSupportThreadList');
+        if(!wrap) return;
+        if(clubSupportState.loadingThreads){
+          wrap.innerHTML = '<div class="club-support-empty is-center"><strong>Loading conversations...</strong><span>Please wait while we sync the latest support threads.</span></div>';
+          return;
+        }
+        if(!clubSupportState.threads.length){
+          wrap.innerHTML = '<div class="club-support-empty is-center"><strong>No user messages yet</strong><span>When a member sends a message from the club detail page, the conversation will appear here.</span></div>';
+          return;
+        }
+        wrap.innerHTML = clubSupportState.threads.map(function(thread){
+          var unreadTag = thread.hasUnreadForClub ? '<span class="club-support-thread-badge">Unread</span>' : '';
+          return '<button class="club-support-thread-item' + (String(thread.id || '') === String(clubSupportState.selectedThreadId || '') ? ' is-active' : '') + '" type="button" data-support-thread-id="' + escapeHtml(thread.id || '') + '">' +
+            '<div class="club-support-thread-top"><span class="club-support-thread-name">' + escapeHtml(thread.userName || 'Member') + '</span>' + unreadTag + '</div>' +
+            '<div class="club-support-thread-email">' + escapeHtml(thread.userEmail || '') + '</div>' +
+            '<div class="club-support-thread-preview">' + escapeHtml(thread.lastMessagePreview || 'Open this conversation to reply.') + '</div>' +
+            '<div class="club-support-thread-time">' + escapeHtml(formatClubSupportTime(thread.lastMessageAt || thread.createdAt)) + '</div>' +
+          '</button>';
+        }).join('');
+      }
+
+      function renderClubSupportMessages(){
+        var wrap = document.getElementById('clubSupportMessages');
+        var title = document.getElementById('clubSupportPanelTitle');
+        var sub = document.getElementById('clubSupportPanelSub');
+        var draft = document.getElementById('clubSupportDraft');
+        var uploadBtn = document.getElementById('clubSupportUploadBtn');
+        var sendBtn = document.getElementById('clubSupportSendBtn');
+        var thread = findClubSupportThread(clubSupportState.selectedThreadId);
+
+        if(title){
+          title.textContent = thread ? (thread.userName || 'Member') : 'Choose a conversation';
+        }
+        if(sub){
+          sub.textContent = thread
+            ? ((thread.userEmail || 'No email available') + ' · ' + formatClubSupportTime(thread.lastMessageAt || thread.createdAt))
+            : 'Support threads for this club will appear here.';
+        }
+
+        if(draft){
+          draft.disabled = !thread || clubSupportState.sending;
+          draft.value = clubSupportState.draft;
+        }
+        if(uploadBtn){
+          uploadBtn.disabled = !thread || clubSupportState.sending;
+        }
+        if(sendBtn){
+          sendBtn.disabled = !thread || clubSupportState.sending || (!String(clubSupportState.draft || '').trim() && !clubSupportState.attachments.length);
+          sendBtn.textContent = clubSupportState.sending ? 'Sending...' : 'Send Reply';
+        }
+
+        if(!wrap) return;
+        if(!thread){
+          wrap.innerHTML = '<div class="club-support-thread-empty"><strong>Choose a conversation</strong><span>Select a member on the left to read the full chat and reply.</span></div>';
+          return;
+        }
+        if(clubSupportState.loadingMessages){
+          wrap.innerHTML = '<div class="club-support-thread-empty"><strong>Loading messages...</strong><span>Please wait while we sync the latest replies.</span></div>';
+          return;
+        }
+        if(!clubSupportState.messages.length){
+          wrap.innerHTML = '<div class="club-support-thread-empty"><strong>No messages yet</strong><span>This thread was created, but no messages are available yet.</span></div>';
+          return;
+        }
+        wrap.innerHTML = clubSupportState.messages.map(clubSupportMessageHtml).join('');
+        wrap.scrollTop = wrap.scrollHeight;
+      }
+
+      function renderClubSupportModal(){
+        var modal = document.getElementById('clubSupportModal');
+        var title = document.getElementById('clubSupportModalTitle');
+        var sub = document.getElementById('clubSupportModalSub');
+        if(!modal) return;
+        modal.hidden = !clubSupportState.isOpen;
+        if(title){
+          title.textContent = clubSupportState.clubName
+            ? (clubSupportState.clubName + ' Support')
+            : 'Club Support';
+        }
+        if(sub){
+          sub.textContent = clubSupportState.clubName
+            ? ('Reply to users who contacted ' + clubSupportState.clubName + '.')
+            : 'Reply to users for the selected club.';
+        }
+        renderClubSupportThreads();
+        renderClubSupportMessages();
+        renderClubSupportAttachmentPreview();
+      }
+
+      async function refreshClubSupportUnreadCounts(options){
+        var opts = options || {};
+        if(!hasClubSupportConfigured() || !state.sessionUserId || !state.myClubs.length){
+          clubSupportState.unreadByClubId = {};
+          if(!opts.skipRender){
+            renderOverview();
+            renderClubs();
+          }
+          return;
+        }
+        try{
+          var service = getClubSupportService();
+          clubSupportState.unreadByClubId = await service.fetchOwnerUnreadCounts(Array.from(state.myClubIds));
+          if(!opts.skipRender){
+            renderOverview();
+            renderClubs();
+          }
+        }catch(error){
+          console.warn('Club support unread sync failed.', error);
+        }
+      }
+
+      function stopClubSupportRefreshWatcher(){
+        if(clubSupportRefreshTimer){
+          window.clearInterval(clubSupportRefreshTimer);
+          clubSupportRefreshTimer = 0;
+        }
+      }
+
+      function startClubSupportRefreshWatcher(){
+        stopClubSupportRefreshWatcher();
+        clubSupportRefreshTimer = window.setInterval(function(){
+          if(document.hidden) return;
+          if(clubSupportState.isOpen){
+            refreshClubSupportThreads({ preserveSelection: true, silent: true });
+            return;
+          }
+          refreshClubSupportUnreadCounts({ skipRender: false });
+        }, 12000);
+      }
+
+      async function refreshClubSupportThreads(options){
+        var opts = options || {};
+        var service = getClubSupportService();
+        if(!service || !clubSupportState.clubId){
+          clubSupportState.threads = [];
+          clubSupportState.selectedThreadId = '';
+          clubSupportState.messages = [];
+          renderClubSupportModal();
+          return;
+        }
+
+        if(!opts.silent){
+          clubSupportState.loadingThreads = true;
+          renderClubSupportModal();
+        }
+
+        try{
+          clubSupportState.threads = await service.fetchOwnerThreads(clubSupportState.clubId);
+          var preferredThreadId = String(opts.preferredThreadId || clubSupportState.selectedThreadId || '').trim();
+          if(preferredThreadId && clubSupportState.threads.some(function(thread){ return String(thread.id || '') === preferredThreadId; })){
+            clubSupportState.selectedThreadId = preferredThreadId;
+          }else{
+            var firstUnread = clubSupportState.threads.find(function(thread){ return thread.hasUnreadForClub; });
+            clubSupportState.selectedThreadId = String((firstUnread && firstUnread.id) || (clubSupportState.threads[0] && clubSupportState.threads[0].id) || '').trim();
+          }
+          renderClubSupportModal();
+          if(clubSupportState.selectedThreadId){
+            await loadClubSupportMessages(clubSupportState.selectedThreadId, { markRead: !opts.skipMarkRead, silent: true });
+          }else{
+            clubSupportState.messages = [];
+            renderClubSupportModal();
+          }
+          await refreshClubSupportUnreadCounts({ skipRender: false });
+        }catch(error){
+          var serviceError = service && typeof service.mapSupportError === 'function'
+            ? service.mapSupportError(error)
+            : 'Unable to load club support threads right now.';
+          setClubSupportAlert(serviceError, 'error');
+        }finally{
+          clubSupportState.loadingThreads = false;
+          renderClubSupportModal();
+        }
+      }
+
+      async function loadClubSupportMessages(threadId, options){
+        var opts = options || {};
+        var service = getClubSupportService();
+        if(!service || !threadId){
+          clubSupportState.messages = [];
+          renderClubSupportModal();
+          return;
+        }
+        if(!opts.silent){
+          clubSupportState.loadingMessages = true;
+          renderClubSupportModal();
+        }
+        try{
+          clubSupportState.messages = await service.fetchThreadMessages(threadId);
+          if(opts.markRead !== false){
+            var currentThread = findClubSupportThread(threadId);
+            if(currentThread && currentThread.hasUnreadForClub){
+              await service.markThreadRead(threadId);
+              clubSupportState.threads = await service.fetchOwnerThreads(clubSupportState.clubId);
+              await refreshClubSupportUnreadCounts({ skipRender: false });
+            }
+          }
+        }catch(error){
+          var serviceError = service && typeof service.mapSupportError === 'function'
+            ? service.mapSupportError(error)
+            : 'Unable to load this conversation right now.';
+          setClubSupportAlert(serviceError, 'error');
+        }finally{
+          clubSupportState.loadingMessages = false;
+          renderClubSupportModal();
+        }
+      }
+
+      function openClubSupportModal(club){
+        var selectedClub = club || null;
+        if(!selectedClub || !selectedClub.id) return;
+        if(!hasClubSupportConfigured()){
+          alert('Club support chat is not ready yet. Please run the latest club support SQL in Supabase first.');
+          return;
+        }
+        if(!state.sessionUserId){
+          alert('Please sign in again before opening club support.');
+          return;
+        }
+        clubSupportState.isOpen = true;
+        clubSupportState.clubId = String(selectedClub.id || '').trim();
+        clubSupportState.clubName = String(selectedClub.name || '').trim();
+        clubSupportState.draft = '';
+        clubSupportState.attachments = [];
+        setClubSupportAlert('', 'info');
+        renderClubSupportModal();
+        refreshClubSupportThreads({ preserveSelection: false }).catch(function(error){
+          console.warn('Club support modal open failed.', error);
+        });
+      }
+
+      function closeClubSupportModal(){
+        clubSupportState.isOpen = false;
+        clubSupportState.clubId = '';
+        clubSupportState.clubName = '';
+        clubSupportState.threads = [];
+        clubSupportState.selectedThreadId = '';
+        clubSupportState.messages = [];
+        clubSupportState.draft = '';
+        clubSupportState.attachments = [];
+        clubSupportState.loadingThreads = false;
+        clubSupportState.loadingMessages = false;
+        clubSupportState.sending = false;
+        setClubSupportAlert('', 'info');
+        renderClubSupportModal();
+      }
+
+      async function handleClubSupportFiles(files){
+        var service = getClubSupportService();
+        if(!service || !state.sessionUserId) return;
+        var list = Array.prototype.slice.call(files || []);
+        if(!list.length) return;
+        try{
+          setClubSupportAlert('Uploading attachment...', 'info');
+          for(var i = 0; i < list.length; i += 1){
+            var attachment = await service.uploadAttachment(list[i], state.sessionUserId);
+            clubSupportState.attachments.push(attachment);
+          }
+          setClubSupportAlert('Attachment ready to send.', 'success');
+        }catch(error){
+          setClubSupportAlert(service && typeof service.mapSupportError === 'function'
+            ? service.mapSupportError(error)
+            : 'Unable to upload this attachment right now.', 'error');
+        }finally{
+          renderClubSupportModal();
+        }
+      }
+
+      async function sendClubSupportReply(){
+        var service = getClubSupportService();
+        if(!service || !clubSupportState.selectedThreadId) return;
+        if(!String(clubSupportState.draft || '').trim() && !clubSupportState.attachments.length) return;
+        clubSupportState.sending = true;
+        renderClubSupportModal();
+        try{
+          await service.sendOwnerMessage(clubSupportState.selectedThreadId, clubSupportState.draft, clubSupportState.attachments);
+          clubSupportState.draft = '';
+          clubSupportState.attachments = [];
+          setClubSupportAlert('Reply sent to the member.', 'success');
+          await refreshClubSupportThreads({
+            preferredThreadId: clubSupportState.selectedThreadId,
+            skipMarkRead: true,
+            silent: true
+          });
+        }catch(error){
+          setClubSupportAlert(service && typeof service.mapSupportError === 'function'
+            ? service.mapSupportError(error)
+            : 'Unable to send this reply right now.', 'error');
+        }finally{
+          clubSupportState.sending = false;
+          renderClubSupportModal();
+        }
+      }
+
       function renderClubs(){
         var wrap = document.getElementById('clubCards');
         if(state.myClubs.length === 0){
@@ -2552,6 +3042,7 @@
             '<div class="club-manage-actions">' +
               '<button class="btn-plain small" data-action="preview-club" data-slug="' + encodeURIComponent(c.slug || '') + '">View Details</button>' +
               '<button class="btn-plain small" data-action="edit-club" data-id="' + c.id + '">Edit Club</button>' +
+              '<button class="btn-plain small club-support-action-btn" data-action="club-support" data-id="' + c.id + '">Support</button>' +
               '<button class="btn-danger small" data-action="remove-club" data-id="' + c.id + '">Delete</button>' +
             '</div>' +
           '</article>';
@@ -2584,12 +3075,16 @@
           capacity: document.getElementById(isEdit ? 'clubEditCapacity' : 'regCapacity'),
           coverFile: document.getElementById(isEdit ? 'clubEditCoverFile' : 'regCoverFile'),
           coverUrl: document.getElementById(isEdit ? 'clubEditCoverUrl' : 'regCoverUrl'),
+          heroSub: document.getElementById(isEdit ? 'clubEditHeroSub' : 'regHeroSub'),
+          tags: document.getElementById(isEdit ? 'clubEditTags' : 'regTags'),
+          weeklyHighlight: document.getElementById(isEdit ? 'clubEditWeeklyHighlight' : 'regWeeklyHighlight'),
           desc: document.getElementById(isEdit ? 'clubEditDesc' : 'regDesc'),
           venueInfo: document.getElementById(isEdit ? 'clubEditVenueInfo' : 'regVenueInfo'),
           whatWeDo: document.getElementById(isEdit ? 'clubEditWhatWeDo' : 'regWhatWeDo'),
           audience: document.getElementById(isEdit ? 'clubEditAudience' : 'regAudience'),
           trainingPlan: document.getElementById(isEdit ? 'clubEditTrainingPlan' : 'regTrainingPlan'),
-          notes: document.getElementById(isEdit ? 'clubEditNotes' : 'regNotes')
+          notes: document.getElementById(isEdit ? 'clubEditNotes' : 'regNotes'),
+          faq: document.getElementById(isEdit ? 'clubEditFaq' : 'regFaq')
         };
       }
 
@@ -2844,14 +3339,16 @@
           onlineLink: refs.onlineLink ? normalizeUrl(refs.onlineLink.value) : '',
           fee: refs.fee ? formatClubFeeText(refs.fee.value) : '',
           seats: refs.capacity ? Math.max(1, Number(refs.capacity.value) || 20) : 20,
-          heroSub: '',
-          tags: [],
+          heroSub: refs.heroSub ? refs.heroSub.value.trim() : '',
+          tags: refs.tags ? parseMultiValue(refs.tags.value, 8) : [],
+          weeklyHighlight: refs.weeklyHighlight ? refs.weeklyHighlight.value.trim() : '',
           desc: refs.desc ? refs.desc.value.trim() : '',
           venueInfo: refs.venueInfo ? refs.venueInfo.value.trim() : '',
           whatWeDo: refs.whatWeDo ? refs.whatWeDo.value.trim() : '',
           audience: refs.audience ? refs.audience.value.trim() : '',
           trainingPlan: refs.trainingPlan ? refs.trainingPlan.value.trim() : '',
-          notes: refs.notes ? refs.notes.value.trim() : ''
+          notes: refs.notes ? refs.notes.value.trim() : '',
+          faq: refs.faq ? refs.faq.value.trim() : ''
         };
       }
 
@@ -3028,14 +3525,16 @@
           fee: formatClubFeeText(values.fee),
           seats: values.seats,
           cover: sanitizeClubCoverValue(typeof cover === 'string' ? cover : ((existing && existing.cover) || '')),
-          tags: [],
+          tags: Array.isArray(values.tags) ? values.tags : [],
           desc: values.desc,
-          heroSub: '',
+          heroSub: values.heroSub,
+          weeklyHighlight: values.weeklyHighlight,
           venueInfo: values.venueInfo,
           whatWeDo: values.whatWeDo,
           audience: values.audience,
           trainingPlan: values.trainingPlan,
           notes: values.notes,
+          faq: values.faq,
           slots: slotSchedule.slots,
           slotsByDay: slotSchedule.slotsByDay,
           ownerEmail: (existing && existing.ownerEmail) || state.sessionEmail,
@@ -3819,12 +4318,16 @@
         if(refs.capacity) refs.capacity.value = '';
         if(refs.coverFile) refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = '';
+        if(refs.heroSub) refs.heroSub.value = '';
+        if(refs.tags) refs.tags.value = '';
+        if(refs.weeklyHighlight) refs.weeklyHighlight.value = '';
         if(refs.desc) refs.desc.value = '';
         if(refs.venueInfo) refs.venueInfo.value = '';
         if(refs.whatWeDo) refs.whatWeDo.value = '';
         if(refs.audience) refs.audience.value = '';
         if(refs.trainingPlan) refs.trainingPlan.value = '';
         if(refs.notes) refs.notes.value = '';
+        if(refs.faq) refs.faq.value = '';
       }
 
       function resetEditClubForm(){
@@ -3860,12 +4363,16 @@
         refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
         refs.coverFile.value = '';
         if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
+        if(refs.heroSub) refs.heroSub.value = club.heroSub || '';
+        if(refs.tags) refs.tags.value = joinMultiValue(club.tags || '');
+        if(refs.weeklyHighlight) refs.weeklyHighlight.value = club.weeklyHighlight || '';
         refs.desc.value = club.desc || '';
         refs.venueInfo.value = club.venueInfo || '';
         refs.whatWeDo.value = club.whatWeDo || '';
         refs.audience.value = club.audience || '';
         refs.trainingPlan.value = club.trainingPlan || '';
         refs.notes.value = club.notes || '';
+        if(refs.faq) refs.faq.value = club.faq || '';
         syncEditClubFormMode(club);
       }
 
@@ -4383,6 +4890,13 @@
           return;
         }
 
+        if(action === 'club-support'){
+          var supportClub = state.clubs[idx] || null;
+          if(!supportClub) return;
+          openClubSupportModal(supportClub);
+          return;
+        }
+
         if(hasCloudDashboardConfigured() && state.sessionUserId){
           var service = getAdminService();
           try{
@@ -4755,6 +5269,72 @@
         document.getElementById('clubEditTableBody').addEventListener('click', handleClubEditActions);
         document.getElementById('memberTableBody').addEventListener('click', handleMemberActions);
         document.getElementById('courseTableBody').addEventListener('click', handleCourseActions);
+        var clubSupportModal = document.getElementById('clubSupportModal');
+        var clubSupportDraft = document.getElementById('clubSupportDraft');
+        var clubSupportUploadBtn = document.getElementById('clubSupportUploadBtn');
+        var clubSupportSendBtn = document.getElementById('clubSupportSendBtn');
+        var clubSupportFileInput = document.getElementById('clubSupportFileInput');
+
+        if(clubSupportModal){
+          clubSupportModal.addEventListener('click', function(event){
+            var closeTarget = event.target.closest('[data-support-close="true"]');
+            if(closeTarget){
+              closeClubSupportModal();
+              return;
+            }
+            var threadBtn = event.target.closest('[data-support-thread-id]');
+            if(threadBtn){
+              var threadId = String(threadBtn.getAttribute('data-support-thread-id') || '').trim();
+              if(threadId){
+                clubSupportState.selectedThreadId = threadId;
+                renderClubSupportModal();
+                loadClubSupportMessages(threadId, { markRead: true, silent: true });
+              }
+              return;
+            }
+            var removeAttachmentBtn = event.target.closest('[data-support-remove-attachment]');
+            if(removeAttachmentBtn){
+              var attachmentId = String(removeAttachmentBtn.getAttribute('data-support-remove-attachment') || '').trim();
+              clubSupportState.attachments = clubSupportState.attachments.filter(function(item){
+                return String(item && item.id || '').trim() !== attachmentId;
+              });
+              renderClubSupportModal();
+            }
+          });
+        }
+
+        var clubSupportCloseBtn = document.getElementById('clubSupportCloseBtn');
+        if(clubSupportCloseBtn){
+          clubSupportCloseBtn.addEventListener('click', closeClubSupportModal);
+        }
+
+        if(clubSupportDraft){
+          clubSupportDraft.addEventListener('input', function(){
+            clubSupportState.draft = String(clubSupportDraft.value || '');
+            renderClubSupportMessages();
+          });
+        }
+
+        if(clubSupportUploadBtn){
+          clubSupportUploadBtn.addEventListener('click', function(){
+            if(clubSupportFileInput){
+              clubSupportFileInput.click();
+            }
+          });
+        }
+
+        if(clubSupportFileInput){
+          clubSupportFileInput.addEventListener('change', function(event){
+            handleClubSupportFiles(event && event.target && event.target.files || []);
+            event.target.value = '';
+          });
+        }
+
+        if(clubSupportSendBtn){
+          clubSupportSendBtn.addEventListener('click', function(){
+            sendClubSupportReply();
+          });
+        }
 
         var topProfileWrap = document.getElementById('topProfileWrap');
         var topProfileToggle = document.getElementById('topProfileToggle');
@@ -4794,6 +5374,9 @@
         document.addEventListener('keydown', function(event){
           if(event.key === 'Escape'){
             setTopProfileMenuOpen(false);
+            if(clubSupportState.isOpen){
+              closeClubSupportModal();
+            }
           }
         });
 
@@ -4807,6 +5390,7 @@
             refreshState()
               .then(function(){
                 renderProfile();
+                renderClubs();
                 refreshUnreadNotifications();
                 if(!state.sessionEmail){
                   document.body.classList.add('guest-mode');
@@ -4824,12 +5408,22 @@
           if(!document.hidden){
             syncActivitiesFromCloud();
             refreshUnreadNotifications();
+            if(clubSupportState.isOpen){
+              refreshClubSupportThreads({ preserveSelection: true, silent: true });
+            }else{
+              refreshClubSupportUnreadCounts({ skipRender: false });
+            }
           }
         });
 
         window.addEventListener('focus', function(){
           syncActivitiesFromCloud();
           refreshUnreadNotifications();
+          if(clubSupportState.isOpen){
+            refreshClubSupportThreads({ preserveSelection: true, silent: true });
+          }else{
+            refreshClubSupportUnreadCounts({ skipRender: false });
+          }
         });
 
         async function handleLogout(){
@@ -4898,6 +5492,7 @@
         await refreshState();
         renderAll();
         startActivitySyncWatcher();
+        startClubSupportRefreshWatcher();
         switchView('overview');
 
         if(!state.sessionEmail){
