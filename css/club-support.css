@@ -493,8 +493,8 @@
 }
 
 .club-support-card-embedded .club-support-compose textarea{
-  min-height: 118px;
-  padding: 18px 18px;
+  min-height: 42px;
+  padding: 12px 16px;
   border-radius: 20px;
   border-color: rgba(191,207,232,0.96);
   background: #fff;
