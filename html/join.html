@@ -402,22 +402,6 @@
       </div>
     </div>
 
-    <div class="modal-mask" v-if="showSystemPicker" @click.self="closeSystemPicker">
-      <div class="modal system-picker-modal">
-        <div class="modal-head">
-          <h3>Choose a dashboard</h3>
-          <div class="close-x" @click="closeSystemPicker">✕</div>
-        </div>
-        <div class="modal-body">
-          <div class="system-picker-desc">This account has access to both the User Dashboard and My Club Dashboard. Choose which one to enter.</div>
-          <div class="system-picker-actions">
-            <button class="btn primary" @click="enterSelectedSystem('user')">Open User Dashboard</button>
-            <button class="btn success" @click="enterSelectedSystem('club')">Open My Club Dashboard</button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="footer">
       <div class="container footer-inner">
         <div class="footer-links">
@@ -1112,6 +1096,22 @@
       </div>
     </section>
   </template>
+
+  <div class="modal-mask" v-if="showSystemPicker" @click.self="closeSystemPicker">
+    <div class="modal system-picker-modal">
+      <div class="modal-head">
+        <h3>Choose a dashboard</h3>
+        <div class="close-x" @click="closeSystemPicker">✕</div>
+      </div>
+      <div class="modal-body">
+        <div class="system-picker-desc">This account has access to both the User Dashboard and My Club Dashboard. Choose which one to enter.</div>
+        <div class="system-picker-actions">
+          <button class="btn primary" @click="enterSelectedSystem('user')">Open User Dashboard</button>
+          <button class="btn success" @click="enterSelectedSystem('club')">Open My Club Dashboard</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   
   <div class="modal-mask" v-if="showPostModal" @click.self="showPostModal=false">
