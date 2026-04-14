@@ -1335,6 +1335,7 @@
           'club_registry_v1',
           'club_members_v1',
           'specialty_bookings_v1',
+          'specialty_clubs_v1',
           'mfms_teaching_bookings_v1',
           'mfms_courses_v1',
           'spjs_forum_posts_v1',
@@ -1354,7 +1355,7 @@
         this.loadChatData();
       },
       safeParse(key, fallback){
-        if(this.isBusinessKey(key) && this.isBusinessCacheDisabled()) return fallback;
+        if(this.isBusinessKey(key)) return fallback;
         try{
           const raw = localStorage.getItem(key);
           if(raw === null || raw === undefined || raw === '') return fallback;
@@ -1364,7 +1365,7 @@
         }
       },
       persist(key, value){
-        if(this.isBusinessKey(key) && this.isBusinessCacheDisabled()) return;
+        if(this.isBusinessKey(key)) return;
         localStorage.setItem(key, JSON.stringify(value));
       },
       statusClass(status){

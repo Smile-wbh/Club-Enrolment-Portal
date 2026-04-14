@@ -457,17 +457,10 @@
       coursesPool() {
         const version = this.coursesVersion;
         version;
-        let localCourses = [];
-        try {
-          localCourses = JSON.parse(localStorage.getItem('mfms_courses_v1') || '[]');
-        } catch (error) {
-          localCourses = [];
-        }
         const baseCourses = this.cloudCourseCatalogEnabled
           ? this.coursesSupabase
           : this.courses;
-        const localSource = this.cloudCourseCatalogEnabled ? [] : localCourses;
-        return [...localSource, ...baseCourses]
+        return [...baseCourses]
           .map((course) => this.normalizeCourse(course))
           .filter(Boolean);
       },
@@ -725,11 +718,7 @@
         if (this.useSupabaseCourses) {
           return this.favoriteIdsSupabase.slice();
         }
-        try {
-          return JSON.parse(localStorage.getItem(this.favKey()) || '[]');
-        } catch (error) {
-          return [];
-        }
+        return [];
       },
       isFav(id) {
         return this.favIds.includes(String(id));
@@ -804,81 +793,10 @@
         location.href = this.loginRedirectUrl || 'join.html';
       },
       syncLocalBookingMirror(record) {
-        if (!record) return;
-        if (this.isBusinessLocalCacheDisabled()) return;
-        let all = [];
-        try {
-          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
-        } catch (error) {
-          all = [];
-        }
-        const next = Object.assign({}, record, {
-          ownerEmail: String(record.ownerEmail || this.getSessionEmail() || '').trim().toLowerCase()
-        });
-        const index = (Array.isArray(all) ? all : []).findIndex((item) => String(item && item.id) === String(next.id));
-        if (index > -1) {
-          all.splice(index, 1, next);
-        } else {
-          all.unshift(next);
-        }
-        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
+        return;
       },
       syncLocalFavoriteCache(course) {
-        if (!course) return;
-        if (this.isBusinessLocalCacheDisabled()) return;
-        const email = this.getSessionEmail();
-        if (!email) return;
-        try {
-          const raw = localStorage.getItem(this.courseCacheKey());
-          const cache = raw ? JSON.parse(raw) : {};
-          cache[String(course.id)] = {
-            courseId: String(course.id),
-            title: course.title,
-            clubName: course.club,
-            mode: course.mode,
-            level: course.level,
-            time: course.time,
-            location: course.location,
-            seats: Number(course.seatCapacity || course.seats),
-            fee: course.fee
-          };
-          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
-        } catch (error) {}
-
-        const favs = this.getFavs().map((item) => String(item));
-        if (!favs.includes(String(course.id))) favs.push(String(course.id));
-        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
-
-        const all = (() => {
-          try {
-            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
-          } catch (error) {
-            return [];
-          }
-        })();
-        const list = Array.isArray(all) ? all : [];
-        const nowIso = new Date().toISOString();
-        const next = list.filter((item) => {
-          if (!item) return false;
-          if (String(item.ownerEmail || '') !== String(email)) return true;
-          return String(item.courseId || '') !== String(course.id);
-        });
-        next.unshift({
-          id: String(course.id),
-          courseId: String(course.id),
-          title: course.title,
-          clubName: course.club,
-          mode: course.mode,
-          level: course.level,
-          time: course.time,
-          location: course.location,
-          seats: Number(course.seatCapacity || course.seats),
-          fee: course.fee,
-          ownerEmail: String(email),
-          createdAt: nowIso,
-          updatedAt: nowIso
-        });
-        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
+        return;
       },
       async removeFavoriteById(courseId) {
         const id = String(courseId || '');
@@ -886,8 +804,9 @@
         if (this.useSupabaseCourses && this.sessionUserId && course && String(course.source || '') === 'supabase') {
           await this.getCourseService().removeFavorite(this.sessionUserId, id);
           this.favoriteIdsSupabase = this.favoriteIdsSupabase.filter((item) => String(item) !== id);
+          return;
         }
-        this.removeFavLocal(id);
+        alert('Favorites sync is unavailable right now. Please refresh and try again.');
       },
       async goBook(course) {
         const payload = {
@@ -921,20 +840,7 @@
           }
           return;
         }
-
-        let all = [];
-        try {
-          all = JSON.parse(localStorage.getItem(this.teachingBookingKey()) || '[]');
-        } catch (error) {
-          all = [];
-        }
-        payload.ownerEmail = email;
-        payload.bookedAt = new Date().toISOString();
-        all.unshift(payload);
-        localStorage.setItem(this.teachingBookingKey(), JSON.stringify(all));
-
-        alert('Booking successful! Open "My" -> "Course Bookings" to review it.');
-        location.href = 'join.html?tab=teaching_bookings';
+        alert('Course booking sync is unavailable right now. Please refresh and try again.');
       },
       async addFav(course) {
         const email = this.getSessionEmail();
@@ -955,83 +861,10 @@
           }
           return;
         }
-        try {
-          const raw = localStorage.getItem(this.courseCacheKey());
-          const cache = raw ? JSON.parse(raw) : {};
-          cache[String(course.id)] = {
-            courseId: String(course.id),
-            title: course.title,
-            clubName: course.club,
-            mode: course.mode,
-            level: course.level,
-            time: course.time,
-            location: course.location,
-            seats: Number(course.seats),
-            fee: course.fee
-          };
-          localStorage.setItem(this.courseCacheKey(), JSON.stringify(cache));
-        } catch (error) {}
-
-        const favs = this.getFavs().map((item) => String(item));
-        favs.push(String(course.id));
-        localStorage.setItem(this.favKey(), JSON.stringify(Array.from(new Set(favs))));
-
-        const all = (() => {
-          try {
-            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
-          } catch (error) {
-            return [];
-          }
-        })();
-        const list = Array.isArray(all) ? all : [];
-        const nowIso = new Date().toISOString();
-        const next = list.filter((item) => {
-          if (!item) return false;
-          if (String(item.ownerEmail || '') !== String(email)) return true;
-          return String(item.courseId || '') !== String(course.id);
-        });
-        next.unshift({
-          id: String(Date.now()),
-          courseId: String(course.id),
-          title: course.title,
-          clubName: course.club,
-          mode: course.mode,
-          level: course.level,
-          time: course.time,
-          location: course.location,
-          seats: Number(course.seats),
-          fee: course.fee,
-          ownerEmail: String(email),
-          createdAt: nowIso,
-          updatedAt: nowIso
-        });
-        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
-        this.favsVersion += 1;
-        this.openActionModal('fav', course);
+        alert('Favorites sync is unavailable right now. Please refresh and try again.');
       },
       removeFavLocal(courseId) {
-        if (this.isBusinessLocalCacheDisabled()) return;
-        const email = this.getSessionEmail();
-        if (!email) return;
-        const id = String(courseId);
-        const favs = this.getFavs().map((item) => String(item)).filter((item) => item !== id);
-        localStorage.setItem(this.favKey(), JSON.stringify(favs));
-
-        const all = (() => {
-          try {
-            return JSON.parse(localStorage.getItem(this.favCoursesKey()) || '[]');
-          } catch (error) {
-            return [];
-          }
-        })();
-        const list = Array.isArray(all) ? all : [];
-        const next = list.filter((item) => {
-          if (!item) return false;
-          if (String(item.ownerEmail || '') !== String(email)) return true;
-          return String(item.courseId || '') !== id;
-        });
-        localStorage.setItem(this.favCoursesKey(), JSON.stringify(next));
-        this.favsVersion += 1;
+        return;
       },
       downloadMaterial(course) {
         alert('This feature has been removed.');

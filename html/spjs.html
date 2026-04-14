@@ -1488,23 +1488,16 @@
           return Number(comment.createdTs || 0) || this.parseTime(comment.time) || Number(comment.id) || 0;
         },
         syncLocalForumMirror(){
-          if(this.isBusinessLocalCacheDisabled()) return;
-          try{
-            localStorage.setItem(this.key(), JSON.stringify(this.posts || []));
-          }catch(e){}
+          return;
         },
         loadLocalForumData(){
-          if(this.isBusinessLocalCacheDisabled()){
-            this.posts = [];
-            this.useSupabaseForum = false;
-            return;
-          }
-          this.load();
+          this.posts = [];
           this.useSupabaseForum = false;
         },
         async loadForumData(){
           if(!this.hasSupabaseForum()){
-            this.loadLocalForumData();
+            this.posts = [];
+            this.useSupabaseForum = false;
             return;
           }
           try{
@@ -1513,13 +1506,13 @@
               this.posts = rows;
               this.useSupabaseForum = true;
               this.forumSyncError = '';
-              this.syncLocalForumMirror();
               return;
             }
           }catch(e){
             this.forumSyncError = String(e && e.message || '').trim();
           }
-          this.loadLocalForumData();
+          this.posts = [];
+          this.useSupabaseForum = false;
         },
         key(){ return 'spjs_forum_posts_v1'; },
         messageBoardKey(){ return 'user_message_board_v1'; },
@@ -1940,6 +1933,9 @@
             alert(this.getForumService().mapForumActionError(e));
             return;
           }
+        }else{
+          alert('Forum sync is unavailable right now. Please refresh and try again.');
+          return;
         }
         this.posts = (this.posts || []).filter(item => this.normalizeId(item && item.id) !== postId);
         if(this.activeCommentPostId === postId){
@@ -1953,11 +1949,6 @@
         }
         if(this.normalizeId(this.currentId) === postId){
           this.closeModal();
-        }
-        if(post.source === 'supabase' && this.hasSupabaseForum()){
-          this.syncLocalForumMirror();
-        }else{
-          this.save();
         }
         this.closePostMenu();
       },
@@ -3206,48 +3197,17 @@
         }, backUrl);
       },
       loadMessageBoardEntries(){
-        if(this.isBusinessLocalCacheDisabled()) return [];
-        try{
-          const raw = localStorage.getItem(this.messageBoardKey());
-          const parsed = raw ? JSON.parse(raw) : [];
-          return Array.isArray(parsed) ? parsed : [];
-        }catch(e){
-          return [];
-        }
+        return [];
       },
       saveMessageBoardEntries(list){
-        if(this.isBusinessLocalCacheDisabled()) return true;
-        try{
-          localStorage.setItem(this.messageBoardKey(), JSON.stringify(Array.isArray(list) ? list : []));
-          return true;
-        }catch(e){
-          alert('Local storage is full, so the message could not be sent right now.');
-          return false;
-        }
+        return true;
       },
 
       load(){
-        if(this.isBusinessLocalCacheDisabled()){
-          this.posts = [];
-          return;
-        }
-        try{
-          const raw = localStorage.getItem(this.key());
-          const parsed = raw ? JSON.parse(raw) : [];
-          this.posts = (Array.isArray(parsed) ? parsed : []).filter(item => !(item && item.seeded));
-        }catch(e){
-          this.posts = [];
-        }
+        this.posts = [];
       },
       save(){
-        if(this.isBusinessLocalCacheDisabled()) return true;
-        try{
-          localStorage.setItem(this.key(), JSON.stringify(this.posts));
-          return true;
-        }catch(e){
-          alert('Local storage is full. Try compressing images/videos or deleting some posts, then retry.');
-          return false;
-        }
+        return true;
       },
       async publishPost(){
         if(!this.requireForumAuth('publish posts')) return;
@@ -3285,17 +3245,13 @@
             const created = await this.getForumService().createPost(post, this.sessionUserId, this.sessionEmail);
             this.posts.unshift(created);
             this.useSupabaseForum = true;
-            this.syncLocalForumMirror();
           }catch(e){
             alert(this.getForumService().mapForumActionError(e));
             return;
           }
         }else{
-          this.posts.unshift(post);
-          if(!this.save()){
-            this.posts.shift();
-            return;
-          }
+          alert('Forum sync is unavailable right now. Please refresh and try again.');
+          return;
         }
         this.resetPost();
       },

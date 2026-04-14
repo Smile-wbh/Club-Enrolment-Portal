@@ -1061,7 +1061,7 @@
       }
 
       function safeParse(key, fallback){
-        if(isBusinessKey(key) && isBusinessCacheDisabled()){
+        if(isBusinessKey(key)){
           return fallback;
         }
         try{
@@ -1073,7 +1073,7 @@
       }
 
       function saveData(key, value){
-        if(isBusinessKey(key) && isBusinessCacheDisabled()){
+        if(isBusinessKey(key)){
           return;
         }
         localStorage.setItem(key, JSON.stringify(value));
@@ -1195,36 +1195,7 @@
       }
 
       async function migrateLocalClubsToCloud(service, remoteClubs){
-        var localClubs = safeParse(KEYS.clubs, []);
-        if(!Array.isArray(localClubs) || !localClubs.length) return Array.isArray(remoteClubs) ? remoteClubs : [];
-
-        var normalizedLocal = localClubs
-          .map(normalizeLocalClubForMigration)
-          .filter(function(club){ return club && !isDemoClub(club.slug); });
-
-        if(!normalizedLocal.length){
-          localStorage.removeItem(KEYS.clubs);
-          return Array.isArray(remoteClubs) ? remoteClubs : [];
-        }
-
-        var nextRemote = Array.isArray(remoteClubs) ? remoteClubs.slice() : [];
-        var remoteSlugs = new Set(nextRemote.map(function(club){
-          return String(club && club.slug || '').trim().toLowerCase();
-        }).filter(Boolean));
-
-        for(var i = 0; i < normalizedLocal.length; i += 1){
-          var localClub = normalizedLocal[i];
-          var slugKey = String(localClub.slug || '').trim().toLowerCase();
-          if(!slugKey || remoteSlugs.has(slugKey)) continue;
-          var created = await service.createClub(localClub, state.sessionUserId);
-          if(created){
-            nextRemote.unshift(created);
-            remoteSlugs.add(slugKey);
-          }
-        }
-
-        localStorage.removeItem(KEYS.clubs);
-        return nextRemote;
+        return Array.isArray(remoteClubs) ? remoteClubs : [];
       }
 
       function parseTimeValue(value){
@@ -1235,6 +1206,9 @@
       }
 
       function readJsonArray(key){
+        if(key === 'user_message_board_v1'){
+          return [];
+        }
         try{
           var raw = localStorage.getItem(key);
           var parsed = raw ? JSON.parse(raw) : [];
@@ -2205,18 +2179,18 @@
             state.courses = Array.isArray(remote && remote.courses) ? remote.courses : [];
             state.useCloudData = true;
           }catch(error){
-            console.warn('Club dashboard Supabase sync failed, using browser fallback.', error);
-            state.clubs = safeParse(KEYS.clubs, []);
-            state.members = safeParse(KEYS.members, []);
+            console.warn('Club dashboard Supabase sync failed.', error);
+            state.clubs = [];
+            state.members = [];
             state.bookings = [];
             state.bookingSyncIssue = true;
-            state.courses = safeParse(KEYS.courses, []);
+            state.courses = [];
           }
         }else{
-          state.clubs = safeParse(KEYS.clubs, []);
-          state.members = safeParse(KEYS.members, []);
-          state.bookings = safeParse(KEYS.bookings, []);
-          state.courses = safeParse(KEYS.courses, []);
+          state.clubs = [];
+          state.members = [];
+          state.bookings = [];
+          state.courses = [];
         }
 
         state.clubs = state.clubs.map(function(c){

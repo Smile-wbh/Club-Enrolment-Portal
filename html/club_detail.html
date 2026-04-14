@@ -351,32 +351,7 @@
           return !!(service && typeof service.isBusinessCacheDisabled === 'function' && service.isBusinessCacheDisabled(email));
         },
         loadRegistry(){
-          if(this.isBusinessLocalCacheDisabled()) return [];
-          try{
-            const raw = localStorage.getItem(this.keyRegistry());
-            const list = raw ? JSON.parse(raw) : [];
-            if(!Array.isArray(list)) return [];
-            const filtered = list.filter(function(item){
-              var bookingService = window.clubBookingSupabase || null;
-              if(bookingService && typeof bookingService.isLegacyStaticClubSeed === 'function' && bookingService.isLegacyStaticClubSeed(item)){
-                return false;
-              }
-              const candidates = [
-                item && item.id,
-                item && item.localId,
-                item && item.dbId
-              ];
-              return !candidates.some(function(value){
-                return String(value || '').trim().toLowerCase().indexOf('embedded-') === 0;
-              });
-            });
-            if(filtered.length !== list.length){
-              localStorage.setItem(this.keyRegistry(), JSON.stringify(filtered));
-            }
-            return filtered;
-          }catch(e){
-            return [];
-          }
+          return [];
         },
         normalizeClub(c){
           const slots = Array.isArray(c && c.slots) ? c.slots : [];
@@ -471,14 +446,10 @@
                 return this.normalizeClub(foundCloud);
               }
             }catch(error){
-              console.warn('Club detail cloud sync failed, using local registry fallback.', error);
+              console.warn('Club detail cloud sync failed.', error);
             }
           }
-
-          const reg = this.loadRegistry();
-          const found = reg.find(x=>x && x.slug === normalizedSlug);
-          if(!found) return null;
-          return this.normalizeClub(found);
+          return null;
         },
         toList(text){
           const raw = (text || '').toString().trim();

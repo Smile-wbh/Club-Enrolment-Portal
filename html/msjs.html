@@ -499,19 +499,7 @@
       },
 
       loadRegistry() {
-        if (this.isBusinessLocalCacheDisabled()) return [];
-        try {
-          const raw = localStorage.getItem(this.keyRegistry());
-          const list = raw ? JSON.parse(raw) : [];
-          if (!Array.isArray(list)) return [];
-          const filtered = list.filter((club) => !this.isLegacyStaticClubRecord(club));
-          if (filtered.length !== list.length) {
-            localStorage.setItem(this.keyRegistry(), JSON.stringify(filtered));
-          }
-          return filtered;
-        } catch (e) {
-          return [];
-        }
+        return [];
       },
 
       normalizeCoverValue(value) {
@@ -599,18 +587,14 @@
       refreshRegistryState() {
         const base = JSON.parse(JSON.stringify(this.baseClubsSnapshot || []))
           .map((c) => this.mapRegistryClub(c));
-        const reg = this.loadRegistry();
-        const mapped = reg
-          .map((c) => this.mapRegistryClub(c))
-          .filter((c) => c.slug);
-        const fallbackBySlug = this.buildClubMapBySlug(mapped.concat(base));
+        const fallbackBySlug = this.buildClubMapBySlug(base);
         const supabase = this.applyFallbackCover((this.supabaseClubs || [])
           .map((c) => this.mapRegistryClub(c))
           .filter((c) => c.slug)
           .filter((c) => !this.isLegacyStaticClubRecord(c)), fallbackBySlug);
         const seen = new Set();
         const next = [];
-        const catalog = this.cloudClubCatalogEnabled ? supabase.concat(mapped, base) : mapped.concat(base);
+        const catalog = this.cloudClubCatalogEnabled ? supabase.concat(base) : base;
 
         catalog.forEach((club) => {
           if (!club || !club.slug || seen.has(club.slug)) return;

@@ -341,14 +341,7 @@
         this.sessionNickname = session && session.nickname ? String(session.nickname).trim() : '';
       },
       loadLocalConsultMessages(){
-        if(this.isBusinessLocalCacheDisabled()) return [];
-        try{
-          const raw = localStorage.getItem('chat_messages_v1');
-          const list = raw ? JSON.parse(raw) : [];
-          return Array.isArray(list) ? list : [];
-        }catch(e){
-          return [];
-        }
+        return [];
       },
       async loadConsultMessages(){
         const service = this.getSupportService();
@@ -356,13 +349,15 @@
           try{
             this.consultMessages = await service.fetchMySupportMessages(this.sessionUserId, this.sessionEmail);
             return;
-          }catch(e){}
+          }catch(e){
+            this.consultMessages = [];
+            return;
+          }
         }
-        this.consultMessages = this.loadLocalConsultMessages();
+        this.consultMessages = [];
       },
       saveConsultMessages(){
-        if(this.isBusinessLocalCacheDisabled()) return;
-        localStorage.setItem('chat_messages_v1', JSON.stringify(this.consultMessages));
+        return;
       },
       handleConsultFiles(e){
         this.consultUploadError = '';
@@ -422,49 +417,7 @@
             return;
           }
         }
-        const msg = {
-          id: String(Date.now()) + Math.random().toString(36).slice(2,6),
-          role: 'user',
-          text,
-          userId: this.consultUserId,
-          userEmail: this.sessionEmail,
-          createdAt: new Date().toLocaleString(),
-          createdTs: Date.now(),
-          attachments: this.consultAttachments.slice()
-        };
-        let localAutoReplyText = 'We have received your message. To help us handle it more quickly, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. We will assist you as soon as possible.';
-        if(service && typeof service.resolveSupportAutoReply === 'function'){
-          try{
-            const resolvedReply = await service.resolveSupportAutoReply({
-              text: text,
-              attachments: this.consultAttachments.slice(),
-              category: 'General',
-              threadHistory: (this.consultMessages || []).slice(-12).map(message => ({
-                role: String(message && message.role || ''),
-                text: String(message && message.text || '')
-              })),
-              currentUserId: this.sessionUserId,
-              currentEmail: this.sessionEmail,
-              currentName: this.sessionNickname || this.sessionEmail
-            });
-            localAutoReplyText = String(resolvedReply && resolvedReply.text || localAutoReplyText).trim() || localAutoReplyText;
-          }catch(e){}
-        }
-        const reply = {
-          id: String(Date.now()) + Math.random().toString(36).slice(2,6) + '-support',
-          role: 'admin',
-          text: localAutoReplyText,
-          userId: this.consultUserId,
-          userEmail: this.sessionEmail,
-          createdAt: new Date().toLocaleString(),
-          createdTs: Date.now() + 1,
-          attachments: []
-        };
-        this.consultMessages.push(msg, reply);
-        this.saveConsultMessages();
-        this.consultInput = '';
-        this.consultAttachments = [];
-        this.$nextTick(()=> this.scrollConsultBottom());
+        alert('Support sync is unavailable right now. Please refresh and try again later.');
       },
       formatAttachmentSize(size){
         const n = Number(size || 0);
@@ -484,12 +437,6 @@
       this.loadSession();
       await this.loadConsultMessages();
       this.$nextTick(()=> this.scrollConsultBottom());
-      window.addEventListener('storage', (e)=>{
-        if(e && e.key === 'chat_messages_v1'){
-          this.loadConsultMessages();
-          this.$nextTick(()=> this.scrollConsultBottom());
-        }
-      });
     }
   })
 </script>
