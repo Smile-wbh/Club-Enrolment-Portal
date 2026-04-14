@@ -2276,13 +2276,20 @@
         const value = String(role || '').trim().toLowerCase();
         return value === 'club_manager' || value === 'admin';
       },
+      normalizeResolvedRole(role, isClubManager){
+        const value = String(role || '').trim().toLowerCase();
+        if(value === 'admin') return 'admin';
+        if(isClubManager || value === 'club_manager') return 'club_manager';
+        return value || 'member';
+      },
       buildCompatSession(user, target){
-        const role = String((user && user.role) || (user && user.isClubManager ? 'club_manager' : 'member')).trim() || 'member';
+        const isClubManager = !!(user && user.isClubManager) || this.isClubManagerRole(user && user.role);
+        const role = this.normalizeResolvedRole(user && user.role, isClubManager);
         return {
           userId: String((user && user.id) || ''),
           email: this.normalizeEmail(user && user.email),
           nickname: String((user && user.nickname) || '').trim(),
-          isClubManager: this.isClubManagerRole(role),
+          isClubManager: isClubManager,
           role,
           entrySystem: target === 'club' ? 'club' : 'user'
         };
@@ -2291,17 +2298,19 @@
         const fallback = fallbackSession || {};
         const email = this.normalizeEmail((user && user.email) || fallback.email);
         if(!email) return null;
-        const role = String(
+        const roleSeed = String(
           (user && user.role)
           || (fallback && fallback.role)
           || ((user && user.isClubManager) || (fallback && fallback.isClubManager) ? 'club_manager' : 'member')
         ).trim() || 'member';
+        const isClubManager = !!((user && user.isClubManager) || (fallback && fallback.isClubManager) || this.isClubManagerRole(roleSeed));
+        const role = this.normalizeResolvedRole(roleSeed, isClubManager);
         return {
           id: String((user && (user.userId || user.id)) || (fallback && fallback.userId) || ''),
           email,
           nickname: String((user && user.nickname) || (fallback && fallback.nickname) || email.split('@')[0] || 'User').trim(),
           role,
-          isClubManager: this.isClubManagerRole(role),
+          isClubManager: isClubManager,
           avatar: String((user && user.avatar) || '').trim(),
           forumCoverUrl: String((user && user.forumCoverUrl) || '').trim(),
           bio: String((user && user.bio) || '').trim(),
@@ -2416,17 +2425,42 @@
           return null;
         }
       },
+      async fetchSupabaseClubManagementAccess(userId){
+        const supabase = this.getSupabaseClientSafe();
+        const normalizedUserId = String(userId || '').trim();
+        if(!supabase || !normalizedUserId) return false;
+        const hasRows = async (tableName) => {
+          try{
+            const { count, error } = await supabase
+              .from(tableName)
+              .select('id', { head: true, count: 'exact' })
+              .eq('owner_id', normalizedUserId)
+              .limit(1);
+            if(error) return false;
+            return Number(count || 0) > 0;
+          }catch(e){
+            return false;
+          }
+        };
+        if(await hasRows('clubs')) return true;
+        if(await hasRows('courses')) return true;
+        return false;
+      },
       async resolveSupabaseUser(authUser){
         if(!authUser) return null;
         const email = this.normalizeEmail(authUser.email);
         const profile = await this.fetchSupabaseProfile(authUser.id);
         const legacy = this.findLegacyUserByEmail(email);
-        const role = String(
+        const roleSeed = String(
           (profile && profile.role)
           || (authUser.user_metadata && authUser.user_metadata.role)
           || (legacy && legacy.role)
           || ((legacy && legacy.isClubManager) ? 'club_manager' : 'member')
         ).trim() || 'member';
+        const isClubManager = this.isClubManagerRole(roleSeed)
+          || !!(legacy && legacy.isClubManager)
+          || await this.fetchSupabaseClubManagementAccess(authUser.id);
+        const role = this.normalizeResolvedRole(roleSeed, isClubManager);
         return {
           id: String(authUser.id || ''),
           email,
@@ -2437,7 +2471,7 @@
             || (email.split('@')[0] || 'User')
           ).trim(),
           role,
-          isClubManager: this.isClubManagerRole(role),
+          isClubManager: isClubManager,
           avatar: String((profile && profile.avatar_url) || (legacy && legacy.avatar) || '').trim(),
           forumCoverUrl: String((profile && profile.forum_cover_url) || (legacy && legacy.forumCoverUrl) || '').trim(),
           bio: String((profile && profile.bio) || (legacy && legacy.bio) || '').trim(),
