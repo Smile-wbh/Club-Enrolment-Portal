@@ -391,6 +391,24 @@
     }, 1000);
   }
 
+  function syncLocalBookingMirror(record) {
+    if (!record) return;
+    if (isBusinessCacheDisabled(trimText(record.userEmail) || trimText(state.order && state.order.userEmail))) return;
+    var bookings = readBookings();
+    var index = bookings.findIndex(function (item) {
+      return trimText(item && item.id) === trimText(record.id);
+    });
+    var nextRecord = Object.assign({}, record, {
+      userEmail: trimText(record.userEmail) || trimText(state.order && state.order.userEmail)
+    });
+    if (index > -1) {
+      bookings.splice(index, 1, nextRecord);
+    } else {
+      bookings.unshift(nextRecord);
+    }
+    writeJson(KEYS.bookings, bookings);
+  }
+
   async function finalizePayment() {
     if (!state.order) return;
     if (!validatePayment()) return;
@@ -401,26 +419,69 @@
       return;
     }
 
-    if (!hasSupabaseBookings()) {
-      setStatus('paymentStatus', 'Club booking sync is temporarily unavailable. Please refresh and try again.', 'error');
+    if (state.order.bookingSource === 'supabase' && hasSupabaseBookings()) {
+      var service = getBookingService();
+      setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
+      try {
+        var cloudRecord = await service.createBooking(state.order, state.order.userEmail);
+        syncLocalBookingMirror(cloudRecord);
+        showSuccess(cloudRecord, false);
+        return;
+      } catch (error) {
+        setStatus('paymentStatus', service.mapCreateBookingError(error), 'error');
+        return;
+      }
+    }
+
+    var bookings = readBookings();
+    var existing = bookings.find(function (item) {
+        return normalizeEmail(item && item.userEmail) === normalizeEmail(state.order.userEmail) &&
+        trimText(item && item.clubSlug) === trimText(state.order.clubSlug) &&
+        trimText(item && item.dayIso) === trimText(state.order.dayIso) &&
+        trimText(item && item.slotId) === trimText(state.order.slotId) &&
+        normalizeBookingStatus(item && item.status) !== 'Cancelled';
+    });
+
+    if (existing) {
+      showSuccess(existing, true);
       return;
     }
 
-    if (trimText(state.order.bookingSource) !== 'supabase' || !trimText(state.order.clubId) || !trimText(state.order.slotId)) {
-      setStatus('paymentStatus', 'This booking is not linked to a database slot yet. Please return to Club Booking, refresh, and choose the slot again.', 'error');
+    var conflict = bookings.find(function (item) {
+        return normalizeEmail(item && item.userEmail) === normalizeEmail(state.order.userEmail) &&
+        trimText(item && item.dayIso) === trimText(state.order.dayIso) &&
+        trimText(item && item.slotTime) === trimText(state.order.slotTime) &&
+        normalizeBookingStatus(item && item.status) !== 'Cancelled';
+    });
+
+    if (conflict) {
+      setStatus('paymentStatus', 'Another booking already exists in this time slot. Please cancel the original booking in the user dashboard first.', 'error');
       return;
     }
 
-    var service = getBookingService();
-    setStatus('paymentStatus', 'Payment successful. Syncing your booking to Supabase now.', 'success');
-    try {
-      var cloudRecord = await service.createBooking(state.order, state.order.userEmail);
-      showSuccess(cloudRecord, false);
-      return;
-    } catch (error) {
-      setStatus('paymentStatus', service.mapCreateBookingError(error), 'error');
-      return;
-    }
+    var record = {
+      id: Date.now(),
+      orderId: trimText(state.order.orderId),
+      clubSlug: trimText(state.order.clubSlug),
+      clubName: trimText(state.order.clubName),
+      dayIso: trimText(state.order.dayIso),
+      dayLabel: trimText(state.order.dayLabel),
+      slotId: trimText(state.order.slotId),
+      slotTime: trimText(state.order.slotTime),
+      location: trimText(state.order.location),
+      fee: trimText(state.order.feeText) || money(state.order.baseFee),
+      userEmail: trimText(state.order.userEmail),
+      createdAt: new Date().toLocaleString(),
+      status: 'Booked',
+      paymentMethod: METHOD_LABEL[state.method] || METHOD_LABEL.card,
+      paidAmount: currentPayable(),
+      couponCode: state.couponCode
+    };
+
+    bookings.unshift(record);
+    writeJson(KEYS.bookings, bookings);
+    setStatus('paymentStatus', 'Payment successful. Syncing your booking record now.', 'success');
+    showSuccess(record, false);
   }
 
   function bindEvents() {
@@ -456,19 +517,6 @@
     state.order = readPendingOrder();
     if (!state.order) {
       buildEmptyState('No pending booking requires payment right now', 'Return to Club Booking, choose a slot, and then come back here to complete payment.');
-      return;
-    }
-
-    if (!hasSupabaseBookings()) {
-      buildEmptyState('Club booking sync is temporarily unavailable', 'Please refresh the page and try again. This payment flow now confirms club bookings directly in the database.');
-      return;
-    }
-
-    if (trimText(state.order.bookingSource) !== 'supabase' || !trimText(state.order.clubId) || !trimText(state.order.slotId)) {
-      try {
-        window.localStorage.removeItem(KEYS.pending);
-      } catch (error) {}
-      buildEmptyState('This booking needs to be started again', 'Return to Club Booking, refresh the page, and choose a slot that has already synced to the database.');
       return;
     }
 
