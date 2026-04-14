@@ -969,15 +969,21 @@
       },
       clubSourceRank(club) {
         const source = String(club && club.source || '').trim();
+        if (source === 'supabase') return this.cloudBookingCatalogEnabled ? 5 : 2;
         if (source === 'registry') return 4;
         if (source === 'extra') return 3;
-        if (source === 'supabase') return 2;
         if (source === 'base') return 1;
         return 0;
       },
       pickPreferredClub(currentClub, nextClub) {
         if (!currentClub) return nextClub;
         if (!nextClub) return currentClub;
+        const currentSource = String(currentClub && currentClub.source || '').trim();
+        const nextSource = String(nextClub && nextClub.source || '').trim();
+        if (this.cloudBookingCatalogEnabled && currentSource !== nextSource) {
+          if (nextSource === 'supabase') return nextClub;
+          if (currentSource === 'supabase') return currentClub;
+        }
         const currentStructured = this.clubHasStructuredSchedule(currentClub);
         const nextStructured = this.clubHasStructuredSchedule(nextClub);
         if (currentStructured !== nextStructured) {
@@ -1048,9 +1054,13 @@
           this.cloudBookingCatalogEnabled = true;
           this.useSupabaseBookings = true;
           this.refreshClubPool();
-
           if (this.sessionUserId) {
-            this.bookings = await service.fetchMyBookings(this.sessionUserId, this.sessionEmail);
+            try {
+              this.bookings = await service.fetchMyBookings(this.sessionUserId, this.sessionEmail);
+            } catch (bookingError) {
+              console.warn('Unable to sync my club bookings from Supabase.', bookingError);
+              this.bookings = this.loadBookings();
+            }
           } else {
             this.bookings = [];
           }
@@ -1202,7 +1212,10 @@
         return this.bookings.filter((booking) => (
           booking.clubSlug === clubSlug &&
           booking.dayIso === dayIso &&
-          booking.slotId === slotId &&
+          (
+            booking.slotId === slotId ||
+            booking.slotTime === String(slot && slot.time || '').trim()
+          ) &&
           booking.status !== 'Cancelled'
         )).length;
       },
