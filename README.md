@@ -90,9 +90,9 @@ zp/         Image assets used by clubs and page banners
 
 ## 5. Data And Deployment
 
-- `supabase/schema.sql`: current database schema
-- `supabase/seed-*.sql`: demo seed data
-- `supabase/cleanup-*.sql`: cleanup scripts
+- `supabase/schema.sql`: current database schema for fresh environments
+- `supabase/demo/`: optional demo seed and cleanup SQL
+- `supabase/archive/`: one-off migration and release upgrade SQL kept for reference
 - `api/resolve-map.js`: resolves short map links for accurate venue maps
 - `vercel.json`: redirects root paths like `/`, `/login`, `/clubs`, `/booking`
 

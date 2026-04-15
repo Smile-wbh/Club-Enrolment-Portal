@@ -147,6 +147,8 @@ If you only want to remember the essential files, focus on these:
 - `js/supabase-forum.js`
 - `js/supabase-support.js`
 - `supabase/schema.sql`
+- `supabase/demo/`: optional seed and cleanup SQL
+- `supabase/archive/`: one-off migration and release SQL
 - `vercel.json`
 
 ## 6. Suggested Rename / Reorganization Plan
