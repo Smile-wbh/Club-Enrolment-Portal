@@ -21,7 +21,6 @@ This document is a maintenance-oriented map of the repository. It explains what 
 ### Management pages
 
 - `html/club_management_dashboard.html`: club manager operations
-- `html/admin.html`: platform admin overview
 
 ### Club detail pages
 
@@ -140,7 +139,6 @@ If you only want to remember the essential files, focus on these:
 - `html/Club-Forum.html`
 - `html/Support-Center.html`
 - `html/club_management_dashboard.html`
-- `html/admin.html`
 - `js/supabase-client.js`
 - `js/supabase-bookings.js`
 - `js/supabase-courses.js`
@@ -164,7 +162,7 @@ I did not rename files automatically, but this would be a cleaner future structu
 - `courses`: `Club-Courses.html`, `Club-Courses-detail.html`
 - `community`: `Club-Forum.html`
 - `support`: `Support-Center.html`
-- `management`: `club_management_dashboard.html`, `admin.html`
+- `management`: `club_management_dashboard.html`
 
 ### Cleanup already completed
 
@@ -179,4 +177,3 @@ I did not rename files automatically, but this would be a cleaner future structu
 - When changing club details, check both `html/club_detail.html` and `html/club/*.html`.
 - When changing booking behavior, check `html/Club-Booking.html`, `html/Club-Booking-payment.html`, and `js/supabase-bookings.js`.
 - When changing course behavior, check `html/Club-Courses.html`, `html/Club-Courses-detail.html`, and `js/supabase-courses.js`.
-

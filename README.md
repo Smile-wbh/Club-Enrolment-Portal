@@ -4,7 +4,7 @@ A multi-page static web application for browsing clubs, booking activities, expl
 
 ## 1. Project Overview
 
-This project is organized around user-facing club services plus two management back-office pages:
+This project is organized around user-facing club services plus one management back-office page:
 
 - `Home`: landing page and platform introduction
 - `Club Preview`: browse all clubs and open detail pages
@@ -14,7 +14,6 @@ This project is organized around user-facing club services plus two management b
 - `Support Center`: support messages and help content
 - `Join / User Center`: login, signup, profile, bookings, favorites, forum records
 - `Club Management Dashboard`: club owner operations
-- `Admin Dashboard`: platform supervision page
 
 ## 2. Main Pages
 
@@ -30,7 +29,6 @@ This project is organized around user-facing club services plus two management b
 - `html/messages.html`: messages page
 - `html/Support-Center.html`: support center page
 - `html/club_management_dashboard.html`: club owner dashboard
-- `html/admin.html`: admin dashboard
 
 Club-specific detail pages are stored in `html/club/`.
 
@@ -135,4 +133,3 @@ If someone wants to understand the project quickly, read files in this order:
 10. `js/supabase-courses.js`
 11. `js/supabase-forum.js`
 12. `docs/project-file-guide.md`
-
