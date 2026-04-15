@@ -465,6 +465,65 @@
     };
   }
 
+  function unsubscribeChannel(client, channel) {
+    if (!channel) return;
+    try {
+      if (client && typeof client.removeChannel === 'function') {
+        client.removeChannel(channel);
+        return;
+      }
+    } catch (error) {}
+    try {
+      if (typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
+      }
+    } catch (error) {}
+  }
+
+  async function subscribeAdminDashboard(handlers, adminProfile) {
+    var client = getSupabaseClientSafe();
+    if (!client) throw new Error('Supabase is not configured.');
+
+    var profile = adminProfile || await getCurrentAdminProfile();
+    if (!profile) throw new Error('not_authenticated');
+    if (!profile.isAdmin) throw new Error('not_admin');
+
+    var options = handlers || {};
+    var channel = client.channel('admin-dashboard-live-' + normalizeId(profile.userId) + '-' + Date.now());
+    var notifyChange = function (payload) {
+      if (typeof options.onChange === 'function') {
+        options.onChange(payload || {});
+      }
+    };
+
+    [
+      'profiles',
+      'clubs',
+      'courses',
+      'support_threads',
+      'support_messages'
+    ].forEach(function (tableName) {
+      channel.on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: tableName
+      }, notifyChange);
+    });
+
+    channel.subscribe(function (status) {
+      if (typeof options.onStatus === 'function') {
+        options.onStatus(status);
+      }
+    });
+
+    return {
+      channel: channel,
+      unsubscribe: function () {
+        unsubscribeChannel(client, channel);
+      }
+    };
+  }
+
   function mapSupportError(error) {
     var text = trimText(error && (error.message || error.details || error.hint || error.code)).toLowerCase();
     if (text.indexOf('not_authenticated') > -1) return 'Please sign in with your admin account first.';
@@ -483,6 +542,7 @@
     fetchSupportThreadMessages: fetchSupportThreadMessages,
     updateSupportThreadStatus: updateSupportThreadStatus,
     sendSupportReply: sendSupportReply,
+    subscribeAdminDashboard: subscribeAdminDashboard,
     readFileAsDataUrl: readFileAsDataUrl,
     mapSupportError: mapSupportError
   };

@@ -1919,6 +1919,53 @@
     return true;
   }
 
+  function unsubscribeChannel(client, channel) {
+    if (!channel) return;
+    try {
+      if (client && typeof client.removeChannel === 'function') {
+        client.removeChannel(channel);
+        return;
+      }
+    } catch (error) {}
+    try {
+      if (typeof channel.unsubscribe === 'function') {
+        channel.unsubscribe();
+      }
+    } catch (error) {}
+  }
+
+  function subscribeMySupportThreads(currentUserId, handlers) {
+    var client = getSupabaseClientSafe();
+    var userId = normalizeId(currentUserId);
+    if (!client || !userId) return null;
+
+    var options = handlers || {};
+    var channel = client.channel('support-thread-live-' + userId + '-' + Date.now());
+    channel
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'support_threads',
+        filter: 'user_id=eq.' + userId
+      }, function (payload) {
+        if (typeof options.onChange === 'function') {
+          options.onChange(payload || {});
+        }
+      })
+      .subscribe(function (status) {
+        if (typeof options.onStatus === 'function') {
+          options.onStatus(status);
+        }
+      });
+
+    return {
+      channel: channel,
+      unsubscribe: function () {
+        unsubscribeChannel(client, channel);
+      }
+    };
+  }
+
   async function fetchMyMessageBoard(currentUserId) {
     var client = getSupabaseClientSafe();
     if (!client) return [];
@@ -2013,6 +2060,7 @@
     sendSupportMessage: sendSupportMessage,
     resolveSupportAutoReply: resolveSupportAutoReply,
     clearMySupportThreads: clearMySupportThreads,
+    subscribeMySupportThreads: subscribeMySupportThreads,
     fetchMyMessageBoard: fetchMyMessageBoard,
     sendMessageBoardEntry: sendMessageBoardEntry,
     mapSupportError: mapSupportError,

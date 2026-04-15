@@ -321,6 +321,7 @@
       data: function () {
         return {
           loading: false,
+          pendingRefresh: false,
           notice: '',
           noticeKind: '',
           authProfile: null,
@@ -341,7 +342,10 @@
           courseQuery: '',
           threadQuery: '',
           threadCategoryFilter: 'all',
-          threadStatusFilter: 'all'
+          threadStatusFilter: 'all',
+          liveSyncHandle: null,
+          liveSyncKey: '',
+          liveRefreshTimer: 0
         };
       },
       computed: {
@@ -440,14 +444,66 @@
           this.notice = String(message || '').trim();
           this.noticeKind = kind || '';
         },
+        scheduleLiveRefresh: function () {
+          var vm = this;
+          window.clearTimeout(this.liveRefreshTimer);
+          this.liveRefreshTimer = window.setTimeout(function () {
+            vm.refreshDashboard(true);
+          }, 180);
+        },
+        stopLiveSync: function () {
+          window.clearTimeout(this.liveRefreshTimer);
+          this.liveRefreshTimer = 0;
+          if (this.liveSyncHandle && typeof this.liveSyncHandle.unsubscribe === 'function') {
+            try {
+              this.liveSyncHandle.unsubscribe();
+            } catch (error) {}
+          }
+          this.liveSyncHandle = null;
+          this.liveSyncKey = '';
+        },
+        ensureLiveSync: async function () {
+          var service = this.getAdminService();
+          var profile = this.authProfile || null;
+          var nextKey = profile && profile.isAdmin ? String(profile.userId || '').trim() : '';
+          if (!service || typeof service.subscribeAdminDashboard !== 'function' || !nextKey) {
+            this.stopLiveSync();
+            return;
+          }
+          if (this.liveSyncHandle && this.liveSyncKey === nextKey) {
+            return;
+          }
+
+          this.stopLiveSync();
+          try {
+            var vm = this;
+            this.liveSyncHandle = await service.subscribeAdminDashboard({
+              onChange: function () {
+                vm.scheduleLiveRefresh();
+              },
+              onStatus: function (status) {
+                if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+                  vm.scheduleLiveRefresh();
+                }
+              }
+            }, profile);
+            this.liveSyncKey = nextKey;
+          } catch (error) {
+            this.setNotice(service.mapSupportError(error), 'error');
+          }
+        },
         clearReplyComposer: function () {
           this.replyText = '';
           this.replyAttachments = [];
         },
-        async refreshDashboard() {
+        async refreshDashboard(silent) {
           var service = this.getAdminService();
           if (!service || typeof service.fetchAdminDashboard !== 'function' || !service.isConfigured()) {
             this.setNotice('Supabase is not configured on this page yet. Check js/supabase-config.js first.', 'error');
+            return;
+          }
+          if (this.loading) {
+            this.pendingRefresh = true;
             return;
           }
           this.loading = true;
@@ -458,7 +514,9 @@
             this.clubs = Array.isArray(snapshot.clubs) ? snapshot.clubs : [];
             this.courses = Array.isArray(snapshot.courses) ? snapshot.courses : [];
             this.threads = Array.isArray(snapshot.threads) ? snapshot.threads : [];
-            this.setNotice('Admin data is live from Supabase. Support Center and Course Widget threads are loaded in one inbox.', '');
+            if (!silent) {
+              this.setNotice('Admin data is live from Supabase. Support Center and Course Widget threads update in real time.', '');
+            }
 
             var selectedId = String(this.selectedThreadId || '').trim();
             var nextThread = null;
@@ -474,7 +532,9 @@
               this.selectedThreadId = '';
               this.selectedMessages = [];
             }
+            await this.ensureLiveSync();
           } catch (error) {
+            this.stopLiveSync();
             this.authProfile = null;
             this.users = [];
             this.clubs = [];
@@ -485,6 +545,10 @@
             this.setNotice(service.mapSupportError(error), 'error');
           } finally {
             this.loading = false;
+            if (this.pendingRefresh) {
+              this.pendingRefresh = false;
+              this.scheduleLiveRefresh();
+            }
           }
         },
         async selectThread(thread, preserveComposer) {
@@ -592,6 +656,9 @@
       },
       mounted: function () {
         this.refreshDashboard();
+      },
+      beforeDestroy: function () {
+        this.stopLiveSync();
       }
     });
   </script>

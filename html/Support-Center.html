@@ -218,6 +218,9 @@
         consultAttachments: [],
         consultSending: false,
         consultUploadError: '',
+        consultLiveSyncHandle: null,
+        consultLiveSyncKey: '',
+        consultLiveReloadTimer: 0,
         faqs:[
           {
             id: 1, type:'Booking',
@@ -323,6 +326,46 @@
       noop(){},
       getSupportService(){
         return window.clubSupportSupabase || null;
+      },
+      scheduleConsultReload(){
+        window.clearTimeout(this.consultLiveReloadTimer);
+        this.consultLiveReloadTimer = window.setTimeout(async ()=>{
+          await this.loadConsultMessages();
+          this.$nextTick(()=> this.scrollConsultBottom());
+        }, 180);
+      },
+      stopConsultLiveSync(){
+        window.clearTimeout(this.consultLiveReloadTimer);
+        this.consultLiveReloadTimer = 0;
+        if(this.consultLiveSyncHandle && typeof this.consultLiveSyncHandle.unsubscribe === 'function'){
+          try{
+            this.consultLiveSyncHandle.unsubscribe();
+          }catch(e){}
+        }
+        this.consultLiveSyncHandle = null;
+        this.consultLiveSyncKey = '';
+      },
+      ensureConsultLiveSync(){
+        const service = this.getSupportService();
+        const nextKey = String(this.sessionUserId || '').trim();
+        if(!this.hasSupabaseSupportConfigured() || !nextKey || !service || typeof service.subscribeMySupportThreads !== 'function'){
+          this.stopConsultLiveSync();
+          return;
+        }
+        if(this.consultLiveSyncHandle && this.consultLiveSyncKey === nextKey){
+          return;
+        }
+
+        this.stopConsultLiveSync();
+        this.consultLiveSyncHandle = service.subscribeMySupportThreads(nextKey, {
+          onChange: () => this.scheduleConsultReload(),
+          onStatus: (status) => {
+            if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+              this.scheduleConsultReload();
+            }
+          }
+        });
+        this.consultLiveSyncKey = nextKey;
       },
       hasSupabaseSupportConfigured(){
         const service = this.getSupportService();
@@ -473,7 +516,11 @@
     async mounted(){
       this.loadSession();
       await this.loadConsultMessages();
+      this.ensureConsultLiveSync();
       this.$nextTick(()=> this.scrollConsultBottom());
+    },
+    beforeDestroy(){
+      this.stopConsultLiveSync();
     }
   })
 </script>
