@@ -135,6 +135,82 @@
     });
   }
 
+  function buildSupportActionId(label) {
+    var normalized = trimText(label)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+    return normalized || ('action-' + Date.now());
+  }
+
+  function cloneSupportActions(value) {
+    return Array.isArray(value) ? value.map(function (item) {
+      var row = item || {};
+      var kind = trimText(row.kind).toLowerCase() === 'link' ? 'link' : 'reply';
+      return {
+        id: trimText(row.id) || buildSupportActionId(row.label),
+        label: trimText(row.label),
+        kind: kind,
+        message: trimText(row.message),
+        href: trimText(row.href),
+        target: trimText(row.target) || '_self',
+        style: trimText(row.style).toLowerCase() === 'primary' ? 'primary' : 'secondary'
+      };
+    }).filter(function (item) {
+      if (!item.label) return false;
+      if (item.kind === 'link') return !!item.href;
+      return !!item.message;
+    }) : [];
+  }
+
+  function parseSupportMessagePayload(value) {
+    var raw = trimText(value);
+    if (!raw) {
+      return {
+        text: '',
+        actions: []
+      };
+    }
+
+    if (raw.charAt(0) === '{') {
+      try {
+        var parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object' && parsed.format === 'portal-support-message-v1') {
+          return {
+            text: trimText(parsed.text),
+            actions: cloneSupportActions(parsed.actions)
+          };
+        }
+      } catch (error) {}
+    }
+
+    return {
+      text: raw,
+      actions: []
+    };
+  }
+
+  function serializeSupportMessagePayload(text, actions) {
+    var cleanText = trimText(text);
+    var cleanActions = cloneSupportActions(actions);
+    if (!cleanActions.length) return cleanText;
+    return JSON.stringify({
+      format: 'portal-support-message-v1',
+      text: cleanText,
+      actions: cleanActions.map(function (item) {
+        return {
+          id: item.id,
+          label: item.label,
+          kind: item.kind,
+          message: item.message,
+          href: item.href,
+          target: item.target,
+          style: item.style
+        };
+      })
+    });
+  }
+
   function supportUserKey(email) {
     var normalized = normalizeEmail(email);
     return normalized ? ('user:' + normalized) : '';
@@ -142,11 +218,13 @@
 
   function mapSupportMessageRow(row, currentEmail) {
     var item = row || {};
+    var parsed = parseSupportMessagePayload(item.message_text);
     return {
       id: normalizeId(item.id),
       role: trimText(item.sender_role) || 'user',
       senderName: trimText(item.sender_name),
-      text: trimText(item.message_text),
+      text: trimText(parsed.text),
+      actions: cloneSupportActions(parsed.actions),
       userId: supportUserKey(currentEmail),
       userEmail: normalizeEmail(currentEmail),
       createdAt: formatTime(item.created_at),
@@ -187,9 +265,9 @@
     return value.length > 60 ? (value.slice(0, 60) + '...') : value;
   }
 
-  var SUPPORT_HUMAN_HANDOFF_REPLY = 'We have received your message. Our customer support team will assist you shortly. If possible, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. Thank you for your patience.';
-  var SUPPORT_ATTACHMENT_ONLY_REPLY = 'We have received your attachment. Our support team will review it shortly. If needed, please reply with the related club or course name, the date and time, and a brief description of the issue.';
-  var SUPPORT_DEFAULT_REPLY = 'We have received your message. To help us handle it more quickly, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. We will assist you as soon as possible.';
+  var SUPPORT_HUMAN_HANDOFF_REPLY = 'Thanks for reaching out. A support agent will review this conversation shortly. If you can share the club or course name, the date and time, and a screenshot if relevant, that will help us move faster.';
+  var SUPPORT_ATTACHMENT_ONLY_REPLY = 'Thanks, we received your attachment. A support agent will review it shortly. If possible, please reply with the club or course name, the date and time, and a short note about the issue.';
+  var SUPPORT_DEFAULT_REPLY = 'Thanks for your message. I can help with bookings, locations, course details, payments, and support history. If you share the club or course name and the date or time you care about, I can narrow it down right away.';
   var SUPPORT_AUTO_REPLY_CACHE_TTL = 5 * 60 * 1000;
   var SUPPORT_DYNAMIC_CONTEXT_CACHE_TTL = 2 * 60 * 1000;
   var SUPPORT_CLUB_SELECT = 'id, slug, name, category, mode, location, map_link, time_text, fee_text, seats, description, venue_info, what_we_do, audience, training_plan, notes, tags, status';
@@ -251,7 +329,7 @@
     {
       ruleName: 'booking-schedule',
       keywords: ['booking', 'book', 'slot', 'schedule', 'reservation', 'availability', 'available seat', 'seats'],
-      responseText: 'We have received your booking question. Please provide the club or course name, the relevant date and time slot, and we will help you confirm availability, remaining seats, and booking status.',
+      responseText: 'I can help with availability and booking details. Tell me the club or course name and the date or time you want, and I will check the latest availability for you.',
       priority: 20,
       requiresHuman: false,
       isDefault: false,
@@ -260,7 +338,7 @@
     {
       ruleName: 'payment-refund',
       keywords: ['pay', 'payment', 'fee', 'refund', 'order', 'charge', 'billing'],
-      responseText: 'We have received your payment question. Please provide the order ID, the club or course name, and the relevant date and time. If a refund is involved, the final outcome will follow the club or course policy.',
+      responseText: 'I can help review a payment or refund question. Please send the order ID, the club or course name, and the relevant date and time, and I will check what is available on your account.',
       priority: 30,
       requiresHuman: false,
       isDefault: false,
@@ -269,7 +347,7 @@
     {
       ruleName: 'maps-location',
       keywords: ['map', 'location', 'address', 'venue', 'place', 'directions'],
-      responseText: 'We have received your location question. Please provide the club or course name, along with the map link or location details you entered, and we will help you verify whether the map is displaying correctly.',
+      responseText: 'I can help with the venue or map details. Tell me the club or course name and I will look up the saved location information for you.',
       priority: 40,
       requiresHuman: false,
       isDefault: false,
@@ -278,7 +356,7 @@
     {
       ruleName: 'registration-publish',
       keywords: ['register', 'registration', 'publish', 'approved', 'review', 'approval', 'submit'],
-      responseText: 'We have received your registration or publishing question. Please let us know whether this is about club registration or course publishing, and tell us which step you are stuck on so we can help you continue.',
+      responseText: 'I can help with registration or publishing steps. Please tell me whether this is about club registration or course publishing, and which step is blocking you.',
       priority: 50,
       requiresHuman: false,
       isDefault: false,
@@ -287,7 +365,7 @@
     {
       ruleName: 'teaching-course-info',
       keywords: ['teaching', 'class', 'classes', 'lesson', 'lessons', 'learn', 'learning', 'coach', 'instructor', 'teacher', 'teaching content', 'teaching method', 'teaching methods', 'method', 'methods', 'content', 'contents', 'item', 'items', 'syllabus', 'topic', 'topics', 'what learn', 'curriculum', 'lesson plan'],
-      responseText: 'We have received your teaching question. Please tell us the course name if you know it, and we can help you check the course overview, coach, teaching focus, schedule, location, fee, and remaining seats.',
+      responseText: 'I can help with course content, coaches, schedules, fees, and remaining seats. If you know the course name, send it and I will pull up the latest details.',
       priority: 55,
       requiresHuman: false,
       isDefault: false,
@@ -296,7 +374,7 @@
     {
       ruleName: 'club-course-info',
       keywords: ['club', 'course', 'info', 'information', 'detail', 'details', 'about', 'introduction'],
-      responseText: 'We have received your information request. Please tell us which club or course you want to know about, and we can help you check the introduction, schedule, location, fee, and available booking slots.',
+      responseText: 'I can help with club and course details. Tell me which club or course you want, and I will look up the latest schedule, location, fee, and availability information.',
       priority: 60,
       requiresHuman: false,
       isDefault: false,
@@ -305,7 +383,7 @@
     {
       ruleName: 'forum-community',
       keywords: ['forum', 'post', 'posts', 'community', 'comment', 'comments', 'thread', 'threads', 'discussion', 'activity'],
-      responseText: 'We have received your forum question. Please tell us the club, course, or topic you are interested in, and we can help you check recent public posts and discussion topics.',
+      responseText: 'I can help with forum and community questions. Tell me the club, course, or topic you are interested in, and I will check the latest public discussions.',
       priority: 65,
       requiresHuman: false,
       isDefault: false,
@@ -314,7 +392,7 @@
     {
       ruleName: 'cancel-reschedule',
       keywords: ['cancel', 'cancellation', 'reschedule', 'change booking', 'change slot', 'change time', 'switch time'],
-      responseText: 'If you need to cancel or change a booking, please send the club or course name, the date and time, and the reason for the change. We can then help you check the next available step.',
+      responseText: 'I can help with a cancellation or time change. Please send the club or course name, the date and time, and the reason for the change, and I will guide you to the next step.',
       priority: 70,
       requiresHuman: false,
       isDefault: false,
@@ -323,7 +401,7 @@
     {
       ruleName: 'dashboard-records',
       keywords: ['dashboard', 'record', 'records', 'history', 'my booking', 'bookings', 'booking history', 'support history'],
-      responseText: 'You can review your club bookings, course bookings, and support records in the user dashboard. If anything is missing, please send the related club or course name and the booking date.',
+      responseText: 'I can help check your booking and support history. If anything looks missing, send the club or course name and the booking date, and I will review what is currently on your account.',
       priority: 80,
       requiresHuman: false,
       isDefault: false,
@@ -332,7 +410,7 @@
     {
       ruleName: 'attachments-proof',
       keywords: ['attachment', 'attachments', 'upload', 'image', 'images', 'screenshot', 'screenshots', 'file', 'files', 'photo', 'photos'],
-      responseText: 'You can include screenshots or other attachments to help us review the issue more quickly. If you are reporting a booking or payment problem, please also include the club or course name and the relevant date and time.',
+      responseText: 'Attachments are helpful, especially for booking, payment, or login issues. If you can, please include the club or course name and the relevant date and time as well.',
       priority: 90,
       requiresHuman: false,
       isDefault: false,
@@ -341,7 +419,7 @@
     {
       ruleName: 'login-account',
       keywords: ['login', 'log in', 'sign in', 'signup', 'sign up', 'account', 'password', 'register account', 'credentials'],
-      responseText: 'If you are having trouble logging in or creating an account, please tell us which step failed and what message you saw on screen. A screenshot is especially helpful for account issues.',
+      responseText: 'I can help with login and account issues. Please tell me which step failed and what message you saw on screen. A screenshot is especially helpful here.',
       priority: 100,
       requiresHuman: false,
       isDefault: false,
@@ -393,6 +471,12 @@
 
   function buildSupportSlotTime(start, end) {
     return supportShortTime(start) + '-' + supportShortTime(end);
+  }
+
+  function addSupportDays(date, days) {
+    var next = new Date(date);
+    next.setDate(next.getDate() + Number(days || 0));
+    return next;
   }
 
   function supportTextPreview(value, maxLength) {
@@ -497,6 +581,7 @@
   function cloneSupportDynamicContext(context) {
     return JSON.parse(JSON.stringify(context || {
       todayIso: '',
+      tomorrowIso: '',
       clubs: [],
       courses: [],
       forumPosts: []
@@ -517,6 +602,7 @@
     if (!isConfigured()) {
       return {
         todayIso: formatSupportIso(new Date()),
+        tomorrowIso: formatSupportIso(addSupportDays(new Date(), 1)),
         clubs: [],
         courses: [],
         forumPosts: []
@@ -527,13 +613,16 @@
     if (!client) {
       return {
         todayIso: formatSupportIso(new Date()),
+        tomorrowIso: formatSupportIso(addSupportDays(new Date(), 1)),
         clubs: [],
         courses: [],
         forumPosts: []
       };
     }
 
-    var todayIso = formatSupportIso(new Date());
+    var todayDate = new Date();
+    var todayIso = formatSupportIso(todayDate);
+    var tomorrowIso = formatSupportIso(addSupportDays(todayDate, 1));
     var clubPromise = client
       .from('clubs')
       .select(SUPPORT_CLUB_SELECT)
@@ -543,12 +632,12 @@
     var slotPromise = client
       .from('club_slots')
       .select('id, club_id, day_iso, start_time, end_time, capacity, status')
-      .eq('day_iso', todayIso)
+      .in('day_iso', [todayIso, tomorrowIso])
       .order('start_time', { ascending: true });
 
     var availabilityPromise = client.rpc('get_club_booking_availability', {
       p_start_date: todayIso,
-      p_end_date: todayIso
+      p_end_date: tomorrowIso
     });
 
     var coursePromise = client
@@ -599,8 +688,9 @@
       var clubId = normalizeId(slot.club_id);
       if (!clubId) return;
       var remaining = Math.max(Number(slot.capacity || 0) - Number(availabilityMap[buildSupportAvailabilityKey(slot.id, slot.day_iso)] || 0), 0);
-      if (!slotGroups[clubId]) slotGroups[clubId] = [];
-      slotGroups[clubId].push({
+      if (!slotGroups[clubId]) slotGroups[clubId] = {};
+      if (!slotGroups[clubId][slot.day_iso]) slotGroups[clubId][slot.day_iso] = [];
+      slotGroups[clubId][slot.day_iso].push({
         id: normalizeId(slot.id),
         time: buildSupportSlotTime(slot.start_time, slot.end_time),
         remaining: remaining,
@@ -610,9 +700,14 @@
 
     var clubs = (Array.isArray(clubResult.data) ? clubResult.data : []).map(function (club) {
       var clubId = normalizeId(club && club.id);
-      var todaySlots = (slotGroups[clubId] || []).sort(function (a, b) {
-        return supportTimeSortValue(a.time) - supportTimeSortValue(b.time);
+      var availabilityByDay = slotGroups[clubId] || {};
+      Object.keys(availabilityByDay).forEach(function (dayIso) {
+        availabilityByDay[dayIso] = (availabilityByDay[dayIso] || []).slice().sort(function (a, b) {
+          return supportTimeSortValue(a.time) - supportTimeSortValue(b.time);
+        });
       });
+      var todaySlots = availabilityByDay[todayIso] || [];
+      var tomorrowSlots = availabilityByDay[tomorrowIso] || [];
       return {
         id: clubId,
         slug: trimText(club && club.slug),
@@ -631,8 +726,13 @@
         trainingPlan: trimText(club && club.training_plan),
         notes: trimText(club && club.notes),
         tags: Array.isArray(club && club.tags) ? club.tags.map(trimText).filter(Boolean) : [],
+        availabilityByDay: availabilityByDay,
         todaySlots: todaySlots,
+        tomorrowSlots: tomorrowSlots,
         totalRemainingToday: todaySlots.reduce(function (sum, slot) {
+          return sum + Math.max(0, Number(slot.remaining || 0));
+        }, 0),
+        totalRemainingTomorrow: tomorrowSlots.reduce(function (sum, slot) {
           return sum + Math.max(0, Number(slot.remaining || 0));
         }, 0)
       };
@@ -699,6 +799,7 @@
 
     supportDynamicContextCache = {
       todayIso: todayIso,
+      tomorrowIso: tomorrowIso,
       clubs: clubs,
       courses: courses,
       forumPosts: forumPosts
@@ -772,8 +873,139 @@
     return (Array.isArray(slots) ? slots : []).filter(function (slot) {
       return Number(slot && slot.remaining || 0) > 0;
     }).slice(0, maxItems || 3).map(function (slot) {
-      return slot.time + ' (' + Math.max(0, Number(slot.remaining || 0)) + ' left)';
+      return slot.time + ' (' + Math.max(0, Number(slot.remaining || 0)) + ' spots left)';
     }).join(', ');
+  }
+
+  function formatSupportSlotBulletLines(slots, maxItems) {
+    return (Array.isArray(slots) ? slots : []).filter(function (slot) {
+      return Number(slot && slot.remaining || 0) > 0;
+    }).slice(0, maxItems || 4).map(function (slot) {
+      var remaining = Math.max(0, Number(slot.remaining || 0));
+      return '- ' + slot.time + ': ' + remaining + ' ' + (remaining === 1 ? 'spot' : 'spots') + ' left';
+    }).join('\n');
+  }
+
+  function buildSupportUrl(path, params) {
+    var pairs = [];
+    Object.keys(params || {}).forEach(function (key) {
+      var value = trimText(params[key]);
+      if (!value) return;
+      pairs.push(encodeURIComponent(key) + '=' + encodeURIComponent(value));
+    });
+    return trimText(path) + (pairs.length ? ('?' + pairs.join('&')) : '');
+  }
+
+  function supportClubSlotsForDay(club, dayIso) {
+    var availabilityByDay = club && club.availabilityByDay;
+    return availabilityByDay && Array.isArray(availabilityByDay[dayIso])
+      ? availabilityByDay[dayIso].slice()
+      : [];
+  }
+
+  function supportClubRemainingForDay(club, dayIso) {
+    return supportClubSlotsForDay(club, dayIso).reduce(function (sum, slot) {
+      return sum + Math.max(0, Number(slot && slot.remaining || 0));
+    }, 0);
+  }
+
+  function resolveSupportRequestedDay(text, context) {
+    var rawText = trimText(text);
+    if (/tomorrow|\u660e\u5929/i.test(rawText)) {
+      return {
+        dayIso: trimText(context && context.tomorrowIso) || trimText(context && context.todayIso),
+        label: 'tomorrow'
+      };
+    }
+    return {
+      dayIso: trimText(context && context.todayIso),
+      label: 'today'
+    };
+  }
+
+  function createSupportReplyAction(label, message, style) {
+    return {
+      id: buildSupportActionId(label),
+      label: trimText(label),
+      kind: 'reply',
+      message: trimText(message),
+      style: trimText(style).toLowerCase() === 'primary' ? 'primary' : 'secondary'
+    };
+  }
+
+  function createSupportLinkAction(label, href, style, target) {
+    return {
+      id: buildSupportActionId(label),
+      label: trimText(label),
+      kind: 'link',
+      href: trimText(href),
+      target: trimText(target) || '_self',
+      style: trimText(style).toLowerCase() === 'primary' ? 'primary' : 'secondary'
+    };
+  }
+
+  function normalizeSupportReplyResult(value, fallbackText) {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return {
+        text: trimText(value.text || fallbackText),
+        actions: cloneSupportActions(value.actions)
+      };
+    }
+    return {
+      text: trimText(value || fallbackText),
+      actions: []
+    };
+  }
+
+  function buildSupportReplyResult(text, actions) {
+    return normalizeSupportReplyResult({
+      text: text,
+      actions: actions
+    }, '');
+  }
+
+  function buildSupportClubActions(club, context, dayInfo) {
+    var actions = [];
+    var requestedDayIso = trimText(dayInfo && dayInfo.dayIso) || trimText(context && context.todayIso);
+    var isTomorrow = requestedDayIso && requestedDayIso === trimText(context && context.tomorrowIso);
+    if (club && trimText(club.name) && trimText(context && context.tomorrowIso)) {
+      actions.push(createSupportReplyAction(
+        isTomorrow ? 'Check Today' : 'Check Tomorrow',
+        'Please check ' + (isTomorrow ? 'today' : 'tomorrow') + '\'s availability for ' + club.name + '.'
+      ));
+    }
+    if (trimText(club && club.mapLink)) {
+      actions.push(createSupportLinkAction('View Location', club.mapLink, 'secondary', '_blank'));
+    } else if (trimText(club && club.name)) {
+      actions.push(createSupportReplyAction('View Location', 'Please show the location for ' + club.name + '.'));
+    }
+    actions.push(createSupportLinkAction(
+      'Book Now',
+      buildSupportUrl('Club-Booking.html', {
+        club: trimText(club && club.slug),
+        day: requestedDayIso
+      }) || 'Club-Booking.html',
+      'primary',
+      '_self'
+    ));
+    return cloneSupportActions(actions).slice(0, 3);
+  }
+
+  function buildSupportCourseActions(course, context) {
+    var actions = [];
+    if (trimText(context && context.tomorrowIso) && trimText(course && (course.clubName || course.title))) {
+      actions.push(createSupportReplyAction(
+        'Check Tomorrow',
+        'Please check tomorrow\'s availability for ' + (course.clubName || course.title) + '.'
+      ));
+    }
+    if (trimText(course && course.mapLink)) {
+      actions.push(createSupportLinkAction('View Location', course.mapLink, 'secondary', '_blank'));
+    } else if (trimText(course && course.title)) {
+      actions.push(createSupportReplyAction('View Location', 'Please show the location for ' + course.title + '.'));
+    }
+    actions.push(createSupportLinkAction('Book Now', 'Club-Courses.html', 'primary', '_self'));
+    return cloneSupportActions(actions).slice(0, 3);
   }
 
   function buildSupportForumAliases(post) {
@@ -855,17 +1087,17 @@
     var list = (Array.isArray(courses) ? courses : []).slice(0, 4);
     if (!list.length) return '';
     if (list.length === 1) {
-      return 'I found a related course for ' + subjectLabel + ': ' + list[0].title + '. Please tell me whether you want the course overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
+      return 'I found one course that looks relevant for ' + subjectLabel + ': ' + list[0].title + '. Tell me whether you want the overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
     }
-    return 'I found these related courses for ' + subjectLabel + ': ' + list.map(function (course) {
+    return 'I found a few courses that may match ' + subjectLabel + ': ' + list.map(function (course) {
       return course.title;
-    }).join('; ') + '. Please tell me which course you want, and whether you need the course overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
+    }).join('; ') + '. Tell me which course you want, and whether you need the overview, teaching team, learning focus, schedule, location, fee, or remaining seats.';
   }
 
   function buildSupportTeachingDirectReply(course, needs) {
     var parts = [];
     if (!course) return '';
-    parts.push('Teaching details for ' + course.title + '.');
+    parts.push('I pulled up the teaching details for ' + course.title + '.');
     if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.overview) {
       parts.push('Overview: ' + (supportTextPreview(course.detail || course.description, 180) || 'not provided yet') + '.');
     }
@@ -887,7 +1119,7 @@
     if (!needs || !supportHasSpecificCourseInfoNeed(needs) || needs.seats) {
       parts.push('Remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + '.');
     }
-    return parts.join(' ');
+    return parts.join('\n\n');
   }
 
   function appendUniqueSupportEntities(target, items) {
@@ -954,6 +1186,7 @@
     var text = trimText(payload && payload.text);
     var clubs = Array.isArray(context && context.clubs) ? context.clubs : [];
     var courses = Array.isArray(context && context.courses) ? context.courses : [];
+    var dayInfo = resolveSupportRequestedDay(text, context);
     var matchedClubs = pickSupportMatches(text, clubs, function (club) {
       return [club.name, club.slug];
     }, 2);
@@ -965,34 +1198,64 @@
 
     if (matchedClubs.length) {
       var club = matchedClubs[0];
-      if (Number(club.totalRemainingToday || 0) > 0) {
-        return 'Today ' + club.name + ' can be booked. Available slots: ' + formatSupportSlotList(club.todaySlots, 4) + '. Location: ' + (club.location || 'not provided') + '. Fee: ' + (club.feeText || 'free') + '.';
+      var daySlots = supportClubSlotsForDay(club, dayInfo.dayIso);
+      var dayRemaining = supportClubRemainingForDay(club, dayInfo.dayIso);
+      var clubSections = ['I checked ' + dayInfo.label + '\'s availability for ' + club.name + '.'];
+      if (dayRemaining > 0) {
+        clubSections.push('Open slots:\n' + (formatSupportSlotBulletLines(daySlots, 4) || '- No open slots listed right now'));
+      } else {
+        clubSections.push('I do not see any open slots for ' + dayInfo.label + ' right now.');
       }
-      return club.name + ' does not currently show a bookable slot for today. Registered regular time: ' + (club.timeText || 'not provided yet') + '. If you want, send another date and I can help you check again.';
+      var clubDetails = [];
+      if (club.location) clubDetails.push('Venue: ' + club.location);
+      if (club.feeText) clubDetails.push('Fee: ' + club.feeText);
+      if (!dayRemaining && club.timeText) clubDetails.push('Regular schedule: ' + club.timeText);
+      if (clubDetails.length) {
+        clubSections.push(clubDetails.join('\n'));
+      }
+      clubSections.push(dayRemaining > 0
+        ? 'If you want, I can also show the location or take you straight to booking.'
+        : 'If you want, I can check another day, show the location, or take you straight to booking.');
+      return buildSupportReplyResult(clubSections.join('\n\n'), buildSupportClubActions(club, context, dayInfo));
     }
 
     if (asksForCourse || matchedCourses.length) {
       var course = matchedCourses[0];
       if (course) {
-        return 'Current booking info for ' + course.title + ': schedules ' + (course.schedule.join(' / ') || 'not provided') + ', total remaining seats ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + ', location ' + (course.location || 'not provided') + ', fee ' + (course.feeText || 'free') + '.';
+        return buildSupportReplyResult([
+          'I checked the latest booking details for ' + course.title + '.',
+          'Schedule: ' + (course.schedule.join(' / ') || 'not provided'),
+          'Remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)),
+          'Location: ' + (course.location || 'not provided'),
+          'Fee: ' + (course.feeText || 'free'),
+          'If you want, I can also show the location or take you to the course page.'
+        ].join('\n\n'), buildSupportCourseActions(course, context));
       }
       var openCourses = courses.filter(function (item) {
         return Number(item.totalRemainingSeats || 0) > 0;
       }).slice(0, 4);
       if (openCourses.length) {
-        return 'Courses that currently have seats available include: ' + openCourses.map(function (item) {
-          return item.title + ' (' + Math.max(0, Number(item.totalRemainingSeats || 0)) + ' seats left)';
-        }).join(', ') + '. Send the course name if you want the exact schedule and booking details.';
+        return [
+          'I can help with that. These courses still have space available right now:',
+          openCourses.map(function (item) {
+            return '- ' + item.title + ': ' + Math.max(0, Number(item.totalRemainingSeats || 0)) + ' seats left';
+          }).join('\n'),
+          'Reply with a course name and I will narrow it down for you.'
+        ].join('\n\n');
       }
     }
 
     var todayBookableClubs = clubs.filter(function (club) {
-      return Number(club.totalRemainingToday || 0) > 0;
+      return supportClubRemainingForDay(club, dayInfo.dayIso) > 0;
     }).slice(0, 4);
     if (todayBookableClubs.length) {
-      return 'Today these clubs currently have bookable slots: ' + todayBookableClubs.map(function (club) {
-        return club.name + ' (' + formatSupportSlotList(club.todaySlots, 2) + ')';
-      }).join('; ') + '. Send a club name if you want me to narrow it down.';
+      return [
+        'I can help with that. These clubs still have openings ' + dayInfo.label + ':',
+        todayBookableClubs.map(function (club) {
+          return '- ' + club.name + ': ' + formatSupportSlotList(supportClubSlotsForDay(club, dayInfo.dayIso), 2);
+        }).join('\n'),
+        'Reply with a club name and I will narrow it down for you.'
+      ].join('\n\n');
     }
 
     return fallbackText;
@@ -1011,10 +1274,17 @@
       var preferredOverview = supportTextPreview(preferredCourse.detail || preferredCourse.description, 180);
       var preferredCoaching = supportTextPreview([preferredCourse.coachName, preferredCourse.coachTitle, preferredCourse.coachBio].filter(Boolean).join(' - '), 160);
       var preferredLearning = supportListPreview(preferredCourse.learningPoints, 3);
-      return 'Here is the current information for ' + preferredCourse.title + '. Schedules: ' + (preferredCourse.schedule.join(' / ') || 'not provided') + '. Location: ' + (preferredCourse.location || 'not provided') + '. Fee: ' + (preferredCourse.feeText || 'free') + '. Total remaining seats: ' + Math.max(0, Number(preferredCourse.totalRemainingSeats || 0)) + '.'
-        + (preferredOverview ? (' Overview: ' + preferredOverview + '.') : '')
-        + (preferredCoaching ? (' Teaching team: ' + preferredCoaching + '.') : '')
-        + (preferredLearning ? (' Learning focus: ' + preferredLearning + '.') : '');
+      return buildSupportReplyResult([
+        'I pulled up the latest details for ' + preferredCourse.title + '.',
+        'Schedule: ' + (preferredCourse.schedule.join(' / ') || 'not provided'),
+        'Location: ' + (preferredCourse.location || 'not provided'),
+        'Fee: ' + (preferredCourse.feeText || 'free'),
+        'Remaining seats: ' + Math.max(0, Number(preferredCourse.totalRemainingSeats || 0)),
+        preferredOverview ? ('Overview: ' + preferredOverview) : '',
+        preferredCoaching ? ('Teaching team: ' + preferredCoaching) : '',
+        preferredLearning ? ('Learning focus: ' + preferredLearning) : '',
+        'If you want, I can also show the location or take you to the course page.'
+      ].filter(Boolean).join('\n\n'), buildSupportCourseActions(preferredCourse, context));
     }
     var matchedClubs = pickSupportMatches(text, clubs, function (club) {
       return [club.name, club.slug];
@@ -1022,26 +1292,40 @@
     if (matchedClubs.length) {
       var club = matchedClubs[0];
       var extra = Number(club.totalRemainingToday || 0) > 0
-        ? (' Today\'s bookable slots: ' + formatSupportSlotList(club.todaySlots, 3) + '.')
+        ? ('Today\'s openings: ' + formatSupportSlotList(club.todaySlots, 3))
         : '';
       var intro = supportTextPreview(club.description || club.whatWeDo || club.venueInfo, 180);
       var training = supportTextPreview(club.trainingPlan || club.notes || club.audience, 160);
       var tags = supportListPreview(club.tags, 4);
-      return 'Here is the current information for ' + club.name + '. Category: ' + (club.category || 'not provided') + '. Location: ' + (club.location || 'not provided') + '. Regular time: ' + (club.timeText || 'not provided yet') + '. Fee: ' + (club.feeText || 'free') + '.'
-        + (intro ? (' Overview: ' + intro + '.') : '')
-        + (training ? (' Training and notes: ' + training + '.') : '')
-        + (tags ? (' Tags: ' + tags + '.') : '')
-        + extra;
+      return buildSupportReplyResult([
+        'I pulled up the latest details for ' + club.name + '.',
+        'Category: ' + (club.category || 'not provided'),
+        'Venue: ' + (club.location || 'not provided'),
+        'Regular schedule: ' + (club.timeText || 'not provided yet'),
+        'Fee: ' + (club.feeText || 'free'),
+        intro ? ('Overview: ' + intro) : '',
+        training ? ('Training and notes: ' + training) : '',
+        tags ? ('Tags: ' + tags) : '',
+        extra,
+        'If you want, I can also check availability, show the location, or take you to booking.'
+      ].filter(Boolean).join('\n\n'), buildSupportClubActions(club, context, resolveSupportRequestedDay(text, context)));
     }
     if (matchedCourses.length) {
       var course = matchedCourses[0];
       var overview = supportTextPreview(course.detail || course.description, 180);
       var coaching = supportTextPreview([course.coachName, course.coachTitle, course.coachBio].filter(Boolean).join(' - '), 160);
       var learning = supportListPreview(course.learningPoints, 3);
-      return 'Here is the current information for ' + course.title + '. Schedules: ' + (course.schedule.join(' / ') || 'not provided') + '. Location: ' + (course.location || 'not provided') + '. Fee: ' + (course.feeText || 'free') + '. Total remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)) + '.'
-        + (overview ? (' Overview: ' + overview + '.') : '')
-        + (coaching ? (' Teaching team: ' + coaching + '.') : '')
-        + (learning ? (' Learning focus: ' + learning + '.') : '');
+      return buildSupportReplyResult([
+        'I pulled up the latest details for ' + course.title + '.',
+        'Schedule: ' + (course.schedule.join(' / ') || 'not provided'),
+        'Location: ' + (course.location || 'not provided'),
+        'Fee: ' + (course.feeText || 'free'),
+        'Remaining seats: ' + Math.max(0, Number(course.totalRemainingSeats || 0)),
+        overview ? ('Overview: ' + overview) : '',
+        coaching ? ('Teaching team: ' + coaching) : '',
+        learning ? ('Learning focus: ' + learning) : '',
+        'If you want, I can also show the location or take you to the course page.'
+      ].filter(Boolean).join('\n\n'), buildSupportCourseActions(course, context));
     }
     return fallbackText;
   }
@@ -1058,7 +1342,7 @@
         return buildSupportTeachingFollowup(matchedCourses, trimText(entityContext.currentClubs[0] && entityContext.currentClubs[0].name) || trimText(entityContext.currentCourses[0] && entityContext.currentCourses[0].title) || 'your question') || fallbackText;
       }
       if (supportHasSpecificCourseInfoNeed(needs) && matchedCourses.length === 1) {
-        return buildSupportTeachingDirectReply(course, needs) || fallbackText;
+        return buildSupportReplyResult(buildSupportTeachingDirectReply(course, needs) || fallbackText, buildSupportCourseActions(course, context));
       }
       return buildSupportTeachingFollowup(matchedCourses, trimText(matchedClubs[0] && matchedClubs[0].name) || trimText(course.title) || 'your question') || fallbackText;
     }
@@ -1084,14 +1368,26 @@
     }, 1);
     if (matchedClubs.length) {
       var club = matchedClubs[0];
-      return 'The registered location for ' + club.name + ' is ' + (club.location || 'not provided') + '. ' + (club.mapLink ? ('Saved map link: ' + club.mapLink) : 'There is currently no saved map link for this club.');
+      return buildSupportReplyResult([
+        'I found the saved location details for ' + club.name + '.',
+        'Venue: ' + (club.location || 'not provided'),
+        club.mapLink ? 'A map link is available for this club.' : 'There is no saved map link for this club yet.',
+        club.timeText ? ('Regular schedule: ' + club.timeText) : '',
+        'If you want, you can open the location or go straight to booking.'
+      ].filter(Boolean).join('\n\n'), buildSupportClubActions(club, context, resolveSupportRequestedDay(text, context)));
     }
     var matchedCourses = pickSupportMatches(text, courses, function (course) {
       return [course.title, course.slug, course.clubName];
     }, 1);
     if (matchedCourses.length) {
       var course = matchedCourses[0];
-      return 'The registered location for ' + course.title + ' is ' + (course.location || 'not provided') + '. ' + (course.mapLink ? ('Saved map link: ' + course.mapLink) : 'There is currently no saved map link for this course.');
+      return buildSupportReplyResult([
+        'I found the saved location details for ' + course.title + '.',
+        'Venue: ' + (course.location || 'not provided'),
+        course.mapLink ? 'A map link is available for this course.' : 'There is no saved map link for this course yet.',
+        course.schedule && course.schedule.length ? ('Schedule: ' + course.schedule.join(' / ')) : '',
+        'If you want, you can open the location or go straight to the course page.'
+      ].filter(Boolean).join('\n\n'), buildSupportCourseActions(course, context));
     }
     return fallbackText;
   }
@@ -1127,9 +1423,19 @@
         return orderIds.indexOf(trimText(booking.orderId).toUpperCase()) > -1;
       });
       if (!match) {
-        return 'We could not find that order ID in your current club bookings. Please double-check the order ID and send it again, or include the club name and booking date.';
+        return [
+          'I could not find that order ID in your current club bookings.',
+          'Please double-check the order ID and send it again, or reply with the club name and booking date and I will help you look it up.'
+        ].join('\n\n');
       }
-      return 'We found your order ' + match.orderId + ': ' + (match.clubName || 'Club booking') + ', ' + (match.dayIso || 'date not provided') + ' ' + (match.slotTime || '').trim() + '. Booking status: ' + (match.status || 'unknown') + '. Payment status: ' + (match.paymentStatus || 'unknown') + '. If you need a refund review, please reply with the reason for the request.';
+      return [
+        'I found your booking order ' + match.orderId + '.',
+        'Club: ' + (match.clubName || 'Club booking'),
+        'Date and time: ' + ((match.dayIso || 'date not provided') + ' ' + (match.slotTime || '').trim()).trim(),
+        'Booking status: ' + (match.status || 'unknown'),
+        'Payment status: ' + (match.paymentStatus || 'unknown'),
+        'If you need a refund review, reply with the reason for the request and I will note it for the team.'
+      ].join('\n\n');
     } catch (error) {
       return fallbackText;
     }
@@ -1143,14 +1449,17 @@
       var latestClub = clubBookings[0];
       var latestCourse = courseBookings[0];
       var parts = [];
-      parts.push('In your dashboard, we currently found ' + clubBookings.length + ' club booking record(s) and ' + courseBookings.length + ' course booking record(s).');
+      parts.push('I checked the records currently visible in your dashboard.');
+      parts.push('Club bookings: ' + clubBookings.length);
+      parts.push('Course bookings: ' + courseBookings.length);
       if (latestClub) {
-        parts.push('Latest club booking: ' + (latestClub.clubName || 'Club booking') + ' on ' + (latestClub.dayIso || 'date not provided') + ' ' + (latestClub.slotTime || '') + ' [' + (latestClub.status || 'unknown') + '/' + (latestClub.paymentStatus || 'unknown') + '].');
+        parts.push('Latest club booking: ' + (latestClub.clubName || 'Club booking') + ' on ' + (latestClub.dayIso || 'date not provided') + ' ' + (latestClub.slotTime || '') + ' (' + (latestClub.status || 'unknown') + ' / ' + (latestClub.paymentStatus || 'unknown') + ').');
       }
       if (latestCourse) {
-        parts.push('Latest course booking: ' + (latestCourse.courseTitle || 'Course booking') + ' ' + (latestCourse.selectedSchedule || '') + ' [' + (latestCourse.status || 'booked') + '].');
+        parts.push('Latest course booking: ' + (latestCourse.courseTitle || 'Course booking') + ' ' + (latestCourse.selectedSchedule || '') + ' (' + (latestCourse.status || 'booked') + ').');
       }
-      return parts.join(' ');
+      parts.push('If something looks missing, send me the club or course name and the booking date and I will help you check it.');
+      return parts.join('\n\n');
     } catch (error) {
       return fallbackText;
     }
@@ -1271,6 +1580,7 @@
     if (!text && attachments.length) {
       return {
         text: SUPPORT_ATTACHMENT_ONLY_REPLY,
+        actions: [],
         requiresHuman: false,
         ruleName: 'attachments-only'
       };
@@ -1287,31 +1597,31 @@
       }
     }
     if (rule && trimText(rule.responseText)) {
-      var resolvedText = trimText(rule.responseText);
+      var resolvedReply = normalizeSupportReplyResult(rule.responseText, rule.responseText);
       if (context) {
         try {
           if (trimText(rule.ruleName) === 'booking-schedule') {
-            resolvedText = trimText(buildBookingScheduleReply(payload, resolvedText, context)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(buildBookingScheduleReply(payload, resolvedReply.text, context), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'teaching-course-info') {
-            resolvedText = trimText(buildTeachingCourseReply(payload, resolvedText, context)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(buildTeachingCourseReply(payload, resolvedReply.text, context), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'club-course-info') {
-            resolvedText = trimText(buildClubCourseInfoReply(payload, resolvedText, context)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(buildClubCourseInfoReply(payload, resolvedReply.text, context), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'forum-community') {
-            resolvedText = trimText(buildForumCommunityReply(payload, resolvedText, context)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(buildForumCommunityReply(payload, resolvedReply.text, context), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'maps-location') {
-            resolvedText = trimText(buildMapsLocationReply(payload, resolvedText, context)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(buildMapsLocationReply(payload, resolvedReply.text, context), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'payment-refund') {
-            resolvedText = trimText(await buildPaymentRefundReply(payload, resolvedText)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(await buildPaymentRefundReply(payload, resolvedReply.text), resolvedReply.text);
           } else if (trimText(rule.ruleName) === 'dashboard-records') {
-            resolvedText = trimText(await buildDashboardRecordsReply(payload, resolvedText)) || resolvedText;
+            resolvedReply = normalizeSupportReplyResult(await buildDashboardRecordsReply(payload, resolvedReply.text), resolvedReply.text);
           }
         } catch (error) {}
       }
       if (trimText(rule.ruleName) === 'default' && context) {
         try {
-          var inferredTeachingReply = trimText(buildTeachingCourseReply(payload, '', context));
-          if (inferredTeachingReply) {
-            resolvedText = inferredTeachingReply;
+          var inferredTeachingReply = normalizeSupportReplyResult(buildTeachingCourseReply(payload, '', context), '');
+          if (inferredTeachingReply.text) {
+            resolvedReply = inferredTeachingReply;
             rule = {
               ruleName: 'teaching-course-followup',
               requiresHuman: false
@@ -1320,7 +1630,8 @@
         } catch (error) {}
       }
       return {
-        text: resolvedText,
+        text: resolvedReply.text,
+        actions: resolvedReply.actions,
         requiresHuman: !!rule.requiresHuman,
         ruleName: trimText(rule.ruleName)
       };
@@ -1328,6 +1639,7 @@
 
     return {
       text: SUPPORT_DEFAULT_REPLY,
+      actions: [],
       requiresHuman: false,
       ruleName: 'default'
     };
@@ -1439,11 +1751,12 @@
       .limit(12);
     if (result.error) throw result.error;
     return (Array.isArray(result.data) ? result.data : []).map(function (row) {
+      var parsed = parseSupportMessagePayload(row && row.message_text);
       return {
         id: normalizeId(row && row.id),
         role: trimText(row && row.sender_role),
         senderName: trimText(row && row.sender_name),
-        text: trimText(row && row.message_text),
+        text: trimText(parsed.text),
         createdAt: trimText(row && row.created_at)
       };
     });
@@ -1523,7 +1836,7 @@
         sender_id: normalizeId(currentUserId),
         sender_role: 'admin',
         sender_name: 'Support Assistant',
-        message_text: autoReplyText,
+        message_text: serializeSupportMessagePayload(autoReplyText, autoReply && autoReply.actions),
         attachments: []
       })
       .select('id, thread_id, sender_role, sender_name, message_text, attachments, created_at')

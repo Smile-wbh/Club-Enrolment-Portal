@@ -126,7 +126,7 @@
               <div class="consult-chat-body" ref="consultBody">
                 <div v-if="filteredConsultMessages.length === 0" class="consult-chat-empty">No support history yet</div>
                 <div v-for="m in filteredConsultMessages" :key="m.id" class="consult-bubble" :class="m.role">
-                  <div v-if="m.text">{{ m.text }}</div>
+                  <div v-if="m.text" class="consult-bubble-text">{{ m.text }}</div>
                   <div v-if="m.attachments && m.attachments.length" class="consult-attachments">
                     <div v-for="a in m.attachments" :key="a.id" class="consult-attachment">
                       <img v-if="a.type && a.type.indexOf('image/')===0" :src="a.dataUrl" :alt="a.name">
@@ -134,17 +134,40 @@
                       <div v-if="a.size" class="consult-attachment-meta">{{ formatAttachmentSize(a.size) }}</div>
                     </div>
                   </div>
+                  <div v-if="m.actions && m.actions.length" class="consult-bubble-actions">
+                    <template v-for="action in m.actions">
+                      <a
+                        v-if="action.kind === 'link'"
+                        :key="action.id || action.label"
+                        class="consult-action-btn"
+                        :class="action.style === 'primary' ? 'is-primary' : 'is-secondary'"
+                        :href="action.href"
+                        :target="action.target || '_self'"
+                        :rel="(action.target === '_blank') ? 'noopener noreferrer' : null"
+                        @click.prevent="handleConsultAction(action)"
+                      >{{ action.label }}</a>
+                      <button
+                        v-else
+                        :key="action.id || action.label"
+                        type="button"
+                        class="consult-action-btn"
+                        :class="action.style === 'primary' ? 'is-primary' : 'is-secondary'"
+                        :disabled="consultSending"
+                        @click="handleConsultAction(action)"
+                      >{{ action.label }}</button>
+                    </template>
+                  </div>
                   <div class="consult-bubble-meta">{{ m.createdAt }}</div>
                 </div>
               </div>
               <div class="consult-chat-input">
-                <textarea v-model.trim="consultInput" :disabled="!isAuthed" placeholder="Type your question..."></textarea>
+                <textarea v-model.trim="consultInput" :disabled="!isAuthed || consultSending" placeholder="Type your question..."></textarea>
                 <div class="consult-chat-actions">
                   <label class="consult-upload-btn">
-                    <input type="file" multiple :disabled="!isAuthed" @change="handleConsultFiles">
+                    <input type="file" multiple :disabled="!isAuthed || consultSending" @change="handleConsultFiles">
                     Upload Attachments
                   </label>
-                  <button class="btn primary" :disabled="!isAuthed || (!consultInput && consultAttachments.length===0)" @click="sendConsult">Send</button>
+                  <button class="btn primary" :disabled="consultSending || !isAuthed || (!consultInput && consultAttachments.length===0)" @click="sendConsult">{{ consultSending ? 'Sending...' : 'Send' }}</button>
                 </div>
               </div>
               <div v-if="consultAttachments.length" class="consult-attachments-preview">
@@ -193,6 +216,7 @@
         consultInput: '',
         consultMessages: [],
         consultAttachments: [],
+        consultSending: false,
         consultUploadError: '',
         faqs:[
           {
@@ -377,29 +401,60 @@
       removeConsultAttachment(id){
         this.consultAttachments = this.consultAttachments.filter(a => a.id !== id);
       },
-      async sendConsult(){
-        if(!this.isAuthed) return;
-        const text = String(this.consultInput || '').trim();
-        if(!text && this.consultAttachments.length === 0) return;
+      async submitConsultMessage(options){
+        if(!this.isAuthed || this.consultSending) return;
+        const useComposer = !options || options.useComposer !== false;
+        const text = String(useComposer ? this.consultInput : (options && options.text) || '').trim();
+        const attachments = useComposer
+          ? this.consultAttachments.slice()
+          : Array.isArray(options && options.attachments) ? options.attachments.slice() : [];
+        if(!text && attachments.length === 0) return;
         const service = this.getSupportService();
+        this.consultSending = true;
         if(this.hasSupabaseSupportConfigured() && this.sessionUserId && service){
           try{
             const created = await service.sendSupportMessage({
               text: text,
-              attachments: this.consultAttachments.slice(),
+              attachments: attachments,
               category: 'General'
             }, this.sessionUserId, this.sessionEmail, this.sessionNickname || this.sessionEmail);
             this.consultMessages = (this.consultMessages || []).concat(created);
-            this.consultInput = '';
-            this.consultAttachments = [];
+            if(useComposer){
+              this.consultInput = '';
+              this.consultAttachments = [];
+            }
             this.$nextTick(()=> this.scrollConsultBottom());
             return;
           }catch(e){
             alert(service.mapSupportError(e));
             return;
+          }finally{
+            this.consultSending = false;
           }
         }
+        this.consultSending = false;
         alert('Support sync is unavailable right now. Please refresh and try again later.');
+      },
+      sendConsult(){
+        return this.submitConsultMessage({ useComposer: true });
+      },
+      handleConsultAction(action){
+        if(!action) return;
+        if(action.kind === 'link' && action.href){
+          if(action.target === '_blank'){
+            window.open(action.href, '_blank', 'noopener,noreferrer');
+            return;
+          }
+          window.location.href = action.href;
+          return;
+        }
+        if(action.kind === 'reply' && action.message){
+          this.submitConsultMessage({
+            useComposer: false,
+            text: action.message,
+            attachments: []
+          });
+        }
       },
       formatAttachmentSize(size){
         const n = Number(size || 0);
