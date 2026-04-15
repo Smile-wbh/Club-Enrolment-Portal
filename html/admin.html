@@ -81,8 +81,8 @@
             </select>
             <select class="toolbar-select" v-model="threadStatusFilter">
               <option value="all">All statuses</option>
-              <option value="open">Open</option>
-              <option value="waiting_reply">Waiting reply</option>
+              <option value="open">Auto Reply</option>
+              <option value="waiting_reply">Human Support</option>
               <option value="resolved">Resolved</option>
               <option value="closed">Closed</option>
             </select>
@@ -182,10 +182,10 @@
                 ></textarea>
                 <div class="reply-side">
                   <select class="reply-status" v-model="replyStatus">
-                    <option value="open">Keep thread open</option>
-                    <option value="waiting_reply">Mark waiting reply</option>
-                    <option value="resolved">Mark resolved</option>
-                    <option value="closed">Close thread</option>
+                    <option value="open">Auto Reply</option>
+                    <option value="waiting_reply">Human Support</option>
+                    <option value="resolved">Resolved</option>
+                    <option value="closed">Closed</option>
                   </select>
                   <label class="reply-file-label">
                     <input type="file" multiple @change="handleReplyFiles">
@@ -417,7 +417,12 @@
           return 'status-' + String(status || 'open').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
         },
         formatStatus: function (status) {
-          var value = String(status || 'open').replace(/_/g, ' ');
+          var normalized = String(status || 'open').trim().toLowerCase();
+          if (normalized === 'open') return 'Auto Reply';
+          if (normalized === 'waiting_reply') return 'Human Support';
+          if (normalized === 'resolved') return 'Resolved';
+          if (normalized === 'closed') return 'Closed';
+          var value = normalized.replace(/_/g, ' ');
           return value.charAt(0).toUpperCase() + value.slice(1);
         },
         formatCategory: function (category) {

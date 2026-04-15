@@ -1701,11 +1701,13 @@
       return createResult.data || null;
     }
 
-    var updatePatch = {
-      status: 'waiting_reply'
-    };
+    var updatePatch = {};
     if (!trimText(current.subject)) updatePatch.subject = buildSupportSubject(subject);
     if (!trimText(current.category)) updatePatch.category = normalizedCategory;
+
+    if (!Object.keys(updatePatch).length) {
+      return current;
+    }
 
     var updateResult = await client
       .from('support_threads')
@@ -1823,6 +1825,9 @@
 
     if (insertResult.error) throw insertResult.error;
 
+    var currentThreadStatus = trimText(thread && thread.status) || 'open';
+    var autoReplyEnabled = currentThreadStatus !== 'waiting_reply';
+
     var userMessage = mapSupportMessageRow({
       id: insertResult.data.id,
       thread_id: insertResult.data.thread_id,
@@ -1831,10 +1836,18 @@
       message_text: insertResult.data.message_text,
       attachments: insertResult.data.attachments,
       created_at: insertResult.data.created_at,
-      thread_status: 'waiting_reply',
+      thread_status: currentThreadStatus,
       thread_subject: thread && thread.subject,
       thread_category: thread && thread.category
     }, currentEmail);
+
+    if (!autoReplyEnabled) {
+      await client
+        .from('support_threads')
+        .update({ status: 'waiting_reply' })
+        .eq('id', normalizeId(thread && thread.id));
+      return [userMessage];
+    }
 
     var threadHistory = [];
     try {
@@ -1855,6 +1868,10 @@
     });
     var autoReplyText = trimText(autoReply && autoReply.text);
     if (!autoReplyText) {
+      await client
+        .from('support_threads')
+        .update({ status: 'open' })
+        .eq('id', normalizeId(thread && thread.id));
       return [userMessage];
     }
 
