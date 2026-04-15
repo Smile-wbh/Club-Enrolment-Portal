@@ -122,7 +122,7 @@
   <template v-if="!isAuthed">
     <header class="guest-portal-header">
       <div class="container">
-        <a class="guest-brand" href="index1.html">
+        <a class="guest-brand" href="home.html">
           <span class="guest-brand-mark">
             <img src="../zp/gywm.webp" alt="Platform logo" />
           </span>
@@ -133,17 +133,17 @@
         </a>
 
         <nav class="guest-top-nav" aria-label="Primary navigation">
-          <a href="index1.html">Home</a>
-          <a href="msjs.html">Club Preview</a>
-          <a href="specialty.html">Club Booking</a>
-          <a href="mfms.html">Club Courses</a>
-          <a href="spjs.html">Club Forum</a>
-          <a href="tzgg.html">Support Center</a>
+          <a href="home.html">Home</a>
+          <a href="Club-Preview.html">Club Preview</a>
+          <a href="Club-Booking.html">Club Booking</a>
+          <a href="Club-Courses.html">Club Courses</a>
+          <a href="Club-Forum.html">Club Forum</a>
+          <a href="Support-Center.html">Support Center</a>
           <a class="active" href="join.html">User Login</a>
         </nav>
 
         <div class="guest-top-actions">
-          <a class="guest-top-btn accent" href="tzgg.html">Get Help</a>
+          <a class="guest-top-btn accent" href="Support-Center.html">Get Help</a>
         </div>
       </div>
     </header>
@@ -166,9 +166,9 @@
               </p>
 
               <div class="guest-hero-actions">
-                <a class="guest-hero-btn primary" href="msjs.html">Browse Clubs</a>
-                <a class="guest-hero-btn warm" href="specialty.html">View Booking Slots</a>
-                <a class="guest-hero-btn success" href="spjs.html">Explore the Forum</a>
+                <a class="guest-hero-btn primary" href="Club-Preview.html">Browse Clubs</a>
+                <a class="guest-hero-btn warm" href="Club-Booking.html">View Booking Slots</a>
+                <a class="guest-hero-btn success" href="Club-Forum.html">Explore the Forum</a>
               </div>
 
               <div class="guest-feature-list" aria-label="Platform highlights">
@@ -409,10 +409,10 @@
     <div class="footer">
       <div class="container footer-inner">
         <div class="footer-links">
-          <a href="index1.html">Home</a>
-          <a href="msjs.html">Club Preview</a>
-          <a href="specialty.html">Club Booking</a>
-          <a href="tzgg.html">Support Center</a>
+          <a href="home.html">Home</a>
+          <a href="Club-Preview.html">Club Preview</a>
+          <a href="Club-Booking.html">Club Booking</a>
+          <a href="Support-Center.html">Support Center</a>
         </div>
         <p>Copyright © beihong wang 2026</p>
       </div>
@@ -424,7 +424,7 @@
   <template v-else>
     <header class="user-portal-header">
       <div class="container">
-        <a class="user-brand" href="index1.html">
+        <a class="user-brand" href="home.html">
           <span class="user-brand-mark">
             <img src="../zp/gywm.webp" alt="Platform logo" />
           </span>
@@ -435,12 +435,12 @@
         </a>
 
         <nav class="user-portal-nav" aria-label="User dashboard navigation">
-          <a href="index1.html">Home</a>
-          <a href="msjs.html">Club Preview</a>
-          <a href="specialty.html">Club Booking</a>
-          <a href="mfms.html">Club Courses</a>
-          <a href="spjs.html">Club Forum</a>
-          <a href="tzgg.html">Support Center</a>
+          <a href="home.html">Home</a>
+          <a href="Club-Preview.html">Club Preview</a>
+          <a href="Club-Booking.html">Club Booking</a>
+          <a href="Club-Courses.html">Club Courses</a>
+          <a href="Club-Forum.html">Club Forum</a>
+          <a href="Support-Center.html">Support Center</a>
         </nav>
 
         <div class="user-top-actions">
@@ -944,7 +944,7 @@
                 >
                   <div class="forum-hero-banner-head" @click.stop>
                     <button class="btn ghost small forum-banner-btn" type="button" @click.stop="openProfileTab('home')">Back</button>
-                    <a class="forum-banner-link" href="spjs.html" @click.stop>Main Forum</a>
+                    <a class="forum-banner-link" href="Club-Forum.html" @click.stop>Main Forum</a>
                   </div>
                 </div>
 
@@ -1154,7 +1154,7 @@
                   <input v-model.trim="consultQuery" placeholder="Search support messages" style="padding:8px 10px; border:1px solid #e5e7eb; border-radius:8px; min-width:200px;">
                   <button class="btn btn-blue" style="min-width:auto;" @click="loadConsultMessages">Refresh Records</button>
                   <button class="btn danger" style="min-width:auto;" @click="clearMyConsults">Clear Records</button>
-                  <a href="tzgg.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Support</a>
+                  <a href="Support-Center.html" class="btn" style="min-width:auto; text-decoration:none;">Go to Support</a>
                 </div>
               </div>
               <div class="content-card">
@@ -4085,7 +4085,7 @@
       },
       openForumHome(){
         this.closeForumMenus();
-        window.location.href = 'spjs.html';
+        window.location.href = 'Club-Forum.html';
       },
       shareMyForumHome(){
         const url = location.href.split('#')[0];

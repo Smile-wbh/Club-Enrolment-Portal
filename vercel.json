@@ -3,7 +3,12 @@
   "redirects": [
     {
       "source": "/",
-      "destination": "/html/index1.html",
+      "destination": "/html/home.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/index1.html",
+      "destination": "/html/home.html",
       "permanent": false
     },
     {
@@ -23,27 +28,62 @@
     },
     {
       "source": "/clubs",
-      "destination": "/html/msjs.html",
+      "destination": "/html/Club-Preview.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/msjs.html",
+      "destination": "/html/Club-Preview.html",
       "permanent": false
     },
     {
       "source": "/booking",
-      "destination": "/html/specialty.html",
+      "destination": "/html/Club-Booking.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/specialty.html",
+      "destination": "/html/Club-Booking.html",
       "permanent": false
     },
     {
       "source": "/courses",
-      "destination": "/html/mfms.html",
+      "destination": "/html/Club-Courses.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/mfms.html",
+      "destination": "/html/Club-Courses.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/mfms-detail.html",
+      "destination": "/html/Club-Courses-detail.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/mfms-payment.html",
+      "destination": "/html/Club-Courses-payment.html",
       "permanent": false
     },
     {
       "source": "/forum",
-      "destination": "/html/spjs.html",
+      "destination": "/html/Club-Forum.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/spjs.html",
+      "destination": "/html/Club-Forum.html",
       "permanent": false
     },
     {
       "source": "/support",
-      "destination": "/html/tzgg.html",
+      "destination": "/html/Support-Center.html",
+      "permanent": false
+    },
+    {
+      "source": "/html/tzgg.html",
+      "destination": "/html/Support-Center.html",
       "permanent": false
     },
     {

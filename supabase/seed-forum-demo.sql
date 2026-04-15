@@ -1,4 +1,4 @@
--- Demo forum data for spjs.html
+-- Demo forum data for Club-Forum.html
 -- Development/staging only. Do not run this in production once you have real community posts.
 -- Run this after schema.sql and after at least one user account exists.
 

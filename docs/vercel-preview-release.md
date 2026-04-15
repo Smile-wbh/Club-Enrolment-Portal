@@ -4,7 +4,7 @@ This project is now ready for a Vercel preview deployment.
 
 The current build is a static multi-page site:
 
-- entry page: `/html/index1.html`
+- entry page: `/html/home.html`
 - auth and data: `Supabase`
 - uploads: `Supabase Storage`
 - payment: preview-only simulated success flow
@@ -41,14 +41,14 @@ Use the Vercel dashboard import flow.
 
 This repo already includes [vercel.json](../vercel.json), so:
 
-- `/` opens `/html/index1.html`
+- `/` opens `/html/home.html`
 - `/login` opens `/html/join.html`
 - `/dashboard` opens `/html/join.html?tab=home`
 - `/club-dashboard` opens `/html/club_management_dashboard.html`
-- `/booking` opens `/html/specialty.html`
-- `/courses` opens `/html/mfms.html`
-- `/forum` opens `/html/spjs.html`
-- `/support` opens `/html/tzgg.html`
+- `/booking` opens `/html/Club-Booking.html`
+- `/courses` opens `/html/Club-Courses.html`
+- `/forum` opens `/html/Club-Forum.html`
+- `/support` opens `/html/Support-Center.html`
 
 ## Supabase Auth URLs
 

@@ -18,17 +18,17 @@ This project is organized around user-facing club services plus two management b
 
 ## 2. Main Pages
 
-- `html/index1.html`: home page
+- `html/home.html`: home page
 - `html/join.html`: login, signup, and user center
-- `html/msjs.html`: club preview page
+- `html/Club-Preview.html`: club preview page
 - `html/club_detail.html`: shared club detail template page
-- `html/specialty.html`: club booking page
-- `html/specialty-payment.html`: booking payment page
-- `html/mfms.html`: course list page
-- `html/mfms-detail.html`: course detail page
-- `html/spjs.html`: forum page
+- `html/Club-Booking.html`: club booking page
+- `html/Club-Booking-payment.html`: booking payment page
+- `html/Club-Courses.html`: course list page
+- `html/Club-Courses-detail.html`: course detail page
+- `html/Club-Forum.html`: forum page
 - `html/messages.html`: messages page
-- `html/tzgg.html`: support center page
+- `html/Support-Center.html`: support center page
 - `html/club_management_dashboard.html`: club owner dashboard
 - `html/admin.html`: admin dashboard
 
@@ -50,13 +50,13 @@ zp/         Image assets used by clubs and page banners
 
 ### Frontend pages
 
-- `html/index1.html`
+- `html/home.html`
 - `html/join.html`
-- `html/msjs.html`
-- `html/specialty.html`
-- `html/mfms.html`
-- `html/spjs.html`
-- `html/tzgg.html`
+- `html/Club-Preview.html`
+- `html/Club-Booking.html`
+- `html/Club-Courses.html`
+- `html/Club-Forum.html`
+- `html/Support-Center.html`
 
 ### Shared scripts
 
@@ -73,17 +73,17 @@ zp/         Image assets used by clubs and page banners
 - `js/portal-detail-header.js`: shared detail-page header and back button
 - `js/custom-dialogs.js`: custom in-page dialogs replacing browser alerts
 - `js/messages.js`: message page logic
-- `js/specialty-payment.js`: booking payment flow
+- `js/Club-Booking-payment.js`: booking payment flow
 
 ### Shared styles
 
-- `css/index1.css`
+- `css/home.css`
 - `css/join.css`
-- `css/msjs.css`
-- `css/specialty.css`
-- `css/mfms.css`
-- `css/spjs.css`
-- `css/tzgg.css`
+- `css/Club-Preview.css`
+- `css/Club-Booking.css`
+- `css/Club-Courses.css`
+- `css/Club-Forum.css`
+- `css/Support-Center.css`
 - `css/messages.css`
 - `css/club_management_dashboard.css`
 - `css/yl.css`
@@ -110,25 +110,26 @@ Examples:
 - `zp/pq.webp`: volleyball
 - `zp/pkq.webp`: pickleball
 
-## 7. Current Legacy / Cleanup Notes
+## 7. Current Cleanup Notes
 
-These files are worth reviewing later:
+Recent cleanup completed:
 
-- `css/cart.css`: no matching `cart.html` exists in the current repo
-- `abc.md`: still references `cart.html`, so parts of it reflect an older file structure
-- `zp/dj.webp`: not currently referenced by the codebase
+- removed unused legacy `css/cart.css`
+- removed outdated `abc.md` that still referenced `cart.html`
+- removed unreferenced assets `zp/dj.webp` and `zp/jxkc.webp`
+- kept deployment / database docs that still provide operational context
 
 ## 8. Suggested Reading Order
 
 If someone wants to understand the project quickly, read files in this order:
 
 1. `README.md`
-2. `html/index1.html`
+2. `html/home.html`
 3. `html/join.html`
-4. `html/msjs.html`
-5. `html/specialty.html`
-6. `html/mfms.html`
-7. `html/spjs.html`
+4. `html/Club-Preview.html`
+5. `html/Club-Booking.html`
+6. `html/Club-Courses.html`
+7. `html/Club-Forum.html`
 8. `js/supabase-client.js`
 9. `js/supabase-bookings.js`
 10. `js/supabase-courses.js`

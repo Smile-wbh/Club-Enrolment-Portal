@@ -14,7 +14,7 @@
   <script src="../js/supabase-support.js"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
-  <link rel="stylesheet" href="../css/spjs.css" />
+  <link rel="stylesheet" href="../css/Club-Forum.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
 
   <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
@@ -25,7 +25,7 @@
 
   <header class="portal-header">
     <div class="container">
-      <a class="brand" href="index1.html">
+      <a class="brand" href="home.html">
         <span class="brand-mark">
           <img src="../zp/gywm.webp" alt="Platform logo" />
         </span>
@@ -36,12 +36,12 @@
       </a>
 
       <nav class="top-nav" aria-label="Primary navigation">
-        <a href="index1.html">Home</a>
-        <a href="msjs.html">Club Preview</a>
-        <a href="specialty.html">Club Booking</a>
-        <a href="mfms.html">Club Courses</a>
-        <a class="active" href="spjs.html">Club Forum</a>
-        <a href="tzgg.html">Support Center</a>
+        <a href="home.html">Home</a>
+        <a href="Club-Preview.html">Club Preview</a>
+        <a href="Club-Booking.html">Club Booking</a>
+        <a href="Club-Courses.html">Club Courses</a>
+        <a class="active" href="Club-Forum.html">Club Forum</a>
+        <a href="Support-Center.html">Support Center</a>
       </nav>
 
       <div class="top-actions">
@@ -61,9 +61,9 @@
             </div>
             <div class="card-body">
               <ul class="side-nav">
-                <li :class="{ active: isForumFeedActive('all') }"><a href="spjs.html" @click.prevent="setForumFeed('all')">All</a></li>
-                <li :class="{ active: isForumFeedActive('latest') }"><a href="spjs.html" @click.prevent="setForumFeed('latest')">Latest Posts</a></li>
-                <li :class="{ active: isForumFeedActive('following') }"><a href="spjs.html" @click.prevent="setForumFeed('following')">Following</a></li>
+                <li :class="{ active: isForumFeedActive('all') }"><a href="Club-Forum.html" @click.prevent="setForumFeed('all')">All</a></li>
+                <li :class="{ active: isForumFeedActive('latest') }"><a href="Club-Forum.html" @click.prevent="setForumFeed('latest')">Latest Posts</a></li>
+                <li :class="{ active: isForumFeedActive('following') }"><a href="Club-Forum.html" @click.prevent="setForumFeed('following')">Following</a></li>
               </ul>
               <div class="group-head">
                 <div>Custom Groups</div>
@@ -72,7 +72,7 @@
               <ul class="side-nav" style="margin-top:8px;">
                 <li v-if="!customGroups.length" class="side-nav-empty">No custom groups yet</li>
                 <li v-for="g in customGroups" :key="g" :class="{ active: isForumFeedActive('group', g) }">
-                  <a href="spjs.html" @click.prevent="setForumFeed('group', g)">{{ g }}</a>
+                  <a href="Club-Forum.html" @click.prevent="setForumFeed('group', g)">{{ g }}</a>
                 </li>
               </ul>
             </div>
@@ -989,10 +989,10 @@
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-links">
-        <a href="tzgg.html">Contact Us</a>
+        <a href="Support-Center.html">Contact Us</a>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Use</a>
-        <a href="spjs.html">Follow Us</a>
+        <a href="Club-Forum.html">Follow Us</a>
       </div>
       <p>Copyright © beihong wang 2026</p>
     </div>
@@ -1935,7 +1935,7 @@
       },
       buildProfileUrl(author=''){
         const name = String(author || '').trim();
-        return name ? ('spjs.html?author=' + encodeURIComponent(name)) : 'spjs.html';
+        return name ? ('Club-Forum.html?author=' + encodeURIComponent(name)) : 'Club-Forum.html';
       },
       syncProfileFromUrl(){
         try{

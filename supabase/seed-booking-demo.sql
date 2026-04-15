@@ -1,4 +1,4 @@
--- Demo booking data for specialty.html
+-- Demo booking data for Club-Booking.html
 -- Development/staging only. Do not run this in production once you have real clubs.
 -- Run this after schema.sql and after at least one user account has been created.
 

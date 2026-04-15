@@ -11,7 +11,7 @@
   <script src="../js/supabase-bookings.js?v=20260401-2"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
-  <link rel="stylesheet" href="../css/specialty.css?v=20260401-2" />
+  <link rel="stylesheet" href="../css/Club-Booking.css?v=20260401-2" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
 </head>
@@ -19,7 +19,7 @@
 <div id="app" v-cloak>
   <header class="portal-header">
     <div class="container">
-      <a class="brand" href="index1.html">
+      <a class="brand" href="home.html">
         <span class="brand-mark">
           <img src="../zp/gywm.webp" alt="Platform logo" />
         </span>
@@ -30,12 +30,12 @@
       </a>
 
       <nav class="top-nav" aria-label="Primary navigation">
-        <a href="index1.html">Home</a>
-        <a href="msjs.html">Club Preview</a>
-        <a class="active" href="specialty.html">Club Booking</a>
-        <a href="mfms.html">Club Courses</a>
-        <a href="spjs.html">Club Forum</a>
-        <a href="tzgg.html">Support Center</a>
+        <a href="home.html">Home</a>
+        <a href="Club-Preview.html">Club Preview</a>
+        <a class="active" href="Club-Booking.html">Club Booking</a>
+        <a href="Club-Courses.html">Club Courses</a>
+        <a href="Club-Forum.html">Club Forum</a>
+        <a href="Support-Center.html">Support Center</a>
       </nav>
 
       <div class="top-actions">
@@ -129,7 +129,7 @@
             <p>Review each club's availability first, then open the slot table to choose a specific date and time.</p>
           </div>
 
-          <a class="section-link" href="msjs.html">View Club Details First</a>
+          <a class="section-link" href="Club-Preview.html">View Club Details First</a>
         </div>
 
         <div class="more-search-note" v-if="filteredClubs.length">More search options are available in the filter card above.</div>
@@ -380,10 +380,10 @@
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-links">
-        <a href="tzgg.html">Contact Us</a>
+        <a href="Support-Center.html">Contact Us</a>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Use</a>
-        <a href="spjs.html">Follow Us</a>
+        <a href="Club-Forum.html">Follow Us</a>
       </div>
       <p>Copyright © beihong wang 2026</p>
     </div>
@@ -1490,7 +1490,7 @@
         localStorage.setItem(this.pendingPaymentKey(), JSON.stringify(pendingOrder));
         this.showBookingModal = false;
         this.pendingBooking = null;
-        location.href = 'specialty-payment.html';
+        location.href = 'Club-Booking-payment.html';
       },
       loadRegistryClubs() {
         return [];

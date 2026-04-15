@@ -10,7 +10,7 @@
   <script src="../js/supabase-client.js"></script>
   <script src="../js/supabase-bookings.js"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
-  <link rel="stylesheet" href="../css/msjs.css" />
+  <link rel="stylesheet" href="../css/Club-Preview.css" />
   <link rel="stylesheet" href="../css/chat-widget.css" />
   <script src="../js/portal-footer.js?v=20260414-footer-1" defer></script>
 </head>
@@ -18,7 +18,7 @@
 <div id="app">
   <header class="portal-header">
     <div class="container">
-      <a class="brand" href="index1.html">
+      <a class="brand" href="home.html">
         <span class="brand-mark">
           <img src="../zp/gywm.webp" alt="Platform logo" />
         </span>
@@ -29,12 +29,12 @@
       </a>
 
       <nav class="top-nav" aria-label="Primary navigation">
-        <a href="index1.html">Home</a>
-        <a class="active" href="msjs.html">Club Preview</a>
-        <a href="specialty.html">Club Booking</a>
-        <a href="mfms.html">Club Courses</a>
-        <a href="spjs.html">Club Forum</a>
-        <a href="tzgg.html">Support Center</a>
+        <a href="home.html">Home</a>
+        <a class="active" href="Club-Preview.html">Club Preview</a>
+        <a href="Club-Booking.html">Club Booking</a>
+        <a href="Club-Courses.html">Club Courses</a>
+        <a href="Club-Forum.html">Club Forum</a>
+        <a href="Support-Center.html">Support Center</a>
       </nav>
 
       <div class="top-actions">
@@ -131,7 +131,7 @@
           <p>Open the detail page for the full club introduction, or go straight to booking to choose a time slot.</p>
         </div>
 
-        <a class="section-link" href="specialty.html">Open Booking Center</a>
+        <a class="section-link" href="Club-Booking.html">Open Booking Center</a>
       </div>
 
       <div class="club-grid" id="club-grid" v-if="filteredClubs.length">
@@ -175,7 +175,7 @@
 
           <div class="club-actions">
             <a class="action-btn secondary" :href="detailHref(c)">View Details</a>
-            <a class="action-btn primary" :href="'specialty.html?club=' + encodeURIComponent(c.slug)">Book Now</a>
+            <a class="action-btn primary" :href="'Club-Booking.html?club=' + encodeURIComponent(c.slug)">Book Now</a>
           </div>
         </article>
       </div>
@@ -191,10 +191,10 @@
   <footer class="footer">
     <div class="container footer-inner">
       <div class="footer-links">
-        <a href="tzgg.html">Contact Us</a>
+        <a href="Support-Center.html">Contact Us</a>
         <a href="#">Privacy Policy</a>
         <a href="#">Terms of Use</a>
-        <a href="spjs.html">Follow Us</a>
+        <a href="Club-Forum.html">Follow Us</a>
       </div>
       <p>Copyright © beihong wang 2026</p>
     </div>
@@ -617,12 +617,12 @@
 
     const SEARCH_HISTORY_KEY = 'club_portal_search_history';
     const searchRoutes = [
-      { url: 'specialty.html', keywords: ['booking', 'time slot', 'schedule', 'registration', 'session', 'book'] },
-      { url: 'mfms.html', keywords: ['courses', 'teaching', 'tutorials', 'learning', 'course content'] },
-      { url: 'spjs.html', keywords: ['forum', 'community', 'posts', 'discussion'] },
-      { url: 'tzgg.html', keywords: ['support', 'announcements', 'notices', 'reminders', 'messages'] },
+      { url: 'Club-Booking.html', keywords: ['booking', 'time slot', 'schedule', 'registration', 'session', 'book'] },
+      { url: 'Club-Courses.html', keywords: ['courses', 'teaching', 'tutorials', 'learning', 'course content'] },
+      { url: 'Club-Forum.html', keywords: ['forum', 'community', 'posts', 'discussion'] },
+      { url: 'Support-Center.html', keywords: ['support', 'announcements', 'notices', 'reminders', 'messages'] },
       { url: 'join.html', keywords: ['login', 'sign up', 'user', 'account'] },
-      { url: 'msjs.html', keywords: ['club preview', 'browse clubs', 'club', 'preview'] }
+      { url: 'Club-Preview.html', keywords: ['club preview', 'browse clubs', 'club', 'preview'] }
     ];
 
     function normalizeText(text) {
@@ -701,7 +701,7 @@
         });
       }
 
-      return matchedRoute ? matchedRoute.url : 'msjs.html?q=' + encodeURIComponent(query.trim());
+      return matchedRoute ? matchedRoute.url : 'Club-Preview.html?q=' + encodeURIComponent(query.trim());
     }
 
     function pushSearchHistory(query, url) {
@@ -753,8 +753,8 @@
         historyButton.addEventListener('click', function () {
           pushSearchHistory(item.query, item.url);
 
-          if (item.url.indexOf('msjs.html') === 0) {
-            const samePageUrl = item.query ? 'msjs.html?q=' + encodeURIComponent(item.query) : 'msjs.html';
+          if (item.url.indexOf('Club-Preview.html') === 0) {
+            const samePageUrl = item.query ? 'Club-Preview.html?q=' + encodeURIComponent(item.query) : 'Club-Preview.html';
             window.history.replaceState({}, '', samePageUrl);
             app.q = item.query;
             closeHistory();
@@ -784,8 +784,8 @@
       const targetUrl = resolveSearchTarget(trimmedQuery);
       pushSearchHistory(trimmedQuery, targetUrl);
 
-      if (targetUrl.indexOf('msjs.html') === 0) {
-        const samePageUrl = 'msjs.html?q=' + encodeURIComponent(trimmedQuery);
+      if (targetUrl.indexOf('Club-Preview.html') === 0) {
+        const samePageUrl = 'Club-Preview.html?q=' + encodeURIComponent(trimmedQuery);
         window.history.replaceState({}, '', samePageUrl);
         app.q = trimmedQuery;
         closeHistory();

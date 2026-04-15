@@ -219,7 +219,7 @@
       '<h2>' + title + '</h2>' +
       '<p>' + message + '</p>' +
       '<div class="empty-actions">' +
-        '<a class="primary-btn" href="specialty.html">Back to Club Booking</a>' +
+        '<a class="primary-btn" href="Club-Booking.html">Back to Club Booking</a>' +
         '<a class="ghost-btn" href="join.html?tab=club_bookings">View My Bookings</a>' +
       '</div>';
   }
@@ -388,13 +388,13 @@
     var params = buildBookingParams(payload);
     if (trimText(payload.orderId)) params.set('order', trimText(payload.orderId));
     params.set('bookingSuccess', '1');
-    return 'specialty.html?' + params.toString();
+    return 'Club-Booking.html?' + params.toString();
   }
 
   function buildBackUrl(record) {
     var params = buildBookingParams(record || state.order || {});
     var query = params.toString();
-    return query ? ('specialty.html?' + query) : 'specialty.html';
+    return query ? ('Club-Booking.html?' + query) : 'Club-Booking.html';
   }
 
   function startSuccessRedirect(url, textEl) {

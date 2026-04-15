@@ -6,17 +6,17 @@ This document is a maintenance-oriented map of the repository. It explains what 
 
 ### Portal entry and user-facing pages
 
-- `html/index1.html`: portal home page
+- `html/home.html`: portal home page
 - `html/join.html`: login, signup, profile center, bookings, favorites, forum records
-- `html/msjs.html`: club preview list
+- `html/Club-Preview.html`: club preview list
 - `html/club_detail.html`: shared club detail template logic
-- `html/specialty.html`: club booking
-- `html/specialty-payment.html`: payment simulation / confirmation
-- `html/mfms.html`: course list
-- `html/mfms-detail.html`: course detail
-- `html/spjs.html`: forum page
+- `html/Club-Booking.html`: club booking
+- `html/Club-Booking-payment.html`: payment simulation / confirmation
+- `html/Club-Courses.html`: course list
+- `html/Club-Courses-detail.html`: course detail
+- `html/Club-Forum.html`: forum page
 - `html/messages.html`: messages and direct communication
-- `html/tzgg.html`: support center
+- `html/Support-Center.html`: support center
 
 ### Management pages
 
@@ -73,20 +73,20 @@ These are separate detail entries under `html/club/`:
 ### Page-specific logic
 
 - `js/messages.js`: messages page behavior
-- `js/specialty-payment.js`: payment page behavior
+- `js/Club-Booking-payment.js`: payment page behavior
 
 ## 3. Style Grouping
 
 ### Page styles
 
-- `css/index1.css`
+- `css/home.css`
 - `css/join.css`
-- `css/msjs.css`
-- `css/specialty.css`
-- `css/specialty-payment.css`
-- `css/mfms.css`
-- `css/spjs.css`
-- `css/tzgg.css`
+- `css/Club-Preview.css`
+- `css/Club-Booking.css`
+- `css/Club-Booking-payment.css`
+- `css/Club-Courses.css`
+- `css/Club-Forum.css`
+- `css/Support-Center.css`
 - `css/messages.css`
 - `css/club_management_dashboard.css`
 - `css/yl.css`
@@ -95,10 +95,6 @@ These are separate detail entries under `html/club/`:
 
 - `css/chat-widget.css`
 - `css/portal-header-auth.css`
-
-### Suspected legacy
-
-- `css/cart.css`
 
 ## 4. Image Asset Grouping
 
@@ -132,21 +128,17 @@ These are separate detail entries under `html/club/`:
 - `zp/hb2.webp`
 - `zp/hb3.webp`
 
-### Likely unused right now
-
-- `zp/dj.webp`
-
 ## 5. Most Important Files For A Demo Or Defense
 
 If you only want to remember the essential files, focus on these:
 
-- `html/index1.html`
+- `html/home.html`
 - `html/join.html`
-- `html/msjs.html`
-- `html/specialty.html`
-- `html/mfms.html`
-- `html/spjs.html`
-- `html/tzgg.html`
+- `html/Club-Preview.html`
+- `html/Club-Booking.html`
+- `html/Club-Courses.html`
+- `html/Club-Forum.html`
+- `html/Support-Center.html`
 - `html/club_management_dashboard.html`
 - `html/admin.html`
 - `js/supabase-client.js`
@@ -163,26 +155,26 @@ I did not rename files automatically, but this would be a cleaner future structu
 
 ### Keep current pages but group mentally like this
 
-- `home`: `index1.html`
+- `home`: `home.html`
 - `auth-and-user`: `join.html`, `messages.html`
-- `clubs`: `msjs.html`, `club_detail.html`, `html/club/*`
-- `booking`: `specialty.html`, `specialty-payment.html`
-- `courses`: `mfms.html`, `mfms-detail.html`
-- `community`: `spjs.html`
-- `support`: `tzgg.html`
+- `clubs`: `Club-Preview.html`, `club_detail.html`, `html/club/*`
+- `booking`: `Club-Booking.html`, `Club-Booking-payment.html`
+- `courses`: `Club-Courses.html`, `Club-Courses-detail.html`
+- `community`: `Club-Forum.html`
+- `support`: `Support-Center.html`
 - `management`: `club_management_dashboard.html`, `admin.html`
 
-### Best cleanup candidates
+### Cleanup already completed
 
-- review whether `css/cart.css` can be deleted
-- update `abc.md` so it no longer references `cart.html`
-- review whether `zp/dj.webp` is still needed
+- removed legacy `css/cart.css`
+- removed outdated `abc.md`
+- removed unreferenced assets `zp/dj.webp` and `zp/jxkc.webp`
 
 ## 7. Practical Maintenance Advice
 
 - When changing club covers, check both `html/` page data and `js/supabase-*` fallback mappings.
 - When changing sign-up/login navigation, check static page headers and shared header scripts.
 - When changing club details, check both `html/club_detail.html` and `html/club/*.html`.
-- When changing booking behavior, check `html/specialty.html`, `html/specialty-payment.html`, and `js/supabase-bookings.js`.
-- When changing course behavior, check `html/mfms.html`, `html/mfms-detail.html`, and `js/supabase-courses.js`.
+- When changing booking behavior, check `html/Club-Booking.html`, `html/Club-Booking-payment.html`, and `js/supabase-bookings.js`.
+- When changing course behavior, check `html/Club-Courses.html`, `html/Club-Courses-detail.html`, and `js/supabase-courses.js`.
 

@@ -97,7 +97,7 @@
   function buildHeaderHtml(prefix) {
     return (
       '<div class="container">' +
-        '<a class="brand" href="' + prefix + 'index1.html">' +
+        '<a class="brand" href="' + prefix + 'home.html">' +
           '<span class="brand-mark">' +
             '<img src="' + prefix + '../zp/gywm.webp" alt="Platform logo" />' +
           '</span>' +
@@ -107,12 +107,12 @@
           '</span>' +
         '</a>' +
         '<nav class="top-nav" aria-label="Primary navigation">' +
-          '<a href="' + prefix + 'index1.html">Home</a>' +
-          '<a class="active" href="' + prefix + 'msjs.html">Club Preview</a>' +
-          '<a href="' + prefix + 'specialty.html">Club Booking</a>' +
-          '<a href="' + prefix + 'mfms.html">Club Courses</a>' +
-          '<a href="' + prefix + 'spjs.html">Club Forum</a>' +
-          '<a href="' + prefix + 'tzgg.html">Support Center</a>' +
+          '<a href="' + prefix + 'home.html">Home</a>' +
+          '<a class="active" href="' + prefix + 'Club-Preview.html">Club Preview</a>' +
+          '<a href="' + prefix + 'Club-Booking.html">Club Booking</a>' +
+          '<a href="' + prefix + 'Club-Courses.html">Club Courses</a>' +
+          '<a href="' + prefix + 'Club-Forum.html">Club Forum</a>' +
+          '<a href="' + prefix + 'Support-Center.html">Support Center</a>' +
         '</nav>' +
         '<div class="top-actions">' +
           '<a class="top-btn light" href="' + prefix + 'join.html">Log in</a>' +
@@ -138,7 +138,7 @@
     if (!wrap || wrap.querySelector('.detail-back-row')) return;
 
     var prefix = getPathPrefix();
-    var fallbackHref = prefix + 'msjs.html';
+    var fallbackHref = prefix + 'Club-Preview.html';
 
     var row = document.createElement('div');
     row.className = 'detail-back-row';

@@ -557,9 +557,9 @@ SECTION_CONTENT = {
     "Appendix A – Repository structure and key files": [
         (
             "The repository is organised into clear functional groups. The `html/` directory contains the page entry "
-            "points, including `index1.html` for the home page, `join.html` for authentication and the user centre, "
-            "`msjs.html` for club preview, `specialty.html` for club booking, `mfms.html` and `mfms-detail.html` for "
-            "courses, `spjs.html` for the forum, `tzgg.html` for support, and the separate management dashboards."
+            "points, including `home.html` for the home page, `join.html` for authentication and the user centre, "
+            "`Club-Preview.html` for club preview, `Club-Booking.html` for club booking, `Club-Courses.html` and `Club-Courses-detail.html` for "
+            "courses, `Club-Forum.html` for the forum, `Support-Center.html` for support, and the separate management dashboards."
         ),
         (
             "The `js/` directory contains shared runtime logic such as Supabase configuration, booking and course services, "

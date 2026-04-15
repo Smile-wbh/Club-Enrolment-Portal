@@ -21,7 +21,7 @@ This document follows the four-core-system platform architecture and defines the
 * **Cancellation policy:** cancellations should be made at least **2 hours** in advance so the seat can be released to other users.
 
 ### 1.3 Community Interaction
-* **Respectful speech:** abusive, defamatory, explicit, or politically sensitive content is prohibited in the forum (`spjs.html`) and comment areas.
+* **Respectful speech:** abusive, defamatory, explicit, or politically sensitive content is prohibited in the forum (`Club-Forum.html`) and comment areas.
 * **Friendly discussion:** respect other people's views and do not provoke arguments or engage in personal attacks.
 
 ---

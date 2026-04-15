@@ -23,7 +23,7 @@ Recommended order:
 2. Review the slug/title lists inside [cleanup-production-demo-data.sql](../supabase/cleanup-production-demo-data.sql).
 3. Run the script in Supabase `SQL Editor`.
 4. Refresh these pages and confirm they now show only real cloud data:
-   - `https://club-enrolment-portal.vercel.app/html/msjs.html`
-   - `https://club-enrolment-portal.vercel.app/html/specialty.html`
-   - `https://club-enrolment-portal.vercel.app/html/mfms.html`
-   - `https://club-enrolment-portal.vercel.app/html/spjs.html`
+   - `https://club-enrolment-portal.vercel.app/html/Club-Preview.html`
+   - `https://club-enrolment-portal.vercel.app/html/Club-Booking.html`
+   - `https://club-enrolment-portal.vercel.app/html/Club-Courses.html`
+   - `https://club-enrolment-portal.vercel.app/html/Club-Forum.html`

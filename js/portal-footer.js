@@ -36,10 +36,10 @@
     footer.innerHTML =
       '<div class="portal-site-footer__inner">' +
         '<nav class="portal-site-footer__links" aria-label="Footer navigation">' +
-          '<a class="portal-site-footer__link" href="tzgg.html">Contact Us</a>' +
+          '<a class="portal-site-footer__link" href="Support-Center.html">Contact Us</a>' +
           '<a class="portal-site-footer__link" href="#">Privacy Policy</a>' +
           '<a class="portal-site-footer__link" href="#">Terms of Use</a>' +
-          '<a class="portal-site-footer__link" href="spjs.html">Follow Us</a>' +
+          '<a class="portal-site-footer__link" href="Club-Forum.html">Follow Us</a>' +
         '</nav>' +
         '<div class="portal-site-footer__copyright">Copyright © beihong wang 2026</div>' +
       '</div>';

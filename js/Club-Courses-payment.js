@@ -190,8 +190,8 @@
   function buildCourseDetailUrl(record) {
     var payload = record || state.order || {};
     var courseId = trimText(payload.courseId);
-    if (!courseId) return 'mfms.html';
-    return 'mfms-detail.html?id=' + encodeURIComponent(courseId);
+    if (!courseId) return 'Club-Courses.html';
+    return 'Club-Courses-detail.html?id=' + encodeURIComponent(courseId);
   }
 
   function buildDashboardUrl() {

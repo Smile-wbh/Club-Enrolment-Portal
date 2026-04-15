@@ -38,7 +38,7 @@ Pass result:
 
 Page:
 
-- `https://club-enrolment-portal.vercel.app/html/specialty.html`
+- `https://club-enrolment-portal.vercel.app/html/Club-Booking.html`
 
 Checks:
 
@@ -60,8 +60,8 @@ Pass result:
 
 Pages:
 
-- `https://club-enrolment-portal.vercel.app/html/mfms.html`
-- `https://club-enrolment-portal.vercel.app/html/mfms-detail.html`
+- `https://club-enrolment-portal.vercel.app/html/Club-Courses.html`
+- `https://club-enrolment-portal.vercel.app/html/Club-Courses-detail.html`
 
 Checks:
 
@@ -83,7 +83,7 @@ Pass result:
 
 Page:
 
-- `https://club-enrolment-portal.vercel.app/html/spjs.html`
+- `https://club-enrolment-portal.vercel.app/html/Club-Forum.html`
 
 Checks:
 
@@ -106,7 +106,7 @@ Pass result:
 
 Pages:
 
-- `https://club-enrolment-portal.vercel.app/html/tzgg.html`
+- `https://club-enrolment-portal.vercel.app/html/Support-Center.html`
 - `https://club-enrolment-portal.vercel.app/html/join.html?tab=message_board`
 
 Checks:
