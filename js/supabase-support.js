@@ -265,11 +265,29 @@
     return value.length > 60 ? (value.slice(0, 60) + '...') : value;
   }
 
-  var SUPPORT_HUMAN_HANDOFF_REPLY = 'Thanks for reaching out. A support agent will review this conversation shortly. If you can share the club or course name, the date and time, and a screenshot if relevant, that will help us move faster.';
+  var SUPPORT_HUMAN_HANDOFF_REPLY = '我们已收到您的问题，将转到人工客服，请稍等。';
   var SUPPORT_ATTACHMENT_ONLY_REPLY = 'Thanks, we received your attachment. A support agent will review it shortly. If possible, please reply with the club or course name, the date and time, and a short note about the issue.';
   var SUPPORT_DEFAULT_REPLY = 'Thanks for your message. I can help with bookings, locations, course details, payments, and support history. If you share the club or course name and the date or time you care about, I can narrow it down right away.';
   var SUPPORT_AUTO_REPLY_CACHE_TTL = 5 * 60 * 1000;
   var SUPPORT_DYNAMIC_CONTEXT_CACHE_TTL = 2 * 60 * 1000;
+  var SUPPORT_HUMAN_HANDOFF_KEYWORDS = Object.freeze([
+    'human',
+    'agent',
+    'representative',
+    'customer service',
+    'support staff',
+    'live support',
+    'manual',
+    'manual mode',
+    'manual support',
+    'human support',
+    'real person',
+    'switch to manual mode',
+    '人工',
+    '人工客服',
+    '转人工',
+    '转接人工'
+  ]);
   var SUPPORT_CLUB_SELECT = 'id, slug, name, category, mode, location, map_link, time_text, fee_text, seats, description, venue_info, what_we_do, audience, training_plan, notes, tags, status';
   var SUPPORT_COURSE_SELECT = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, description, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, created_at, club:clubs(name, slug, category, location, mode)';
   var SUPPORT_COURSE_SELECT_LEGACY = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, description, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, created_at, club:clubs(name, slug, category)';
@@ -319,7 +337,7 @@
   var FALLBACK_SUPPORT_AUTO_REPLY_RULES = Object.freeze([
     {
       ruleName: 'human-handoff',
-      keywords: ['human', 'agent', 'representative', 'customer service', 'support staff', 'live support'],
+      keywords: SUPPORT_HUMAN_HANDOFF_KEYWORDS.slice(),
       responseText: SUPPORT_HUMAN_HANDOFF_REPLY,
       priority: 5,
       requiresHuman: true,
@@ -1467,13 +1485,22 @@
 
   function cloneSupportAutoReplyRule(rule) {
     var item = rule || {};
+    var ruleName = trimText(item.ruleName || item.rule_name);
+    var keywords = Array.isArray(item.keywords) ? item.keywords.map(trimText).filter(Boolean) : [];
+    if (ruleName === 'human-handoff') {
+      keywords = SUPPORT_HUMAN_HANDOFF_KEYWORDS.concat(keywords).filter(function (keyword, index, list) {
+        return !!keyword && list.indexOf(keyword) === index;
+      });
+    }
     return {
       id: normalizeId(item.id),
-      ruleName: trimText(item.ruleName || item.rule_name),
-      keywords: Array.isArray(item.keywords) ? item.keywords.map(trimText).filter(Boolean) : [],
-      responseText: trimText(item.responseText || item.response_text),
+      ruleName: ruleName,
+      keywords: keywords,
+      responseText: ruleName === 'human-handoff'
+        ? SUPPORT_HUMAN_HANDOFF_REPLY
+        : trimText(item.responseText || item.response_text),
       priority: Number(item.priority || 0) || 0,
-      requiresHuman: !!(item.requiresHuman || item.requires_human),
+      requiresHuman: ruleName === 'human-handoff' ? true : !!(item.requiresHuman || item.requires_human),
       isDefault: !!(item.isDefault || item.is_default),
       isActive: item.isActive === undefined ? (item.is_active !== false) : !!item.isActive
     };

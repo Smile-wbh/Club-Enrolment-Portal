@@ -2542,8 +2542,8 @@ insert into public.support_auto_reply_rules (
 values
   (
     'human-handoff',
-    array['human','agent','representative','customer service','support staff','live support']::text[],
-    'We have received your message. Our customer support team will assist you shortly. If possible, please provide the club or course name, the relevant date and time, and any helpful screenshots or attachments. Thank you for your patience.',
+    array['human','agent','representative','customer service','support staff','live support','manual','manual mode','manual support','human support','real person','switch to manual mode','人工','人工客服','转人工','转接人工']::text[],
+    '我们已收到您的问题，将转到人工客服，请稍等。',
     5,
     true,
     false,
