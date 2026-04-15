@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Console - Club Enrollment Portal</title>
+
+  <script src="../js/vue.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../js/supabase-config.js"></script>
+  <script src="../js/supabase-client.js"></script>
+  <script src="../js/supabase-support.js"></script>
+  <script src="../js/supabase-platform-admin.js"></script>
+
+  <link rel="stylesheet" href="../css/admin.css" />
+</head>
+<body>
+  <div id="app" class="admin-shell" v-cloak>
+    <header class="admin-topbar">
+      <div class="admin-topbar-copy">
+        <div class="admin-eyebrow">Platform Operations</div>
+        <h1>Admin Console</h1>
+        <p>Monitor all users, clubs, courses, and reply to both Support Center and the floating course chat from one workspace.</p>
+      </div>
+      <div class="admin-actions">
+        <div class="admin-account">
+          <span class="admin-account-label">Signed in account</span>
+          <strong>{{ authLabel }}</strong>
+          <span>{{ authSubLabel }}</span>
+        </div>
+        <div class="admin-action-row">
+          <button class="admin-btn primary" type="button" :disabled="loading" @click="refreshDashboard">{{ loading ? 'Refreshing...' : 'Refresh Dashboard' }}</button>
+          <a class="admin-btn secondary" href="Support-Center.html">Open Support Center</a>
+          <a class="admin-btn secondary" href="join.html">Open Login</a>
+        </div>
+      </div>
+    </header>
+
+    <div v-if="notice" class="admin-banner" :class="{ error: noticeKind === 'error' }">{{ notice }}</div>
+
+    <section class="admin-stats">
+      <article class="stat-card">
+        <div class="stat-label">Users</div>
+        <div class="stat-value">{{ users.length }}</div>
+        <div class="stat-note">Registered profiles currently visible to the admin account.</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-label">Clubs</div>
+        <div class="stat-value">{{ clubs.length }}</div>
+        <div class="stat-note">Every club name currently stored in the platform catalog.</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-label">Courses</div>
+        <div class="stat-value">{{ courses.length }}</div>
+        <div class="stat-note">Course titles linked to clubs or standalone course entries.</div>
+      </article>
+      <article class="stat-card">
+        <div class="stat-label">Support Threads</div>
+        <div class="stat-value">{{ threads.length }}</div>
+        <div class="stat-note">{{ openThreadCount }} open or waiting conversations still need attention.</div>
+      </article>
+    </section>
+
+    <section class="admin-card" style="margin-top: 24px;">
+      <div class="section-title">
+        <div>
+          <h2>Unified Support Inbox</h2>
+          <p>General Support Center threads and the floating course chat both land here. Use the category filter if you want only widget conversations.</p>
+        </div>
+        <span class="section-chip">{{ selectedThread ? selectedThread.category : 'No thread selected' }}</span>
+      </div>
+
+      <div class="support-layout">
+        <aside class="support-sidebar">
+          <div class="toolbar-row">
+            <input class="toolbar-input" type="text" v-model.trim="threadQuery" placeholder="Search by user, subject, or preview" />
+            <select class="toolbar-select" v-model="threadCategoryFilter">
+              <option value="all">All categories</option>
+              <option value="General">Support Center</option>
+              <option value="Course Widget">Course Widget</option>
+            </select>
+            <select class="toolbar-select" v-model="threadStatusFilter">
+              <option value="all">All statuses</option>
+              <option value="open">Open</option>
+              <option value="waiting_reply">Waiting reply</option>
+              <option value="resolved">Resolved</option>
+              <option value="closed">Closed</option>
+            </select>
+          </div>
+
+          <div class="thread-list-frame">
+            <div class="thread-list-head">
+              <div>
+                <strong>Conversation List</strong>
+                <span>Scroll inside this panel</span>
+              </div>
+              <span class="thread-count-pill">{{ filteredThreads.length }}</span>
+            </div>
+            <div v-if="!filteredThreads.length" class="empty-state compact-empty">No support conversations match the current filters.</div>
+            <div v-else class="thread-list">
+              <article
+                v-for="thread in filteredThreads"
+                :key="thread.id"
+                class="thread-item"
+                :class="{ active: selectedThread && selectedThread.id === thread.id }"
+                @click="selectThread(thread)"
+              >
+                <div class="thread-topline">
+                  <div class="thread-identity">
+                    <div class="thread-avatar">{{ formatThreadInitial(thread.userName) }}</div>
+                    <div>
+                      <div class="thread-user">{{ thread.userName }}</div>
+                      <div class="thread-email">{{ thread.userEmail || 'No email available' }}</div>
+                    </div>
+                  </div>
+                  <div class="thread-time-pill">{{ thread.lastMessageAt || thread.updatedAt }}</div>
+                </div>
+              </article>
+            </div>
+          </div>
+        </aside>
+
+        <section class="support-detail">
+          <div v-if="!selectedThread" class="empty-state">Choose a conversation from the inbox to read messages and reply.</div>
+          <template v-else>
+            <div class="support-thread-head">
+              <div>
+                <h3>{{ selectedThread.subject }}</h3>
+                <div class="support-thread-sub">
+                  {{ selectedThread.userName }} · {{ selectedThread.userEmail || 'No email' }} · {{ formatCategory(selectedThread.category) }}<br>
+                  Created {{ selectedThread.createdAt || 'just now' }} · Updated {{ selectedThread.updatedAt || 'just now' }}
+                </div>
+              </div>
+              <div class="thread-meta">
+                <span class="badge category">{{ formatCategory(selectedThread.category) }}</span>
+                <span class="badge" :class="statusBadgeClass(selectedThread.status)">{{ formatStatus(selectedThread.status) }}</span>
+              </div>
+            </div>
+
+            <div v-if="selectedMessagesLoading" class="empty-state" style="margin-top: 20px;">Loading conversation…</div>
+            <div v-else-if="!selectedMessages.length" class="empty-state" style="margin-top: 20px;">This thread does not have any stored messages yet.</div>
+            <div v-else class="support-message-list" ref="messageList">
+              <article
+                v-for="message in selectedMessages"
+                :key="message.id"
+                class="support-message"
+                :class="message.senderRole === 'admin' ? 'admin' : 'user'"
+              >
+                <span class="message-author">{{ message.senderName }} · {{ message.senderRole === 'admin' ? 'Admin reply' : 'User message' }}</span>
+                <div v-if="message.text" class="message-text">{{ message.text }}</div>
+                <div v-if="message.actions && message.actions.length" class="message-actions">
+                  <span v-for="action in message.actions" :key="action.id || action.label" class="message-action-chip">{{ action.label }}</span>
+                </div>
+                <div v-if="message.attachments && message.attachments.length" class="attachment-grid">
+                  <a
+                    v-for="attachment in message.attachments"
+                    :key="attachment.id"
+                    class="attachment-card"
+                    :href="attachment.url || attachment.dataUrl"
+                    :download="attachment.name || attachment.title"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <img
+                      v-if="isImageAttachment(attachment)"
+                      :src="attachment.url || attachment.dataUrl"
+                      :alt="attachment.name || attachment.title || 'Support attachment'"
+                    >
+                    <span class="attachment-name">{{ attachment.name || attachment.title || 'Attachment' }}</span>
+                  </a>
+                </div>
+                <div class="support-message-meta">{{ message.createdAt }}</div>
+              </article>
+            </div>
+
+            <div class="reply-panel">
+              <div class="reply-row">
+                <textarea
+                  class="reply-textarea"
+                  v-model.trim="replyText"
+                  placeholder="Write an admin reply here..."
+                ></textarea>
+                <div class="reply-side">
+                  <select class="reply-status" v-model="replyStatus">
+                    <option value="open">Keep thread open</option>
+                    <option value="waiting_reply">Mark waiting reply</option>
+                    <option value="resolved">Mark resolved</option>
+                    <option value="closed">Close thread</option>
+                  </select>
+                  <label class="reply-file-label">
+                    <input type="file" multiple @change="handleReplyFiles">
+                    Attach images or files
+                  </label>
+                  <button class="admin-btn primary" type="button" :disabled="replySending || (!replyText && !replyAttachments.length)" @click="sendReply">
+                    {{ replySending ? 'Sending...' : 'Send Reply' }}
+                  </button>
+                  <button class="admin-btn ghost" type="button" :disabled="statusSaving" @click="saveThreadStatus">
+                    {{ statusSaving ? 'Saving...' : 'Save Status Only' }}
+                  </button>
+                </div>
+              </div>
+              <div v-if="replyAttachments.length" class="attachment-chip-list">
+                <div v-for="attachment in replyAttachments" :key="attachment.id" class="attachment-chip">
+                  <span>{{ attachment.name }}</span>
+                  <button type="button" @click="removeReplyAttachment(attachment.id)">×</button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </section>
+      </div>
+    </section>
+
+    <section class="catalog-grid">
+      <article class="admin-card catalog-card">
+        <div class="section-title">
+          <div>
+            <h3>All Users</h3>
+            <p>Every profile visible to the admin account.</p>
+          </div>
+          <span class="section-chip">{{ filteredUsers.length }}</span>
+        </div>
+        <input class="toolbar-input" type="text" v-model.trim="userQuery" placeholder="Search user email or nickname" />
+        <div class="catalog-scroll">
+          <table class="catalog-table" v-if="filteredUsers.length">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Role</th>
+                <th>Joined</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in filteredUsers" :key="user.id">
+                <td>
+                  {{ user.nickname }}
+                  <span class="mini-muted">{{ user.email || 'No email' }}</span>
+                </td>
+                <td>{{ user.roleLabel || 'Member' }}</td>
+                <td>{{ user.createdAt }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">No users match the current search.</div>
+        </div>
+      </article>
+
+      <article class="admin-card catalog-card">
+        <div class="section-title">
+          <div>
+            <h3>All Clubs</h3>
+            <p>Current club names and publishing status.</p>
+          </div>
+          <span class="section-chip">{{ filteredClubs.length }}</span>
+        </div>
+        <input class="toolbar-input" type="text" v-model.trim="clubQuery" placeholder="Search club name, category, or slug" />
+        <div class="catalog-scroll">
+          <table class="catalog-table" v-if="filteredClubs.length">
+            <thead>
+              <tr>
+                <th>Club</th>
+                <th>Status</th>
+                <th>Category</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="club in filteredClubs" :key="club.id">
+                <td>
+                  {{ club.name }}
+                  <span class="mini-muted">{{ club.slug || 'No slug' }}</span>
+                </td>
+                <td>{{ club.status }}</td>
+                <td>{{ club.category || 'Uncategorized' }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">No clubs match the current search.</div>
+        </div>
+      </article>
+
+      <article class="admin-card catalog-card">
+        <div class="section-title">
+          <div>
+            <h3>All Courses</h3>
+            <p>Course titles and the club they belong to.</p>
+          </div>
+          <span class="section-chip">{{ filteredCourses.length }}</span>
+        </div>
+        <input class="toolbar-input" type="text" v-model.trim="courseQuery" placeholder="Search course title or club" />
+        <div class="catalog-scroll">
+          <table class="catalog-table" v-if="filteredCourses.length">
+            <thead>
+              <tr>
+                <th>Course</th>
+                <th>Club</th>
+                <th>Created</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="course in filteredCourses" :key="course.id">
+                <td>
+                  {{ course.title }}
+                  <span class="mini-muted">{{ course.slug || 'No slug' }}</span>
+                </td>
+                <td>{{ course.clubName || 'Standalone' }}</td>
+                <td>{{ course.createdAt }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="empty-state">No courses match the current search.</div>
+        </div>
+      </article>
+    </section>
+
+    <div class="page-footer">Admin access follows the Supabase logged-in session. Open this page after signing in on the same local domain.</div>
+  </div>
+
+  <script>
+    new Vue({
+      el: '#app',
+      data: function () {
+        return {
+          loading: false,
+          notice: '',
+          noticeKind: '',
+          authProfile: null,
+          users: [],
+          clubs: [],
+          courses: [],
+          threads: [],
+          selectedThreadId: '',
+          selectedMessages: [],
+          selectedMessagesLoading: false,
+          replyText: '',
+          replyStatus: 'open',
+          replyAttachments: [],
+          replySending: false,
+          statusSaving: false,
+          userQuery: '',
+          clubQuery: '',
+          courseQuery: '',
+          threadQuery: '',
+          threadCategoryFilter: 'all',
+          threadStatusFilter: 'all'
+        };
+      },
+      computed: {
+        authLabel: function () {
+          if (!this.authProfile) return 'Not signed in';
+          return this.authProfile.nickname || 'Admin';
+        },
+        authSubLabel: function () {
+          if (!this.authProfile) return 'Open the login page first, then refresh this admin console.';
+          return (this.authProfile.email || 'No email') + ' · ' + (this.authProfile.role === 'admin' ? 'Admin' : 'Member');
+        },
+        openThreadCount: function () {
+          return this.threads.filter(function (thread) {
+            return thread.status === 'open' || thread.status === 'waiting_reply';
+          }).length;
+        },
+        filteredUsers: function () {
+          var query = String(this.userQuery || '').trim().toLowerCase();
+          if (!query) return this.users;
+          return this.users.filter(function (user) {
+            return [user.nickname, user.email, user.role, user.roleLabel].join(' ').toLowerCase().indexOf(query) > -1;
+          });
+        },
+        filteredClubs: function () {
+          var query = String(this.clubQuery || '').trim().toLowerCase();
+          if (!query) return this.clubs;
+          return this.clubs.filter(function (club) {
+            return [club.name, club.slug, club.category, club.status].join(' ').toLowerCase().indexOf(query) > -1;
+          });
+        },
+        filteredCourses: function () {
+          var query = String(this.courseQuery || '').trim().toLowerCase();
+          if (!query) return this.courses;
+          return this.courses.filter(function (course) {
+            return [course.title, course.slug, course.clubName].join(' ').toLowerCase().indexOf(query) > -1;
+          });
+        },
+        filteredThreads: function () {
+          var query = String(this.threadQuery || '').trim().toLowerCase();
+          var category = this.threadCategoryFilter;
+          var status = this.threadStatusFilter;
+          return this.threads.filter(function (thread) {
+            var matchesCategory = category === 'all' || thread.category === category;
+            var matchesStatus = status === 'all' || thread.status === status;
+            var haystack = [
+              thread.userName,
+              thread.userEmail,
+              thread.subject,
+              thread.lastMessagePreview,
+              thread.category
+            ].join(' ').toLowerCase();
+            var matchesQuery = !query || haystack.indexOf(query) > -1;
+            return matchesCategory && matchesStatus && matchesQuery;
+          });
+        },
+        selectedThread: function () {
+          var selectedId = String(this.selectedThreadId || '').trim();
+          return this.threads.find(function (thread) {
+            return thread.id === selectedId;
+          }) || null;
+        }
+      },
+      methods: {
+        getAdminService: function () {
+          return window.platformAdminSupabase || null;
+        },
+        isImageAttachment: function (attachment) {
+          var type = String((attachment && attachment.type) || '').toLowerCase();
+          var kind = String((attachment && attachment.kind) || '').toLowerCase();
+          return kind === 'image' || type.indexOf('image/') === 0;
+        },
+        statusBadgeClass: function (status) {
+          return 'status-' + String(status || 'open').trim().toLowerCase().replace(/[^a-z0-9]+/g, '_');
+        },
+        formatStatus: function (status) {
+          var value = String(status || 'open').replace(/_/g, ' ');
+          return value.charAt(0).toUpperCase() + value.slice(1);
+        },
+        formatCategory: function (category) {
+          var value = String(category || 'General').trim();
+          if (value === 'Course Widget') return 'Course Widget';
+          if (value === 'General') return 'Support Center';
+          return value;
+        },
+        formatThreadInitial: function (name) {
+          var value = String(name || '').trim();
+          if (!value) return '?';
+          return value.charAt(0).toUpperCase();
+        },
+        setNotice: function (message, kind) {
+          this.notice = String(message || '').trim();
+          this.noticeKind = kind || '';
+        },
+        clearReplyComposer: function () {
+          this.replyText = '';
+          this.replyAttachments = [];
+        },
+        async refreshDashboard() {
+          var service = this.getAdminService();
+          if (!service || typeof service.fetchAdminDashboard !== 'function' || !service.isConfigured()) {
+            this.setNotice('Supabase is not configured on this page yet. Check js/supabase-config.js first.', 'error');
+            return;
+          }
+          this.loading = true;
+          try {
+            var snapshot = await service.fetchAdminDashboard();
+            this.authProfile = snapshot.profile || null;
+            this.users = Array.isArray(snapshot.users) ? snapshot.users : [];
+            this.clubs = Array.isArray(snapshot.clubs) ? snapshot.clubs : [];
+            this.courses = Array.isArray(snapshot.courses) ? snapshot.courses : [];
+            this.threads = Array.isArray(snapshot.threads) ? snapshot.threads : [];
+            this.setNotice('Admin data is live from Supabase. Support Center and Course Widget threads are loaded in one inbox.', '');
+
+            var selectedId = String(this.selectedThreadId || '').trim();
+            var nextThread = null;
+            if (selectedId) {
+              nextThread = this.threads.find(function (thread) { return thread.id === selectedId; }) || null;
+            }
+            if (!nextThread && this.threads.length) {
+              nextThread = this.filteredThreads.length ? this.filteredThreads[0] : this.threads[0];
+            }
+            if (nextThread) {
+              await this.selectThread(nextThread, true);
+            } else {
+              this.selectedThreadId = '';
+              this.selectedMessages = [];
+            }
+          } catch (error) {
+            this.authProfile = null;
+            this.users = [];
+            this.clubs = [];
+            this.courses = [];
+            this.threads = [];
+            this.selectedThreadId = '';
+            this.selectedMessages = [];
+            this.setNotice(service.mapSupportError(error), 'error');
+          } finally {
+            this.loading = false;
+          }
+        },
+        async selectThread(thread, preserveComposer) {
+          var service = this.getAdminService();
+          if (!thread || !service) return;
+          this.selectedThreadId = thread.id;
+          this.replyStatus = thread.status || 'open';
+          if (!preserveComposer) {
+            this.clearReplyComposer();
+          }
+          this.selectedMessagesLoading = true;
+          try {
+            this.selectedMessages = await service.fetchSupportThreadMessages(thread.id);
+            this.$nextTick(this.scrollMessagesToBottom);
+          } catch (error) {
+            this.selectedMessages = [];
+            this.setNotice(service.mapSupportError(error), 'error');
+          } finally {
+            this.selectedMessagesLoading = false;
+          }
+        },
+        async handleReplyFiles(event) {
+          var service = this.getAdminService();
+          var files = Array.from((event && event.target && event.target.files) ? event.target.files : []);
+          if (!service || !files.length) return;
+          var tasks = files.map(function (file) {
+            return service.readFileAsDataUrl(file).then(function (dataUrl) {
+              return {
+                id: 'reply-att-' + Date.now() + '-' + Math.random().toString(36).slice(2, 8),
+                name: file.name,
+                title: file.name,
+                type: file.type || '',
+                size: Number(file.size || 0),
+                dataUrl: dataUrl
+              };
+            });
+          });
+          try {
+            var uploaded = await Promise.all(tasks);
+            this.replyAttachments = this.replyAttachments.concat(uploaded);
+          } catch (error) {
+            this.setNotice(service.mapSupportError(error), 'error');
+          } finally {
+            if (event && event.target) event.target.value = '';
+          }
+        },
+        removeReplyAttachment: function (attachmentId) {
+          this.replyAttachments = this.replyAttachments.filter(function (attachment) {
+            return attachment.id !== attachmentId;
+          });
+        },
+        async sendReply() {
+          var service = this.getAdminService();
+          if (!service || !this.selectedThread) return;
+          this.replySending = true;
+          try {
+            var result = await service.sendSupportReply({
+              threadId: this.selectedThread.id,
+              text: this.replyText,
+              attachments: this.replyAttachments,
+              status: this.replyStatus
+            }, this.authProfile);
+            this.replyText = '';
+            this.replyAttachments = [];
+            this.selectedMessages = this.selectedMessages.concat(result.message);
+            this.threads = this.threads.map(function (thread) {
+              if (thread.id !== result.thread.id) return thread;
+              return Object.assign({}, thread, result.thread, {
+                lastMessageAt: result.message.createdAt,
+                lastMessageTs: result.message.createdTs,
+                lastMessagePreview: result.message.text || 'Attachment',
+                lastSenderRole: result.message.senderRole
+              });
+            }).sort(function (a, b) {
+              return (b.lastMessageTs || b.updatedTs || 0) - (a.lastMessageTs || a.updatedTs || 0);
+            });
+            this.$nextTick(this.scrollMessagesToBottom);
+            this.setNotice('Reply sent successfully.', '');
+          } catch (error) {
+            this.setNotice(service.mapSupportError(error), 'error');
+          } finally {
+            this.replySending = false;
+          }
+        },
+        async saveThreadStatus() {
+          var service = this.getAdminService();
+          if (!service || !this.selectedThread) return;
+          this.statusSaving = true;
+          try {
+            var updated = await service.updateSupportThreadStatus(this.selectedThread.id, this.replyStatus);
+            this.threads = this.threads.map(function (thread) {
+              return thread.id === updated.id ? Object.assign({}, thread, updated) : thread;
+            });
+            this.setNotice('Thread status updated.', '');
+          } catch (error) {
+            this.setNotice(service.mapSupportError(error), 'error');
+          } finally {
+            this.statusSaving = false;
+          }
+        },
+        scrollMessagesToBottom: function () {
+          var box = this.$refs.messageList;
+          if (box) box.scrollTop = box.scrollHeight;
+        }
+      },
+      mounted: function () {
+        this.refreshDashboard();
+      }
+    });
+  </script>
+</body>
+</html>

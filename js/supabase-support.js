@@ -1646,10 +1646,12 @@
   }
 
   async function resolveActiveSupportThread(client, currentUserId, subject, category) {
+    var normalizedCategory = trimText(category) || 'General';
     var threadResult = await client
       .from('support_threads')
       .select('id, status, subject, category, updated_at')
       .eq('user_id', normalizeId(currentUserId))
+      .eq('category', normalizedCategory)
       .order('updated_at', { ascending: false })
       .limit(1);
 
@@ -1662,7 +1664,7 @@
         .insert({
           user_id: normalizeId(currentUserId),
           subject: buildSupportSubject(subject),
-          category: trimText(category) || null,
+          category: normalizedCategory,
           status: 'open'
         })
         .select('id, status, subject, category, updated_at')
@@ -1676,7 +1678,7 @@
       status: 'waiting_reply'
     };
     if (!trimText(current.subject)) updatePatch.subject = buildSupportSubject(subject);
-    if (!trimText(current.category) && trimText(category)) updatePatch.category = trimText(category);
+    if (!trimText(current.category)) updatePatch.category = normalizedCategory;
 
     var updateResult = await client
       .from('support_threads')

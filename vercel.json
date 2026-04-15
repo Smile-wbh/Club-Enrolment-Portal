@@ -27,6 +27,11 @@
       "permanent": false
     },
     {
+      "source": "/admin",
+      "destination": "/html/admin.html",
+      "permanent": false
+    },
+    {
       "source": "/clubs",
       "destination": "/html/Club-Preview.html",
       "permanent": false
