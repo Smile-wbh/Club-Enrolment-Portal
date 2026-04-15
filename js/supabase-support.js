@@ -265,7 +265,7 @@
     return value.length > 60 ? (value.slice(0, 60) + '...') : value;
   }
 
-  var SUPPORT_HUMAN_HANDOFF_REPLY = '我们已收到您的问题，将转到人工客服，请稍等。';
+  var SUPPORT_HUMAN_HANDOFF_REPLY = 'We have received your question and will transfer it to a human support agent. Please wait a moment.';
   var SUPPORT_ATTACHMENT_ONLY_REPLY = 'Thanks, we received your attachment. A support agent will review it shortly. If possible, please reply with the club or course name, the date and time, and a short note about the issue.';
   var SUPPORT_DEFAULT_REPLY = 'Thanks for your message. I can help with bookings, locations, course details, payments, and support history. If you share the club or course name and the date or time you care about, I can narrow it down right away.';
   var SUPPORT_AUTO_REPLY_CACHE_TTL = 5 * 60 * 1000;
@@ -282,11 +282,7 @@
     'manual support',
     'human support',
     'real person',
-    'switch to manual mode',
-    '人工',
-    '人工客服',
-    '转人工',
-    '转接人工'
+    'switch to manual mode'
   ]);
   var SUPPORT_CLUB_SELECT = 'id, slug, name, category, mode, location, map_link, time_text, fee_text, seats, description, venue_info, what_we_do, audience, training_plan, notes, tags, status';
   var SUPPORT_COURSE_SELECT = 'id, slug, club_id, title, level, mode, time_text, schedule, location, map_link, fee_text, seats, description, detail, coach_name, coach_title, coach_bio, learning_points, audience_tips, notes_list, created_at, club:clubs(name, slug, category, location, mode)';

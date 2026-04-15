@@ -2542,8 +2542,8 @@ insert into public.support_auto_reply_rules (
 values
   (
     'human-handoff',
-    array['human','agent','representative','customer service','support staff','live support','manual','manual mode','manual support','human support','real person','switch to manual mode','人工','人工客服','转人工','转接人工']::text[],
-    '我们已收到您的问题，将转到人工客服，请稍等。',
+    array['human','agent','representative','customer service','support staff','live support','manual','manual mode','manual support','human support','real person','switch to manual mode']::text[],
+    'We have received your question and will transfer it to a human support agent. Please wait a moment.',
     5,
     true,
     false,
