@@ -12,7 +12,7 @@
   <script src="../js/supabase-club-admin.js?v=20260401-1"></script>
   <script src="../js/supabase-local-migration.js?v=20260403-2"></script>
   <script src="../js/custom-dialogs.js?v=20260414-delete-2"></script>
-  <link rel="stylesheet" href="../css/club_management_dashboard.css">
+  <link rel="stylesheet" href="../css/club_management_dashboard.css?v=20260422-file-input-1">
   <link rel="stylesheet" href="../css/club-support.css?v=20260414-clubsupport-4">
   <script src="../js/portal-footer.js?v=20260415-footer-modal-1" defer></script>
 </head>
@@ -313,10 +313,14 @@
                   Capacity
                   <input id="regCapacity" type="number" min="1" value="20">
                 </label>
-                <label class="span-2">
-                  Cover image upload (used on the detail page)
-                  <input id="regCoverFile" type="file" accept="image/*">
-                </label>
+                <div class="form-field span-2">
+                  <div>Cover image upload (used on the detail page)</div>
+                  <div class="custom-file-field">
+                    <input id="regCoverFile" class="custom-file-input" type="file" accept="image/*">
+                    <label class="custom-file-button" for="regCoverFile">Choose File</label>
+                    <span class="custom-file-name" id="regCoverFileName" data-empty-text="No file chosen" aria-live="polite">No file chosen</span>
+                  </div>
+                </div>
                 <label class="span-2">
                   Hero Subtitle
                   <input id="regHeroSub" type="text" placeholder="Short intro below the club name in the hero section.">
@@ -504,10 +508,14 @@
                     Capacity
                     <input id="clubEditCapacity" type="number" min="1" value="20">
                   </label>
-                  <label class="span-2">
-                    Cover image upload (used on the detail page)
-                    <input id="clubEditCoverFile" type="file" accept="image/*">
-                  </label>
+                  <div class="form-field span-2">
+                    <div>Cover image upload (used on the detail page)</div>
+                    <div class="custom-file-field">
+                      <input id="clubEditCoverFile" class="custom-file-input" type="file" accept="image/*">
+                      <label class="custom-file-button" for="clubEditCoverFile">Choose File</label>
+                      <span class="custom-file-name" id="clubEditCoverFileName" data-empty-text="No file chosen" aria-live="polite">No file chosen</span>
+                    </div>
+                  </div>
                   <label class="span-2">
                     Hero Subtitle
                     <input id="clubEditHeroSub" type="text" placeholder="Short intro below the club name in the hero section.">
@@ -762,10 +770,14 @@
                     <input id="courseFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
                   </div>
                 </label>
-                <label>
-                  Cover image upload (optional, uses the club cover if left blank)
-                  <input id="courseCoverFile" type="file" accept="image/*">
-                </label>
+                <div class="form-field">
+                  <div>Cover image upload (optional, uses the club cover if left blank)</div>
+                  <div class="custom-file-field">
+                    <input id="courseCoverFile" class="custom-file-input" type="file" accept="image/*">
+                    <label class="custom-file-button" for="courseCoverFile">Choose File</label>
+                    <span class="custom-file-name" id="courseCoverFileName" data-empty-text="No file chosen" aria-live="polite">No file chosen</span>
+                  </div>
+                </div>
                 <div class="form-section-title span-2">Detail Content</div>
                 <label class="span-2">
                   Course schedule
@@ -947,10 +959,14 @@
                       <input id="courseEditFee" type="text" inputmode="decimal" placeholder="e.g. 3 per session">
                     </div>
                   </label>
-                  <label>
-                    Cover image upload (optional, keeps the current cover or uses the club cover)
-                    <input id="courseEditCoverFile" type="file" accept="image/*">
-                  </label>
+                  <div class="form-field">
+                    <div>Cover image upload (optional, keeps the current cover or uses the club cover)</div>
+                    <div class="custom-file-field">
+                      <input id="courseEditCoverFile" class="custom-file-input" type="file" accept="image/*">
+                      <label class="custom-file-button" for="courseEditCoverFile">Choose File</label>
+                      <span class="custom-file-name" id="courseEditCoverFileName" data-empty-text="No file chosen" aria-live="polite">No file chosen</span>
+                    </div>
+                  </div>
                   <div class="form-section-title span-2">Detail Content</div>
                   <label class="span-2">
                     Course schedule
@@ -1863,6 +1879,46 @@
           reader.onload = function(){ resolve(reader.result); };
           reader.onerror = reject;
           reader.readAsDataURL(file);
+        });
+      }
+
+      var managedFileInputs = [
+        { inputId: 'regCoverFile', nameId: 'regCoverFileName' },
+        { inputId: 'clubEditCoverFile', nameId: 'clubEditCoverFileName' },
+        { inputId: 'courseCoverFile', nameId: 'courseCoverFileName' },
+        { inputId: 'courseEditCoverFile', nameId: 'courseEditCoverFileName' }
+      ];
+
+      function refreshManagedFileInput(inputId){
+        var config = managedFileInputs.find(function(item){
+          return item.inputId === String(inputId || '').trim();
+        }) || null;
+        if(!config) return;
+        var input = document.getElementById(config.inputId);
+        var name = document.getElementById(config.nameId);
+        if(!input || !name) return;
+        var emptyText = String(name.getAttribute('data-empty-text') || 'No file chosen').trim() || 'No file chosen';
+        var file = input.files && input.files[0] ? input.files[0] : null;
+        var nextText = file && String(file.name || '').trim() ? String(file.name).trim() : emptyText;
+        name.textContent = nextText;
+        name.classList.toggle('has-file', !!file);
+      }
+
+      function refreshAllManagedFileInputs(){
+        managedFileInputs.forEach(function(item){
+          refreshManagedFileInput(item.inputId);
+        });
+      }
+
+      function bindManagedFileInputs(){
+        managedFileInputs.forEach(function(item){
+          var input = document.getElementById(item.inputId);
+          if(!input || input.getAttribute('data-file-ui-bound') === 'true') return;
+          input.setAttribute('data-file-ui-bound', 'true');
+          input.addEventListener('change', function(){
+            refreshManagedFileInput(item.inputId);
+          });
+          refreshManagedFileInput(item.inputId);
         });
       }
 
@@ -4388,6 +4444,7 @@
         if(refs.fee) refs.fee.value = '';
         if(refs.capacity) refs.capacity.value = '';
         if(refs.coverFile) refs.coverFile.value = '';
+        refreshManagedFileInput('clubEditCoverFile');
         if(refs.coverUrl) refs.coverUrl.value = '';
         if(refs.heroSub) refs.heroSub.value = '';
         if(refs.tags) refs.tags.value = '';
@@ -4433,6 +4490,7 @@
         refs.fee.value = stripClubFeePrefix(club.fee || '');
         refs.capacity.value = Number(club.seats || 0) > 0 ? Number(club.seats) : 20;
         refs.coverFile.value = '';
+        refreshManagedFileInput('clubEditCoverFile');
         if(refs.coverUrl) refs.coverUrl.value = sanitizeClubCoverValue(club.cover || '');
         if(refs.heroSub) refs.heroSub.value = club.heroSub || '';
         if(refs.tags) refs.tags.value = joinMultiValue(club.tags || '');
@@ -4475,6 +4533,7 @@
         if(refs.seats) refs.seats.value = '';
         if(refs.fee) refs.fee.value = '';
         if(refs.coverFile) refs.coverFile.value = '';
+        refreshManagedFileInput('courseEditCoverFile');
         if(refs.schedule) refs.schedule.value = '';
         if(refs.detail) refs.detail.value = '';
         if(refs.coachName) refs.coachName.value = '';
@@ -4517,6 +4576,7 @@
         refs.seats.value = Number(course.seats || 0) > 0 ? Number(course.seats) : 12;
         refs.fee.value = stripClubFeePrefix(course.fee || '');
         if(refs.coverFile) refs.coverFile.value = '';
+        refreshManagedFileInput('courseEditCoverFile');
         refs.schedule.value = joinMultiValue(course.schedule || course.time || '');
         refs.detail.value = course.detail || '';
         refs.coachName.value = course.coachName || '';
@@ -4598,6 +4658,7 @@
             var service = getAdminService();
             await service.createClub(club, state.sessionUserId);
             if(e.target) e.target.reset();
+            refreshManagedFileInput('regCoverFile');
             resetClubTimeBuilder('create');
             await refreshState();
             renderAll();
@@ -4615,6 +4676,7 @@
         state.clubs.unshift(club);
         saveData(KEYS.clubs, state.clubs);
         if(e.target) e.target.reset();
+        refreshManagedFileInput('regCoverFile');
         resetClubTimeBuilder('create');
         await refreshState();
         renderAll();
@@ -4836,6 +4898,7 @@
             var service = getAdminService();
             await service.createCourse(course, state.sessionUserId);
             if(e.target) e.target.reset();
+            refreshManagedFileInput('courseCoverFile');
             resetCourseTimeBuilder('publish');
             refreshCourseMapPreview('publish', '', '');
             await refreshState();
@@ -4854,6 +4917,7 @@
         state.courses.unshift(course);
         saveData(KEYS.courses, state.courses);
         if(e.target) e.target.reset();
+        refreshManagedFileInput('courseCoverFile');
         resetCourseTimeBuilder('publish');
         refreshCourseMapPreview('publish', '', '');
         await refreshState();
@@ -5236,6 +5300,7 @@
       }
 
       function bindEvents(){
+        bindManagedFileInputs();
         initClubTimeBuilder('create');
         initClubTimeBuilder('edit');
         bindClubMapControls('create');
@@ -5313,6 +5378,7 @@
           window.requestAnimationFrame(function(){
             resetClubTimeBuilder('create');
             refreshClubMapPreview('create', '', '');
+            refreshManagedFileInput('regCoverFile');
             syncClubAccessFields('create');
           });
         });
@@ -5327,6 +5393,7 @@
           window.requestAnimationFrame(function(){
             resetClubTimeBuilder('edit');
             refreshClubMapPreview('edit', '', '');
+            refreshManagedFileInput('clubEditCoverFile');
             syncClubAccessFields('edit');
           });
         });
@@ -5342,6 +5409,7 @@
           window.requestAnimationFrame(function(){
             resetCourseTimeBuilder('publish');
             refreshCourseMapPreview('publish', '', '');
+            refreshManagedFileInput('courseCoverFile');
           });
         });
         document.getElementById('courseEditForm').addEventListener('submit', handleEditCourseSubmit);
@@ -5349,6 +5417,7 @@
           window.requestAnimationFrame(function(){
             resetCourseTimeBuilder('edit');
             refreshCourseMapPreview('edit', '', '');
+            refreshManagedFileInput('courseEditCoverFile');
           });
         });
         document.getElementById('clubEditCancelBtn').addEventListener('click', function(){
@@ -5584,6 +5653,7 @@
 
       async function init(){
         bindEvents();
+        refreshAllManagedFileInputs();
         syncClubAccessFields('create');
         syncClubAccessFields('edit');
         await refreshState();

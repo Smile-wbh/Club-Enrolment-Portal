@@ -545,6 +545,17 @@ body {
   color: #314767;
 }
 
+.messages-tool-btn:disabled,
+.messages-tool-btn.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.4;
+  pointer-events: none;
+  transform: none;
+  background: transparent;
+  color: #98a6bb;
+  box-shadow: none;
+}
+
 .messages-tool-btn.is-open {
   background: rgba(223, 233, 250, 0.96);
   color: #2f4f83;
@@ -783,6 +794,12 @@ body {
 .messages-compose textarea:focus {
   border-color: #6ea5ff;
   box-shadow: 0 0 0 4px rgba(88, 142, 255, 0.12);
+}
+
+.messages-compose textarea:disabled {
+  cursor: not-allowed;
+  color: #8293ad;
+  background: #eef3fb;
 }
 
 #messagesSendBtn {

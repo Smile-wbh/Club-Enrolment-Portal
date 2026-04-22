@@ -629,7 +629,7 @@
     if (!head) return;
     var conversation = selectedConversation();
     if (!conversation) {
-      head.innerHTML = '<div class="messages-panel-user-copy"><div class="messages-panel-user-name">Messages</div><div class="messages-panel-user-email">Select a conversation from the left to start chatting.</div></div>';
+      head.innerHTML = '<div class="messages-panel-user-copy"><div class="messages-panel-user-name">Messages</div><div class="messages-panel-user-email">Click a conversation on the left to view your chat history.</div></div>';
       return;
     }
 
@@ -644,26 +644,72 @@
       '</div>';
   }
 
-  function renderThread() {
-    var thread = document.getElementById('messagesThread');
+  function setComposeEnabled(enabled) {
+    var canCompose = !!enabled;
     var input = document.getElementById('messagesComposeInput');
     var sendBtn = document.getElementById('messagesSendBtn');
-    if (!thread || !input || !sendBtn) return;
+    var emojiBtn = document.getElementById('messagesEmojiBtn');
+    var linkBtn = document.getElementById('messagesLinkBtn');
+    var imageInput = document.getElementById('messagesImageInput');
+    var videoInput = document.getElementById('messagesVideoInput');
+    var imageTrigger = document.getElementById('messagesImageTrigger');
+    var videoTrigger = document.getElementById('messagesVideoTrigger');
+    var form = document.getElementById('messagesComposeForm');
+
+    if (input) {
+      input.disabled = !canCompose;
+      input.placeholder = canCompose ? 'Type a message...' : 'Select a conversation from the left first...';
+      if (!canCompose) {
+        input.blur();
+      }
+    }
+    if (sendBtn) {
+      sendBtn.disabled = !canCompose;
+    }
+    if (emojiBtn) {
+      emojiBtn.disabled = !canCompose;
+      emojiBtn.classList.toggle('is-disabled', !canCompose);
+    }
+    if (linkBtn) {
+      linkBtn.disabled = !canCompose;
+      linkBtn.classList.toggle('is-disabled', !canCompose);
+    }
+    if (imageInput) {
+      imageInput.disabled = !canCompose;
+    }
+    if (videoInput) {
+      videoInput.disabled = !canCompose;
+    }
+    if (imageTrigger) {
+      imageTrigger.classList.toggle('is-disabled', !canCompose);
+    }
+    if (videoTrigger) {
+      videoTrigger.classList.toggle('is-disabled', !canCompose);
+    }
+    if (form) {
+      form.classList.toggle('is-disabled', !canCompose);
+    }
+    if (!canCompose) {
+      toggleEmojiPicker(false);
+    }
+  }
+
+  function renderThread() {
+    var thread = document.getElementById('messagesThread');
+    if (!thread) return;
 
     var conversation = selectedConversation();
     if (!conversation) {
       thread.innerHTML =
         '<div class="messages-thread-empty">' +
           '<h2>Select a conversation</h2>' +
-          '<p>Open <strong>Send Message</strong> from another user\'s profile, or click a message inside your dashboard to continue chatting here.</p>' +
+          '<p>Your chat area stays empty until you click a conversation on the left. You can also use <strong>Send Message</strong> from another user\'s profile to open a new chat here.</p>' +
         '</div>';
-      input.disabled = true;
-      sendBtn.disabled = true;
+      setComposeEnabled(false);
       return;
     }
 
-    input.disabled = false;
-    sendBtn.disabled = false;
+    setComposeEnabled(true);
 
     var notices =
       '<div class="messages-thread-notice">Please keep the conversation respectful. Inappropriate content may be reviewed by platform administrators.</div>' +
@@ -737,11 +783,13 @@
     }).filter(Boolean);
     var profileMap = await fetchProfileMap(ids);
     state.conversations = buildConversations(state.rows, profileMap);
+    var nextSelectedKey = '';
     if (preferredKey && state.conversations.some(function (item) { return item.key === preferredKey; })) {
-      state.selectedKey = preferredKey;
-    } else if (!state.selectedKey || !state.conversations.some(function (item) { return item.key === state.selectedKey; })) {
-      state.selectedKey = state.conversations.length ? state.conversations[0].key : '';
+      nextSelectedKey = preferredKey;
+    } else if (state.selectedKey && state.conversations.some(function (item) { return item.key === state.selectedKey; })) {
+      nextSelectedKey = state.selectedKey;
     }
+    state.selectedKey = nextSelectedKey;
     renderConversationList();
     renderPanelHead();
     renderThread();

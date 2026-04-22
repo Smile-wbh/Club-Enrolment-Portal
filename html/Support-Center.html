@@ -72,7 +72,7 @@
           <div class="service-title">Service Information</div>
           <div class="service-kv">
             <div>Support Hours: <span>Monday to Friday 09:00 - 18:00</span></div>
-            <div>Email: <span>support@club-portal.demo</span></div>
+            <div>Email: <span>B.WANG6-2024@hull.ac.uk</span></div>
             <div>Phone: <span>+44 0000 000000</span></div>
             <div>Reply Time: <span>24-48 hours</span></div>
             <div class="service-note">You can browse the FAQ on this page. To submit a question, use the chat window below. History can be viewed in "User Login → Personal Center → My Support".</div>
@@ -121,7 +121,7 @@
             <div class="consult-chat">
               <div class="consult-chat-head">
                 <div class="consult-chat-title">Support Conversation</div>
-                <div class="consult-chat-sub">{{ sessionEmail || 'Guest User' }}</div>
+                <div class="consult-chat-sub">{{ consultHeaderIdentity }}</div>
               </div>
               <div class="consult-chat-body" ref="consultBody">
                 <div v-if="filteredConsultMessages.length === 0" class="consult-chat-empty">No support history yet</div>
@@ -303,6 +303,12 @@
     computed:{
       isAuthed(){
         return !!this.sessionEmail;
+      },
+      consultHeaderIdentity(){
+        const nickname = String(this.sessionNickname || '').trim();
+        if(!this.isAuthed) return 'Guest User';
+        if(nickname && nickname.indexOf('@') === -1) return nickname;
+        return 'Logged-in user';
       },
       consultUserId(){
         return this.sessionEmail ? ('user:' + this.sessionEmail) : '';

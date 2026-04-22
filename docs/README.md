@@ -121,7 +121,7 @@ Recent cleanup completed:
 
 If someone wants to understand the project quickly, read files in this order:
 
-1. `README.md`
+1. `docs/README.md`
 2. `html/home.html`
 3. `html/join.html`
 4. `html/Club-Preview.html`
