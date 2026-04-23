@@ -3350,7 +3350,10 @@
           const { error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
-              redirectTo: this.buildJoinRedirectUrl()
+              redirectTo: this.buildJoinRedirectUrl(),
+              queryParams: {
+                prompt: 'select_account'
+              }
             }
           });
           if(error){
