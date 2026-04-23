@@ -151,82 +151,6 @@ async function deleteByQuery(config, table, query) {
   });
 }
 
-async function updateByQuery(config, table, query, body) {
-  await postgrestRequest(config, table, {
-    method: 'PATCH',
-    query,
-    body,
-    prefer: 'return=minimal'
-  });
-}
-
-async function fetchRows(config, table, query) {
-  const rows = await postgrestRequest(config, table, { query });
-  return Array.isArray(rows) ? rows : [];
-}
-
-async function hasOwnedCatalogRows(config, userId) {
-  const normalizedUserId = String(userId || '').trim();
-  if (!normalizedUserId) return false;
-
-  const makeQuery = () => new URLSearchParams({
-    select: 'id',
-    owner_id: `eq.${normalizedUserId}`,
-    limit: '1'
-  });
-
-  const clubRows = await fetchRows(config, 'clubs', makeQuery());
-  if (clubRows.length) return true;
-
-  const courseRows = await fetchRows(config, 'courses', makeQuery());
-  return courseRows.length > 0;
-}
-
-async function findFallbackCatalogOwnerId(config, deletedUserId) {
-  const normalizedUserId = String(deletedUserId || '').trim();
-  if (!normalizedUserId) return '';
-
-  const adminQuery = new URLSearchParams({
-    select: 'id',
-    id: `neq.${normalizedUserId}`,
-    role: 'eq.admin',
-    order: 'created_at.asc',
-    limit: '1'
-  });
-  const adminRows = await fetchRows(config, 'profiles', adminQuery);
-  if (adminRows[0] && adminRows[0].id) return String(adminRows[0].id).trim();
-
-  const fallbackQuery = new URLSearchParams({
-    select: 'id',
-    id: `neq.${normalizedUserId}`,
-    order: 'created_at.asc',
-    limit: '1'
-  });
-  const fallbackRows = await fetchRows(config, 'profiles', fallbackQuery);
-  return fallbackRows[0] && fallbackRows[0].id ? String(fallbackRows[0].id).trim() : '';
-}
-
-async function transferOwnedCatalog(config, userId) {
-  const normalizedUserId = String(userId || '').trim();
-  if (!normalizedUserId || !(await hasOwnedCatalogRows(config, normalizedUserId))) {
-    return '';
-  }
-
-  const fallbackOwnerId = await findFallbackCatalogOwnerId(config, normalizedUserId);
-  if (!fallbackOwnerId) {
-    const error = new Error('catalog_owner_transfer_unavailable');
-    error.statusCode = 409;
-    throw error;
-  }
-
-  const ownerQuery = new URLSearchParams({
-    owner_id: `eq.${normalizedUserId}`
-  });
-  await updateByQuery(config, 'courses', ownerQuery, { owner_id: fallbackOwnerId });
-  await updateByQuery(config, 'clubs', ownerQuery, { owner_id: fallbackOwnerId });
-  return fallbackOwnerId;
-}
-
 async function deleteAccountData(config, userId, email) {
   const normalizedEmail = String(email || '').trim().toLowerCase();
 
@@ -246,7 +170,13 @@ async function deleteAccountData(config, userId, email) {
     }));
   }
 
-  await transferOwnedCatalog(config, userId);
+  await deleteByQuery(config, 'courses', new URLSearchParams({
+    owner_id: `eq.${userId}`
+  }));
+
+  await deleteByQuery(config, 'clubs', new URLSearchParams({
+    owner_id: `eq.${userId}`
+  }));
 
   if (normalizedEmail) {
     await deleteByQuery(config, 'email_verification_codes', new URLSearchParams({
@@ -312,9 +242,7 @@ module.exports = async function handler(req, res) {
       ? 'Please sign in again before deleting this account.'
       : lower.indexOf('missing_config') > -1
         ? 'Account deletion is not configured yet.'
-        : lower.indexOf('catalog_owner_transfer_unavailable') > -1
-          ? 'This account owns club or course catalog data. Create another account first so the catalog can be transferred safely.'
-          : 'Unable to delete this account right now.';
+        : 'Unable to delete this account right now.';
 
     sendJson(res, status, {
       error: (error && error.message) || 'delete_account_failed',
